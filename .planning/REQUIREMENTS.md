@@ -1,7 +1,7 @@
 # Requirements: Samsara
 
 **Defined:** 2026-01-23
-**Core Value:** Architecture as the Advantage — Zero Latency, Zero Egress, Zero Per-Seat Tax
+**Core Value:** Architecture as the Advantage - Zero Latency, Zero Egress, Zero Per-Seat Tax
 
 ## v1 Requirements
 
@@ -24,8 +24,16 @@
 #### Human-in-the-Loop Visual Editor (F-03)
 
 - [ ] **F-03a**: Split view: Original CV on left | Parsed fields on right
-- [ ] **F-03b**: Instant fix: click "Wrong Phone Number" on PDF → validate/fix field immediately
+- [ ] **F-03b**: Instant fix: click "Wrong Phone Number" on PDF -> validate/fix field immediately
 - [ ] **F-03c**: Branding engine: apply theme.json (Logo, Colors, Headers) to generate final Client PDF
+
+#### JD Matching (M-01)
+
+- [ ] **M-01a**: User can paste or upload a Job Description
+- [ ] **M-01b**: User can select multiple CVs to rate against a JD
+- [ ] **M-01c**: System scores each CV against the JD (% match or ranking score)
+- [ ] **M-01d**: CVs appear ranked by match score for each JD
+- [ ] **M-01e**: Matching skills/requirements are highlighted in the CV view
 
 ## v2 Requirements
 
@@ -68,23 +76,36 @@
 
 ## Traceability
 
-| Requirement | Phase | Status |
-|-------------|-------|--------|
-| F-01a | Phase 1 | Pending |
-| F-01b | Phase 1 | Pending |
-| F-01c | Phase 1 | Pending |
-| F-02a | Phase 1 | Pending |
-| F-02b | Phase 1 | Pending |
-| F-02c | Phase 1 | Pending |
-| F-03a | Phase 1 | Pending |
-| F-03b | Phase 1 | Pending |
-| F-03c | Phase 1 | Pending |
+| Requirement | Roadmap Phase | Status |
+|-------------|---------------|--------|
+| F-01a | Phase 6: Bulk Processing & OS Integration | Pending |
+| F-01b | Phase 6: Bulk Processing & OS Integration | Pending |
+| F-01c | Phase 2: Parsing Pipeline | Pending |
+| F-02a | Phase 2: Parsing Pipeline | Pending |
+| F-02b | Phase 5: Anonymization & Branding | Pending |
+| F-02c | Phase 5: Anonymization & Branding | Pending |
+| F-03a | Phase 3: Visual Editor | Pending |
+| F-03b | Phase 3: Visual Editor | Pending |
+| F-03c | Phase 5: Anonymization & Branding | Pending |
+| M-01a | Phase 4: JD Matching | Pending |
+| M-01b | Phase 4: JD Matching | Pending |
+| M-01c | Phase 4: JD Matching | Pending |
+| M-01d | Phase 4: JD Matching | Pending |
+| M-01e | Phase 4: JD Matching | Pending |
 
 **Coverage:**
-- v1 requirements: 9 total
-- Mapped to phases: 9
-- Unmapped: 0 ✓
+- v1 requirements: 14 total
+- Mapped to phases: 14
+- Unmapped: 0
+
+**Phase Distribution:**
+- Phase 1 (Foundation & Distribution): 0 requirements (infrastructure)
+- Phase 2 (Parsing Pipeline): 2 requirements (F-01c, F-02a)
+- Phase 3 (Visual Editor): 2 requirements (F-03a, F-03b)
+- Phase 4 (JD Matching): 5 requirements (M-01a, M-01b, M-01c, M-01d, M-01e)
+- Phase 5 (Anonymization & Branding): 3 requirements (F-02b, F-02c, F-03c)
+- Phase 6 (Bulk Processing & OS Integration): 2 requirements (F-01a, F-01b)
 
 ---
 *Requirements defined: 2026-01-23*
-*Last updated: 2026-01-23 after initialization*
+*Last updated: 2026-01-23 after JD matching requirements added*

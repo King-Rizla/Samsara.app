@@ -29,12 +29,12 @@ Samsara v1 delivers a local-first CV formatter and JD matching tool that replace
   3. Code signing passes for both Windows (.exe) and macOS (.app) binaries
   4. Electron shell displays basic window and communicates with Python sidecar via stdio JSON
   5. SQLite database initializes in app.getPath('userData') with WAL mode enabled
-**Plans**: TBD
+**Plans**: 3 plans in 2 waves
 
 Plans:
-- [ ] 01-01: Electron shell with Forge/Vite and basic IPC
-- [ ] 01-02: Python sidecar with PyInstaller bundling and spaCy model loading
-- [ ] 01-03: Code signing and distribution validation on clean VMs
+- [ ] 01-01-PLAN.md - Electron shell with Forge/Vite, IPC, and SQLite database
+- [ ] 01-02-PLAN.md - Python sidecar with PyInstaller bundling and spaCy model
+- [ ] 01-03-PLAN.md - Sidecar integration, code signing, and distribution validation
 
 ### Phase 2: Parsing Pipeline
 **Goal**: Parse a single CV accurately with <2s processing time

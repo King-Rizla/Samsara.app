@@ -2,11 +2,14 @@
 Samsara Python Sidecar
 Communicates via JSON lines on stdin/stdout.
 spaCy model is preloaded at startup for fast inference.
+Document parsing available via parse_document action.
 """
 import sys
 import json
 import os
 import spacy
+
+from parsers.base import parse_document
 
 
 def get_model_path():
@@ -47,6 +50,66 @@ def handle_request(request: dict) -> dict:
 
     if action == 'shutdown':
         sys.exit(0)
+
+    if action == 'parse_document':
+        file_path = request.get('file_path')
+        if not file_path:
+            return {
+                'id': request_id,
+                'success': False,
+                'error': 'Missing required parameter: file_path'
+            }
+
+        try:
+            result = parse_document(file_path)
+            # Ensure all data is JSON-serializable
+            # Convert tuple bboxes to lists
+            serializable_blocks = []
+            for block in result.get('blocks', []):
+                block_copy = dict(block)
+                if 'bbox' in block_copy and isinstance(block_copy['bbox'], tuple):
+                    block_copy['bbox'] = list(block_copy['bbox'])
+                serializable_blocks.append(block_copy)
+
+            return {
+                'id': request_id,
+                'success': True,
+                'data': {
+                    'raw_text': result['raw_text'],
+                    'blocks': serializable_blocks,
+                    'tables': result['tables'],
+                    'warnings': result['warnings'],
+                    'parse_time_ms': result['parse_time_ms'],
+                    'document_type': result['document_type'],
+                    'page_count': result['page_count']
+                }
+            }
+        except FileNotFoundError as e:
+            return {
+                'id': request_id,
+                'success': False,
+                'error': str(e)
+            }
+        except ValueError as e:
+            # Unsupported file type or DOC format
+            return {
+                'id': request_id,
+                'success': False,
+                'error': str(e)
+            }
+        except RuntimeError as e:
+            # Parsing errors (encrypted PDF, etc.)
+            return {
+                'id': request_id,
+                'success': False,
+                'error': str(e)
+            }
+        except Exception as e:
+            return {
+                'id': request_id,
+                'success': False,
+                'error': f'Unexpected error parsing document: {str(e)}'
+            }
 
     return {
         'id': request_id,

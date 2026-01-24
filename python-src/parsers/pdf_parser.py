@@ -11,11 +11,34 @@ Strategy:
 4. Detect tables with page.find_tables()
 5. If tables found, use pdfplumber for accurate table extraction
 """
+import io
+import os
+import sys
 import time
+from contextlib import contextmanager
 from typing import List, Tuple, Optional
 
 import pymupdf
 import pdfplumber
+
+
+@contextmanager
+def suppress_stdout():
+    """
+    Context manager to suppress stdout.
+
+    PyMuPDF prints informational messages to stdout which breaks
+    our JSON lines IPC protocol.
+    """
+    # Save the original stdout
+    old_stdout = sys.stdout
+    # Replace stdout with a null device
+    sys.stdout = io.StringIO()
+    try:
+        yield
+    finally:
+        # Restore original stdout
+        sys.stdout = old_stdout
 
 from parsers.base import ParseResult, TextBlock, TableData
 
@@ -300,8 +323,11 @@ def parse_pdf(file_path: str) -> ParseResult:
             all_blocks.extend(text_blocks)
 
             # Check for tables using PyMuPDF
+            # Note: suppress_stdout to prevent PyMuPDF's informational messages
+            # from breaking our JSON lines IPC protocol
             try:
-                tables = page.find_tables()
+                with suppress_stdout():
+                    tables = page.find_tables()
                 if tables.tables:
                     pages_with_tables.append(page_num)
             except Exception:

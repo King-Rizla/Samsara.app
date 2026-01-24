@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Architecture as the Advantage - Zero Latency, Zero Egress, Zero Per-Seat Tax
-**Current focus:** Phase 2 Complete - Ready for Phase 3 (Visual Editor) or Phase 2.1 (LLM Enhancement)
+**Current focus:** Phase 2.1 - LLM Extraction (Local LLM for improved work/education/skills)
 
 ## Current Position
 
-Phase: 2 of 6 (Parsing Pipeline) - COMPLETE
-Plan: 3 of 3 in current phase - COMPLETE
-Status: Phase complete
-Last activity: 2026-01-24 - Completed 02-03-PLAN.md (SQLite Persistence & Drag-Drop UI)
+Phase: 2.1 of 6 (LLM Extraction)
+Plan: 0 of 2 in current phase
+Status: Ready to plan
+Last activity: 2026-01-24 - Phase 2 verified complete, Phase 2.1 inserted
 
-Progress: [####......] 35% (6/17 plans)
+Progress: [####......] 32% (6/19 plans)
 
 ## Performance Metrics
 
@@ -29,6 +29,7 @@ Progress: [####......] 35% (6/17 plans)
 |-------|-------|-------|----------|
 | 1. Foundation & Distribution | 3/3 | 58 min | 19 min |
 | 2. Parsing Pipeline | 3/3 | 44 min | 15 min |
+| 2.1. LLM Extraction | 0/2 | - | - |
 | 3. Visual Editor | 0/2 | - | - |
 | 4. JD Matching | 0/3 | - | - |
 | 5. Anonymization & Branding | 0/3 | - | - |
@@ -88,8 +89,9 @@ Resume file: None
 
 ## Next Steps
 
-**Options:**
-1. **Phase 2.1** - Insert LLM enhancement phase for improved extraction quality
-2. **Phase 3** - Visual Editor (split view with human-in-the-loop corrections)
+**Phase 2.1: LLM Extraction** — Enhance extraction with local LLM (Ollama)
+- Hybrid approach: regex for contact (LLM fallback), LLM for work/education/skills
+- Local-only processing, zero cost per CV
+- Target: improved accuracy for semantic fields
 
-User feedback indicated Phase 2.1 preferred for extraction quality improvement before building the visual editor.
+Run `/gsd:plan-phase 2.1` to create execution plans.

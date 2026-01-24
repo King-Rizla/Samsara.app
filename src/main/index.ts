@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'node:path';
 import * as fs from 'fs';
 import started from 'electron-squirrel-startup';
@@ -157,4 +157,40 @@ ipcMain.handle('get-all-cvs', async () => {
       error: error instanceof Error ? error.message : 'Unknown error'
     };
   }
+});
+
+/**
+ * Open file dialog to select a CV file.
+ * Returns { success: true, filePath: string, fileName: string } on selection
+ * Returns { success: false, canceled: true } if user cancels
+ */
+ipcMain.handle('select-cv-file', async () => {
+  const result = await dialog.showOpenDialog({
+    title: 'Select CV File',
+    filters: [
+      { name: 'CV Documents', extensions: ['pdf', 'docx', 'doc'] }
+    ],
+    properties: ['openFile']
+  });
+
+  if (result.canceled || result.filePaths.length === 0) {
+    return { success: false, canceled: true };
+  }
+
+  const filePath = result.filePaths[0];
+  const fileName = path.basename(filePath);
+
+  return { success: true, filePath, fileName };
+});
+
+/**
+ * Get file path from a dropped file by reading it from the main process.
+ * The renderer sends the file name and we validate it exists.
+ * For drag-drop with webkitGetAsEntry, we need the full path.
+ */
+ipcMain.handle('get-dropped-file-path', async (_event, webkitRelativePath: string) => {
+  // This handler exists as a fallback, but in Electron, dropped files
+  // should have the path property available. If we get here, something went wrong.
+  console.warn('get-dropped-file-path called with:', webkitRelativePath);
+  return { success: false, error: 'File path not available. Please use the file picker instead.' };
 });

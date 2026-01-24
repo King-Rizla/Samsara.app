@@ -66,11 +66,22 @@ interface ExtractResult {
   error?: string;
 }
 
+interface SelectFileResult {
+  success: boolean;
+  filePath?: string;
+  fileName?: string;
+  canceled?: boolean;
+}
+
 declare global {
   interface Window {
     api: {
       extractCV: (filePath: string) => Promise<ExtractResult>;
       getAllCVs: () => Promise<{ success: boolean; data?: unknown[]; error?: string }>;
+      selectCVFile: () => Promise<SelectFileResult>;
+    };
+    electronFile: {
+      getPath: (file: File) => string | null;
     };
   }
 }
@@ -336,29 +347,12 @@ function displayResults(data: ParsedCV, fileName: string, totalTime?: number): v
 }
 
 /**
- * Handle file drop
+ * Handle file with known path
  */
-async function handleFileDrop(file: File): Promise<void> {
-  // Validate file type
-  const validExtensions = ['.pdf', '.docx', '.doc'];
-  const ext = '.' + file.name.split('.').pop()?.toLowerCase();
-
-  if (!validExtensions.includes(ext)) {
-    showError(`Unsupported file type: ${ext}. Supported formats: PDF, DOCX, DOC`);
-    return;
-  }
-
+async function processFile(filePath: string, fileName: string): Promise<void> {
   showLoading();
 
   try {
-    // Get file path - Electron provides this on File objects from drops
-    const filePath = (file as File & { path?: string }).path;
-
-    if (!filePath) {
-      showError('Could not get file path. Please try again.');
-      return;
-    }
-
     console.log('Extracting CV from:', filePath);
     const result = await window.api.extractCV(filePath);
 
@@ -372,10 +366,64 @@ async function handleFileDrop(file: File): Promise<void> {
       return;
     }
 
-    displayResults(result.data, file.name, result.totalTime);
+    displayResults(result.data, fileName, result.totalTime);
   } catch (err) {
     console.error('CV extraction error:', err);
     showError(err instanceof Error ? err.message : 'Failed to extract CV');
+  }
+}
+
+/**
+ * Handle file drop
+ */
+async function handleFileDrop(file: File): Promise<void> {
+  // Validate file type
+  const validExtensions = ['.pdf', '.docx', '.doc'];
+  const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+
+  if (!validExtensions.includes(ext)) {
+    showError(`Unsupported file type: ${ext}. Supported formats: PDF, DOCX, DOC`);
+    return;
+  }
+
+  // Use Electron's webUtils.getPathForFile via preload to get the file path
+  // This is the official way to get file paths with context isolation enabled
+  const filePath = window.electronFile.getPath(file);
+
+  if (!filePath) {
+    // Fallback: suggest using the file picker
+    showError('Could not get file path from drop. Please click to select the file instead.');
+    return;
+  }
+
+  await processFile(filePath, file.name);
+}
+
+/**
+ * Handle file selection via native dialog
+ */
+async function handleFileSelect(): Promise<void> {
+  try {
+    const result = await window.api.selectCVFile();
+
+    if (!result.success) {
+      if (result.canceled) {
+        // User canceled, do nothing
+        return;
+      }
+      showError('Failed to open file dialog');
+      return;
+    }
+
+    if (!result.filePath || !result.fileName) {
+      showError('No file selected');
+      return;
+    }
+
+    await processFile(result.filePath, result.fileName);
+  } catch (err) {
+    console.error('File selection error:', err);
+    showError(err instanceof Error ? err.message : 'Failed to select file');
   }
 }
 
@@ -403,18 +451,9 @@ dropZone.addEventListener('drop', (e) => {
   }
 });
 
-// Click to select file (optional, but nice UX)
+// Click to select file using native Electron dialog
 dropZone.addEventListener('click', () => {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.pdf,.docx,.doc';
-  input.onchange = (e) => {
-    const files = (e.target as HTMLInputElement).files;
-    if (files && files.length > 0) {
-      handleFileDrop(files[0]);
-    }
-  };
-  input.click();
+  handleFileSelect();
 });
 
 // Parse another button

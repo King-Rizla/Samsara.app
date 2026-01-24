@@ -13,17 +13,18 @@ from dateutil.parser import parse, ParserError
 PRESENT_WORDS = {'present', 'current', 'now', 'ongoing', 'today'}
 
 
-def _is_month_year_only(date_str: str) -> bool:
+def _is_partial_date(date_str: str) -> bool:
     """
-    Check if the date string is just month and year (no day).
+    Check if the date string is missing day component (month-year or year only).
 
-    Examples: "January 2020", "Jan 2020", "2020-01"
+    Examples: "January 2020", "Jan 2020", "2020-01", "2020"
     """
-    # Match patterns like "Month Year", "Mon Year", or "YYYY-MM"
+    # Match patterns that are missing day component
     patterns = [
         r'^[A-Za-z]+\s+\d{4}$',          # "January 2020" or "Jan 2020"
         r'^\d{4}-\d{1,2}$',               # "2020-01" or "2020-1"
         r'^\d{1,2}/\d{4}$',               # "01/2020" or "1/2020"
+        r'^\d{4}$',                        # "2020" (year only)
     ]
     cleaned = date_str.strip()
     for pattern in patterns:
@@ -75,17 +76,20 @@ def normalize_date(date_str: str) -> Optional[str]:
         return "Present"
 
     try:
-        # Check if this is a month-year only format (no day specified)
-        month_year_only = _is_month_year_only(cleaned)
+        # Check if this is a partial date format (no day specified)
+        partial_date = _is_partial_date(cleaned)
 
         # Parse with dayfirst=True for British date format
-        # Use default=datetime(1900, 1, 1) to default missing day to 1st
-        default_date = datetime(1900, 1, 1) if month_year_only else None
+        # Use default=datetime(1900, 1, 1) to default missing day/month to 1st/Jan
+        default_date = datetime(1900, 1, 1) if partial_date else None
         parsed = parse(cleaned, dayfirst=True, fuzzy=True, default=default_date)
 
-        # For month-year only, ensure day is 01
-        if month_year_only:
+        # For partial dates, ensure day is 01 and month is 01 for year-only
+        if partial_date:
             parsed = parsed.replace(day=1)
+            # For year-only, also set month to January
+            if re.match(r'^\d{4}$', cleaned):
+                parsed = parsed.replace(month=1)
 
         return parsed.strftime('%d/%m/%Y')
     except (ParserError, ValueError, OverflowError):

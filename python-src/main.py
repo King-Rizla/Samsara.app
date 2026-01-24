@@ -3,13 +3,21 @@ Samsara Python Sidecar
 Communicates via JSON lines on stdin/stdout.
 spaCy model is preloaded at startup for fast inference.
 Document parsing available via parse_document action.
+CV extraction available via extract_cv action.
 """
 import sys
 import json
 import os
+import time
 import spacy
 
 from parsers.base import parse_document
+from schema.cv_schema import ParsedCV
+from extractors.contact import extract_contacts
+from extractors.sections import detect_sections, get_section_text, get_section_order
+from extractors.work_history import extract_work_history
+from extractors.education import extract_education
+from extractors.skills import extract_skills
 
 
 def get_model_path():
@@ -109,6 +117,128 @@ def handle_request(request: dict) -> dict:
                 'id': request_id,
                 'success': False,
                 'error': f'Unexpected error parsing document: {str(e)}'
+            }
+
+    if action == 'extract_cv':
+        file_path = request.get('file_path')
+        if not file_path:
+            return {
+                'id': request_id,
+                'success': False,
+                'error': 'Missing required parameter: file_path'
+            }
+
+        try:
+            start_time = time.perf_counter()
+
+            # First parse the document
+            parse_result = parse_document(file_path)
+            raw_text = parse_result['raw_text']
+            warnings = list(parse_result.get('warnings', []))
+
+            # Detect sections
+            sections = detect_sections(raw_text)
+            section_order = get_section_order(sections)
+
+            # Extract contact info
+            contact, contact_confidence = extract_contacts(raw_text, nlp)
+
+            # Extract work history (from experience section if found, else full text)
+            experience_text = get_section_text(raw_text, sections, 'experience')
+            work_history = extract_work_history(experience_text or raw_text, nlp)
+
+            # Extract education (from education section if found, else full text)
+            education_text = get_section_text(raw_text, sections, 'education')
+            education = extract_education(education_text or raw_text, nlp)
+
+            # Extract skills (from skills section if found, else full text)
+            skills_text = get_section_text(raw_text, sections, 'skills')
+            skills = extract_skills(skills_text or raw_text)
+
+            # Extract certifications
+            cert_text = get_section_text(raw_text, sections, 'certifications')
+            certifications = []
+            if cert_text:
+                # Simple extraction: each line is a certification
+                for line in cert_text.split('\n'):
+                    line = line.strip()
+                    if line and len(line) > 3:
+                        certifications.append(line)
+
+            # Extract languages
+            lang_text = get_section_text(raw_text, sections, 'languages')
+            languages = []
+            if lang_text:
+                # Split on commas or newlines
+                for part in lang_text.replace('\n', ',').split(','):
+                    part = part.strip()
+                    if part and len(part) > 1:
+                        languages.append(part)
+
+            # Calculate overall confidence
+            confidences = [contact_confidence]
+            if work_history:
+                confidences.extend(e.get('confidence', 0.5) for e in work_history)
+            if education:
+                confidences.extend(e.get('confidence', 0.5) for e in education)
+
+            if confidences:
+                parse_confidence = round(sum(confidences) / len(confidences), 2)
+            else:
+                parse_confidence = 0.0
+
+            # Build other_sections dict
+            other_sections = {}
+            for section_name in ['summary', 'projects', 'volunteer', 'publications', 'interests', 'references', 'awards']:
+                text = get_section_text(raw_text, sections, section_name)
+                if text:
+                    other_sections[section_name] = text
+
+            elapsed_ms = int((time.perf_counter() - start_time) * 1000)
+
+            # Build ParsedCV response
+            parsed_cv: ParsedCV = {
+                'contact': contact,
+                'work_history': work_history,
+                'education': education,
+                'skills': skills,
+                'certifications': certifications,
+                'languages': languages,
+                'other_sections': other_sections,
+                'raw_text': raw_text,
+                'section_order': section_order,
+                'parse_confidence': parse_confidence,
+                'warnings': warnings
+            }
+
+            return {
+                'id': request_id,
+                'success': True,
+                'data': {
+                    **parsed_cv,
+                    'extract_time_ms': elapsed_ms,
+                    'document_type': parse_result['document_type'],
+                    'page_count': parse_result['page_count']
+                }
+            }
+
+        except FileNotFoundError as e:
+            return {
+                'id': request_id,
+                'success': False,
+                'error': str(e)
+            }
+        except ValueError as e:
+            return {
+                'id': request_id,
+                'success': False,
+                'error': str(e)
+            }
+        except Exception as e:
+            return {
+                'id': request_id,
+                'success': False,
+                'error': f'Unexpected error extracting CV: {str(e)}'
             }
 
     return {

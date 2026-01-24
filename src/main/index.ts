@@ -1,8 +1,9 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
+import * as fs from 'fs';
 import started from 'electron-squirrel-startup';
-import { initDatabase, closeDatabase } from './database';
-import { startPython, stopPython } from './pythonManager';
+import { initDatabase, closeDatabase, insertCV, getAllCVs, ParsedCV } from './database';
+import { startPython, stopPython, extractCV } from './pythonManager';
 
 // Vite global variables for dev server and renderer name
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
@@ -86,3 +87,74 @@ app.on('before-quit', () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
+
+// IPC Handlers
+
+/**
+ * Extract CV from a file and persist to database.
+ * Returns { success: true, data: ParsedCV, id: string } on success
+ * Returns { success: false, error: string } on failure
+ */
+ipcMain.handle('extract-cv', async (_event, filePath: string) => {
+  const startTime = Date.now();
+
+  // Validate file path
+  if (!filePath || typeof filePath !== 'string') {
+    return { success: false, error: 'Invalid file path' };
+  }
+
+  // Check file exists
+  if (!fs.existsSync(filePath)) {
+    return { success: false, error: `File not found: ${filePath}` };
+  }
+
+  // Check file extension
+  const ext = path.extname(filePath).toLowerCase();
+  const validExtensions = ['.pdf', '.docx', '.doc'];
+  if (!validExtensions.includes(ext)) {
+    return {
+      success: false,
+      error: `Unsupported file type: ${ext}. Supported formats: PDF, DOCX, DOC`
+    };
+  }
+
+  try {
+    // Extract CV using Python sidecar
+    const cvData = await extractCV(filePath) as ParsedCV;
+
+    // Persist to database
+    const id = insertCV(cvData, filePath);
+
+    const totalTime = Date.now() - startTime;
+    console.log(`CV extraction and persistence completed in ${totalTime}ms`);
+
+    return {
+      success: true,
+      data: cvData,
+      id,
+      totalTime
+    };
+  } catch (error) {
+    console.error('CV extraction failed:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error during CV extraction'
+    };
+  }
+});
+
+/**
+ * Get all stored CVs (summary info only).
+ */
+ipcMain.handle('get-all-cvs', async () => {
+  try {
+    const cvs = getAllCVs();
+    return { success: true, data: cvs };
+  } catch (error) {
+    console.error('Failed to get CVs:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+});

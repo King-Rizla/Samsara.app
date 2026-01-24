@@ -180,3 +180,20 @@ export function stopPython(): void {
 export function isPythonReady(): boolean {
   return pythonReady;
 }
+
+/**
+ * Extract CV data from a file.
+ * Sends extract_cv action to Python sidecar and returns parsed CV.
+ */
+export async function extractCV(filePath: string): Promise<unknown> {
+  if (!pythonReady) {
+    throw new Error('Python sidecar is not ready');
+  }
+
+  const result = await sendToPython({
+    action: 'extract_cv',
+    file_path: filePath
+  }, 60000); // 60 second timeout for large files
+
+  return result;
+}

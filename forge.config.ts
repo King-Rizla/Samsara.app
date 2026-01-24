@@ -6,10 +6,30 @@ import { MakerRpm } from '@electron-forge/maker-rpm';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
+import { windowsSign } from './windowsSign';
 
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
+    extraResource: [
+      './python-dist/samsara-backend',  // Python sidecar directory
+    ],
+    // macOS signing (only applied when building for macOS with certs)
+    ...(process.env.APPLE_ID ? {
+      osxSign: {
+        identity: process.env.APPLE_IDENTITY || 'Developer ID Application',
+        hardenedRuntime: true,
+        entitlements: './entitlements.plist',
+        entitlementsInherit: './entitlements.plist',
+      },
+      osxNotarize: {
+        appleId: process.env.APPLE_ID,
+        appleIdPassword: process.env.APPLE_ID_PASSWORD!,
+        teamId: process.env.APPLE_TEAM_ID!,
+      },
+    } : {}),
+    // Windows signing
+    ...(windowsSign ? { windowsSign } : {}),
   },
   rebuildConfig: {},
   makers: [

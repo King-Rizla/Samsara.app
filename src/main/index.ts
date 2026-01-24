@@ -2,6 +2,7 @@ import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { initDatabase, closeDatabase } from './database';
+import { startPython, stopPython } from './pythonManager';
 
 // Vite global variables for dev server and renderer name
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
@@ -38,7 +39,7 @@ const createWindow = () => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   console.log('App is ready, userData path:', app.getPath('userData'));
   // Initialize database before creating window
   try {
@@ -47,6 +48,15 @@ app.whenReady().then(() => {
   } catch (error) {
     console.error('Database initialization failed:', error);
   }
+
+  // Start Python sidecar
+  try {
+    await startPython();
+  } catch (error) {
+    console.error('Failed to start Python sidecar:', error);
+    // Continue app startup even if Python fails (for debugging)
+  }
+
   createWindow();
 });
 
@@ -54,6 +64,7 @@ app.whenReady().then(() => {
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
+  stopPython();
   if (process.platform !== 'darwin') {
     app.quit();
   }
@@ -67,8 +78,9 @@ app.on('activate', () => {
   }
 });
 
-// Close database before app quits
+// Close database and Python before app quits
 app.on('before-quit', () => {
+  stopPython();
   closeDatabase();
 });
 

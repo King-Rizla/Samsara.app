@@ -10,33 +10,33 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 2 of 6 (Parsing Pipeline)
-Plan: 0 of 3 in current phase
-Status: Ready to plan
-Last activity: 2026-01-24 - Phase 1 complete (Foundation & Distribution)
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-01-24 - Completed 02-01-PLAN.md (Document Parsers)
 
-Progress: [##........] 18% (3/17 plans)
+Progress: [##........] 24% (4/17 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 19 min
-- Total execution time: 0.97 hours
+- Total plans completed: 4
+- Average duration: 16 min
+- Total execution time: 1.08 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1. Foundation & Distribution | 3/3 | 58 min | 19 min |
-| 2. Parsing Pipeline | 0/3 | - | - |
+| 2. Parsing Pipeline | 1/3 | 7 min | 7 min |
 | 3. Visual Editor | 0/2 | - | - |
 | 4. JD Matching | 0/3 | - | - |
 | 5. Anonymization & Branding | 0/3 | - | - |
 | 6. Bulk Processing & OS Integration | 0/3 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 10 min, 33 min, 15 min
-- Trend: Stabilizing after initial Python/PyInstaller setup
+- Last 5 plans: 10 min, 33 min, 15 min, 7 min
+- Trend: Fast execution with established foundation
 
 *Updated after each plan completion*
 
@@ -58,6 +58,9 @@ Recent decisions affecting current work:
 - [01-02]: Model path detection handles frozen/dev contexts via get_model_path()
 - [01-03]: spawn + readline for Python IPC (not python-shell library)
 - [01-03]: extraResource for Python sidecar in packaged app
+- [02-01]: suppress_stdout() context manager for PyMuPDF to preserve JSON lines IPC
+- [02-01]: Multi-column detection via X position gap analysis (>100px threshold)
+- [02-01]: Cascading parser strategy: PyMuPDF first, pdfplumber for tables
 
 ### Pending Todos
 
@@ -70,6 +73,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-24
-Stopped at: Phase 1 complete, ready for Phase 2 planning
+Last session: 2026-01-24T14:28:49Z
+Stopped at: Completed 02-01-PLAN.md (Document Parsers)
 Resume file: None

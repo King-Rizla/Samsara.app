@@ -5,6 +5,9 @@ PyInstaller spec for Samsara Python sidecar.
 CRITICAL: spaCy requires explicit hidden imports that PyInstaller
 cannot detect via static analysis. Missing any of these causes
 runtime import errors in the bundled application.
+
+Parsing libraries (PyMuPDF, pdfplumber, python-docx) also require
+hidden imports for their dependencies (Pillow, charset_normalizer).
 """
 import spacy
 import en_core_web_sm
@@ -61,7 +64,27 @@ a = Analysis(
         'confection',
         # Wasabi for logging
         'wasabi',
-    ] + collect_submodules('spacy') + collect_submodules('thinc') + collect_submodules('blis'),
+        # PyMuPDF hidden imports (fitz compatibility layer)
+        'pymupdf',
+        'pymupdf.utils',
+        # pdfplumber uses Pillow and pdfminer
+        'PIL',
+        'PIL._imaging',
+        'pdfminer',
+        'pdfminer.pdfparser',
+        'pdfminer.pdfdocument',
+        'pdfminer.pdfpage',
+        'pdfminer.pdfinterp',
+        'pdfminer.converter',
+        'pdfminer.layout',
+        # python-docx dependencies
+        'docx',
+        'docx.oxml',
+        'lxml',
+        'lxml.etree',
+        # charset detection for various encodings
+        'charset_normalizer',
+    ] + collect_submodules('spacy') + collect_submodules('thinc') + collect_submodules('blis') + collect_submodules('pdfminer'),
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

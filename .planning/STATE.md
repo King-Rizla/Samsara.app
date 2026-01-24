@@ -10,32 +10,32 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 2 of 6 (Parsing Pipeline)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-01-24 - Completed 02-01-PLAN.md (Document Parsers)
+Last activity: 2026-01-24 - Completed 02-02-PLAN.md (Entity Extraction)
 
-Progress: [##........] 24% (4/17 plans)
+Progress: [###.......] 29% (5/17 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 16 min
-- Total execution time: 1.08 hours
+- Total plans completed: 5
+- Average duration: 15 min
+- Total execution time: 1.28 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1. Foundation & Distribution | 3/3 | 58 min | 19 min |
-| 2. Parsing Pipeline | 1/3 | 7 min | 7 min |
+| 2. Parsing Pipeline | 2/3 | 19 min | 10 min |
 | 3. Visual Editor | 0/2 | - | - |
 | 4. JD Matching | 0/3 | - | - |
 | 5. Anonymization & Branding | 0/3 | - | - |
 | 6. Bulk Processing & OS Integration | 0/3 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 10 min, 33 min, 15 min, 7 min
+- Last 5 plans: 10 min, 33 min, 15 min, 7 min, 12 min
 - Trend: Fast execution with established foundation
 
 *Updated after each plan completion*
@@ -61,6 +61,10 @@ Recent decisions affecting current work:
 - [02-01]: suppress_stdout() context manager for PyMuPDF to preserve JSON lines IPC
 - [02-01]: Multi-column detection via X position gap analysis (>100px threshold)
 - [02-01]: Cascading parser strategy: PyMuPDF first, pdfplumber for tables
+- [02-02]: British date format with dayfirst=True (3/2/2020 = 3rd Feb)
+- [02-02]: Partial dates default to 1st (Jan 2020 -> 01/01/2020)
+- [02-02]: Company indicators filtered from PERSON entities (Ltd, Inc, LLC)
+- [02-02]: Preserve candidate skill groupings rather than re-categorizing
 
 ### Pending Todos
 
@@ -73,6 +77,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-01-24T14:28:49Z
-Stopped at: Completed 02-01-PLAN.md (Document Parsers)
+Last session: 2026-01-24T14:42:00Z
+Stopped at: Completed 02-02-PLAN.md (Entity Extraction)
 Resume file: None

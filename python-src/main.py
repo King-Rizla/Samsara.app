@@ -5,12 +5,27 @@ spaCy model is preloaded at startup for fast inference.
 """
 import sys
 import json
+import os
 import spacy
+
+
+def get_model_path():
+    """Get the path to the spaCy model, handling PyInstaller frozen executables."""
+    if getattr(sys, 'frozen', False):
+        # Running as PyInstaller bundle
+        bundle_dir = sys._MEIPASS
+        model_path = os.path.join(bundle_dir, 'en_core_web_sm')
+        if os.path.exists(model_path):
+            return model_path
+    # Running as normal Python script - use installed package
+    return "en_core_web_sm"
+
 
 # Preload model at startup (before accepting requests)
 # This avoids 2-5 second load time per request
 print(json.dumps({"status": "loading_model"}), flush=True)
-nlp = spacy.load("en_core_web_sm", disable=["parser", "lemmatizer"])
+model_path = get_model_path()
+nlp = spacy.load(model_path, disable=["parser", "lemmatizer"])
 print(json.dumps({"status": "model_loaded", "model": "en_core_web_sm"}), flush=True)
 
 

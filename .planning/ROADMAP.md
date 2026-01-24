@@ -10,7 +10,7 @@ Samsara v1 delivers a local-first CV formatter and JD matching tool that replace
 - Integer phases (1, 2, 3...): Planned milestone work
 - Decimal phases (e.g., 2.1): Urgent insertions if needed
 
-- [ ] **Phase 1: Foundation & Distribution** - Prove PyInstaller + spaCy bundling and code signing work before building features
+- [x] **Phase 1: Foundation & Distribution** - Prove PyInstaller + spaCy bundling and code signing work before building features
 - [ ] **Phase 2: Parsing Pipeline** - Single-CV extraction with <2s performance on adversarial corpus
 - [ ] **Phase 3: Visual Editor** - Split view with human-in-the-loop corrections
 - [ ] **Phase 4: JD Matching** - Score and rank CVs against job descriptions
@@ -34,7 +34,7 @@ Samsara v1 delivers a local-first CV formatter and JD matching tool that replace
 Plans:
 - [x] 01-01-PLAN.md - Electron shell with Forge/Vite, IPC, and SQLite database
 - [x] 01-02-PLAN.md - Python sidecar with PyInstaller bundling and spaCy model
-- [ ] 01-03-PLAN.md - Sidecar integration, code signing, and distribution validation
+- [x] 01-03-PLAN.md - Sidecar integration, code signing, and distribution validation
 
 ### Phase 2: Parsing Pipeline
 **Goal**: Parse a single CV accurately with <2s processing time
@@ -124,7 +124,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Distribution | 2/3 | In progress | - |
+| 1. Foundation & Distribution | 3/3 | Complete | 2026-01-24 |
 | 2. Parsing Pipeline | 0/3 | Not started | - |
 | 3. Visual Editor | 0/2 | Not started | - |
 | 4. JD Matching | 0/3 | Not started | - |

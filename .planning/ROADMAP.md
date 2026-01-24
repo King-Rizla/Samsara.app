@@ -45,12 +45,12 @@ Plans:
   2. Parsing works on 90%+ of adversarial corpus (two-column layouts, tables, infographics, international formats)
   3. Extracted data persists to SQLite with confidence scores per field
   4. spaCy model is preloaded at sidecar startup (no per-request loading penalty)
-**Plans**: TBD
+**Plans**: 3 plans in 3 waves
 
 Plans:
-- [ ] 02-01: PDF text extraction with PyMuPDF and pdfplumber fallback
-- [ ] 02-02: Entity extraction with spaCy NER and confidence scoring
-- [ ] 02-03: Data model and SQLite persistence
+- [ ] 02-01-PLAN.md - PDF/DOCX parsing with PyMuPDF and pdfplumber fallback
+- [ ] 02-02-PLAN.md - Entity extraction with spaCy NER and confidence scoring
+- [ ] 02-03-PLAN.md - SQLite persistence and drag-drop UI
 
 ### Phase 3: Visual Editor
 **Goal**: Recruiters can review and correct parsing errors in a split-view interface

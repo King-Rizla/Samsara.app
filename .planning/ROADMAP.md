@@ -32,8 +32,8 @@ Samsara v1 delivers a local-first CV formatter and JD matching tool that replace
 **Plans**: 3 plans in 2 waves
 
 Plans:
-- [ ] 01-01-PLAN.md - Electron shell with Forge/Vite, IPC, and SQLite database
-- [ ] 01-02-PLAN.md - Python sidecar with PyInstaller bundling and spaCy model
+- [x] 01-01-PLAN.md - Electron shell with Forge/Vite, IPC, and SQLite database
+- [x] 01-02-PLAN.md - Python sidecar with PyInstaller bundling and spaCy model
 - [ ] 01-03-PLAN.md - Sidecar integration, code signing, and distribution validation
 
 ### Phase 2: Parsing Pipeline
@@ -124,7 +124,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Distribution | 0/3 | Plans created | - |
+| 1. Foundation & Distribution | 2/3 | In progress | - |
 | 2. Parsing Pipeline | 0/3 | Not started | - |
 | 3. Visual Editor | 0/2 | Not started | - |
 | 4. JD Matching | 0/3 | Not started | - |

@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
+import { initDatabase, closeDatabase } from './database';
 
 // Vite global variables for dev server and renderer name
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
@@ -37,7 +38,17 @@ const createWindow = () => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', createWindow);
+app.whenReady().then(() => {
+  console.log('App is ready, userData path:', app.getPath('userData'));
+  // Initialize database before creating window
+  try {
+    initDatabase();
+    console.log('Database initialized successfully');
+  } catch (error) {
+    console.error('Database initialization failed:', error);
+  }
+  createWindow();
+});
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
@@ -54,6 +65,11 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
+});
+
+// Close database before app quits
+app.on('before-quit', () => {
+  closeDatabase();
 });
 
 // In this file you can include the rest of your app's specific main process

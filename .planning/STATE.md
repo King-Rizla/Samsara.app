@@ -5,38 +5,38 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Architecture as the Advantage - Zero Latency, Zero Egress, Zero Per-Seat Tax
-**Current focus:** Phase 2 - Parsing Pipeline
+**Current focus:** Phase 2 Complete - Ready for Phase 3 (Visual Editor) or Phase 2.1 (LLM Enhancement)
 
 ## Current Position
 
-Phase: 2 of 6 (Parsing Pipeline)
-Plan: 2 of 3 in current phase
-Status: In progress
-Last activity: 2026-01-24 - Completed 02-02-PLAN.md (Entity Extraction)
+Phase: 2 of 6 (Parsing Pipeline) - COMPLETE
+Plan: 3 of 3 in current phase - COMPLETE
+Status: Phase complete
+Last activity: 2026-01-24 - Completed 02-03-PLAN.md (SQLite Persistence & Drag-Drop UI)
 
-Progress: [###.......] 29% (5/17 plans)
+Progress: [####......] 35% (6/17 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: 15 min
-- Total execution time: 1.28 hours
+- Total plans completed: 6
+- Average duration: 16 min
+- Total execution time: 1.62 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1. Foundation & Distribution | 3/3 | 58 min | 19 min |
-| 2. Parsing Pipeline | 2/3 | 19 min | 10 min |
+| 2. Parsing Pipeline | 3/3 | 44 min | 15 min |
 | 3. Visual Editor | 0/2 | - | - |
 | 4. JD Matching | 0/3 | - | - |
 | 5. Anonymization & Branding | 0/3 | - | - |
 | 6. Bulk Processing & OS Integration | 0/3 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 10 min, 33 min, 15 min, 7 min, 12 min
-- Trend: Fast execution with established foundation
+- Last 5 plans: 33 min, 15 min, 7 min, 12 min, 25 min
+- Trend: Consistent execution, UI integration tasks take longer
 
 *Updated after each plan completion*
 
@@ -65,18 +65,31 @@ Recent decisions affecting current work:
 - [02-02]: Partial dates default to 1st (Jan 2020 -> 01/01/2020)
 - [02-02]: Company indicators filtered from PERSON entities (Ltd, Inc, LLC)
 - [02-02]: Preserve candidate skill groupings rather than re-categorizing
+- [02-03]: webUtils.getPathForFile for context-isolated file access (Electron)
+- [02-03]: Native dialog.showOpenDialog as fallback for click-to-select
+- [02-03]: 70% confidence threshold for low-confidence field highlighting
+- [User]: Local LLM extraction for improved work/education/skills deferred to Phase 2.1
 
 ### Pending Todos
 
-None yet.
+- Phase 2.1: Local LLM extraction enhancement (user-decided follow-up)
 
 ### Blockers/Concerns
 
-- [Research] PDF parsing may fail on 30-40% of real resumes - need adversarial corpus in Phase 2
+- [Research] PDF parsing may fail on 30-40% of real resumes - need adversarial corpus testing
 - [Research] macOS Gatekeeper rejects unsigned Python binaries - sign ALL binaries including PyInstaller output
+- [02-03] Work history, education, skills extraction quality needs LLM enhancement (Phase 2.1)
 
 ## Session Continuity
 
-Last session: 2026-01-24T14:42:00Z
-Stopped at: Completed 02-02-PLAN.md (Entity Extraction)
+Last session: 2026-01-24T15:10:00Z
+Stopped at: Completed Phase 2 - Parsing Pipeline (all 3 plans)
 Resume file: None
+
+## Next Steps
+
+**Options:**
+1. **Phase 2.1** - Insert LLM enhancement phase for improved extraction quality
+2. **Phase 3** - Visual Editor (split view with human-in-the-loop corrections)
+
+User feedback indicated Phase 2.1 preferred for extraction quality improvement before building the visual editor.

@@ -11,7 +11,7 @@ Samsara v1 delivers a local-first CV formatter and JD matching tool that replace
 - Decimal phases (e.g., 2.1): Urgent insertions if needed
 
 - [x] **Phase 1: Foundation & Distribution** - Prove PyInstaller + spaCy bundling and code signing work before building features
-- [ ] **Phase 2: Parsing Pipeline** - Single-CV extraction with <2s performance on adversarial corpus
+- [x] **Phase 2: Parsing Pipeline** - Single-CV extraction with <2s performance on adversarial corpus
 - [ ] **Phase 3: Visual Editor** - Split view with human-in-the-loop corrections
 - [ ] **Phase 4: JD Matching** - Score and rank CVs against job descriptions
 - [ ] **Phase 5: Anonymization & Branding** - Redaction, blind profiles, and themed PDF output
@@ -48,9 +48,9 @@ Plans:
 **Plans**: 3 plans in 3 waves
 
 Plans:
-- [ ] 02-01-PLAN.md - PDF/DOCX parsing with PyMuPDF and pdfplumber fallback
-- [ ] 02-02-PLAN.md - Entity extraction with spaCy NER and confidence scoring
-- [ ] 02-03-PLAN.md - SQLite persistence and drag-drop UI
+- [x] 02-01-PLAN.md - PDF/DOCX parsing with PyMuPDF and pdfplumber fallback
+- [x] 02-02-PLAN.md - Entity extraction with spaCy NER and confidence scoring
+- [x] 02-03-PLAN.md - SQLite persistence and drag-drop UI
 
 ### Phase 3: Visual Editor
 **Goal**: Recruiters can review and correct parsing errors in a split-view interface
@@ -125,7 +125,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & Distribution | 3/3 | Complete | 2026-01-24 |
-| 2. Parsing Pipeline | 0/3 | Not started | - |
+| 2. Parsing Pipeline | 3/3 | Complete | 2026-01-24 |
 | 3. Visual Editor | 0/2 | Not started | - |
 | 4. JD Matching | 0/3 | Not started | - |
 | 5. Anonymization & Branding | 0/3 | Not started | - |

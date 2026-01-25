@@ -3,6 +3,53 @@
 
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 
+// Type definitions for better TypeScript support
+interface ExtractResult {
+  success: boolean;
+  data?: unknown;
+  id?: string;
+  totalTime?: number;
+  error?: string;
+}
+
+interface SelectFileResult {
+  success: boolean;
+  filePath?: string;
+  fileName?: string;
+  canceled?: boolean;
+}
+
+interface CVSummary {
+  id: string;
+  file_name: string;
+  file_path?: string;
+  contact_json: string;
+  parse_confidence: number;
+  created_at: string;
+}
+
+interface GetAllCVsResult {
+  success: boolean;
+  data?: CVSummary[];
+  error?: string;
+}
+
+interface GetCVResult {
+  success: boolean;
+  data?: unknown;  // ParsedCV
+  error?: string;
+}
+
+interface UpdateFieldResult {
+  success: boolean;
+  error?: string;
+}
+
+interface DeleteResult {
+  success: boolean;
+  error?: string;
+}
+
 /**
  * Expose protected methods to the renderer process.
  * This maintains security by using contextBridge instead of nodeIntegration.
@@ -12,19 +59,51 @@ contextBridge.exposeInMainWorld('api', {
    * Extract CV from a file path.
    * Returns { success: boolean, data?: ParsedCV, id?: string, error?: string }
    */
-  extractCV: (filePath: string) => ipcRenderer.invoke('extract-cv', filePath),
+  extractCV: (filePath: string): Promise<ExtractResult> =>
+    ipcRenderer.invoke('extract-cv', filePath),
 
   /**
    * Get all stored CVs (summary info).
    * Returns { success: boolean, data?: CVSummary[], error?: string }
    */
-  getAllCVs: () => ipcRenderer.invoke('get-all-cvs'),
+  getAllCVs: (): Promise<GetAllCVsResult> =>
+    ipcRenderer.invoke('get-all-cvs'),
 
   /**
    * Open native file dialog to select a CV file.
    * Returns { success: boolean, filePath?: string, fileName?: string, canceled?: boolean }
    */
-  selectCVFile: () => ipcRenderer.invoke('select-cv-file'),
+  selectCVFile: (): Promise<SelectFileResult> =>
+    ipcRenderer.invoke('select-cv-file'),
+
+  /**
+   * Get full CV data by ID.
+   * Returns { success: boolean, data?: ParsedCV, error?: string }
+   */
+  getCV: (cvId: string): Promise<GetCVResult> =>
+    ipcRenderer.invoke('get-cv', cvId),
+
+  /**
+   * Update a specific field in a CV.
+   * fieldPath format: "contact.email", "work_history[0].company"
+   * Returns { success: boolean, error?: string }
+   */
+  updateCVField: (cvId: string, fieldPath: string, value: unknown): Promise<UpdateFieldResult> =>
+    ipcRenderer.invoke('update-cv-field', cvId, fieldPath, value),
+
+  /**
+   * Delete a CV by ID.
+   * Returns { success: boolean, error?: string }
+   */
+  deleteCV: (cvId: string): Promise<DeleteResult> =>
+    ipcRenderer.invoke('delete-cv', cvId),
+
+  /**
+   * Reprocess a CV (retry extraction).
+   * Returns { success: boolean, data?: ParsedCV, error?: string }
+   */
+  reprocessCV: (filePath: string): Promise<ExtractResult> =>
+    ipcRenderer.invoke('reprocess-cv', filePath),
 });
 
 /**

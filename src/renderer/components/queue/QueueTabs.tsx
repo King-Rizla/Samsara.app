@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { useQueueStore } from '../../stores/queueStore';
 import { QueueList } from './QueueList';
@@ -7,6 +7,7 @@ import { DropZone } from './DropZone';
 
 export function QueueTabs() {
   const items = useQueueStore((state) => state.items);
+  const clearSelection = useQueueStore((state) => state.clearSelection);
 
   // Memoize counts to avoid recalculating on every render
   const counts = useMemo(() => ({
@@ -15,9 +16,14 @@ export function QueueTabs() {
     failed: items.filter((i) => i.status === 'failed').length,
   }), [items]);
 
+  // Clear selection when switching tabs
+  const handleTabChange = useCallback(() => {
+    clearSelection();
+  }, [clearSelection]);
+
   return (
     <div className="flex flex-col h-full">
-      <Tabs defaultValue="completed" className="flex-1 flex flex-col">
+      <Tabs defaultValue="completed" className="flex-1 flex flex-col" onValueChange={handleTabChange}>
         <div className="flex items-center justify-between px-4 py-2 border-b border-border">
           <TabsList className="bg-transparent">
             <TabsTrigger

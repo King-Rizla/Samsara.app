@@ -9,6 +9,17 @@ interface QueueItemProps {
   item: QueueItemType;
 }
 
+// Animated ellipsis component for processing state
+function AnimatedEllipsis() {
+  return (
+    <span className="inline-flex w-5">
+      <span className="loading-dot">.</span>
+      <span className="loading-dot">.</span>
+      <span className="loading-dot">.</span>
+    </span>
+  );
+}
+
 export function QueueItem({ item }: QueueItemProps) {
   // Use boolean selector to avoid Set reference comparison issues with React 19
   const isSelected = useQueueStore((state) => state.selectedIds.has(item.id));
@@ -17,40 +28,53 @@ export function QueueItem({ item }: QueueItemProps) {
 
   const loadCV = useEditorStore((state) => state.loadCV);
 
-  const handleCheckboxChange = useCallback(() => {
-    toggleSelect(item.id);
-  }, [toggleSelect, item.id]);
-
-  const handleClick = useCallback(
-    (e: React.MouseEvent) => {
-      // Shift-click for range selection
+  // Handle checkbox click - supports shift-click for range selection
+  const handleCheckboxClick = useCallback(
+    (e: React.MouseEvent<HTMLInputElement>) => {
+      e.stopPropagation();
       if (e.shiftKey) {
         e.preventDefault();
         selectRange(item.id);
-        return;
+      } else {
+        toggleSelect(item.id);
       }
+    },
+    [toggleSelect, selectRange, item.id]
+  );
 
-      // Regular click to view/edit (only for completed items)
+  // Handle filename click - opens CV editor for completed items
+  const handleFilenameClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
       if (item.status === 'completed') {
         loadCV(item.id);
       }
     },
-    [selectRange, loadCV, item.id, item.status]
+    [loadCV, item.id, item.status]
   );
 
   const getStatusBadge = () => {
-    if (item.status === 'submitted' && item.stage) {
+    if (item.status === 'submitted') {
+      const stageText = item.stage?.replace('...', '') || 'Processing';
       return (
-        <Badge className="bg-status-submitted/20 text-status-submitted border border-status-submitted">
-          {item.stage}
+        <Badge className="bg-status-submitted/20 text-status-submitted border border-status-submitted whitespace-nowrap">
+          {stageText}<AnimatedEllipsis />
         </Badge>
       );
     }
 
     if (item.status === 'failed') {
+      // Truncate error message to prevent overflow
+      const errorText = item.error || 'Failed';
+      const truncatedError = errorText.length > 20
+        ? errorText.slice(0, 20) + '...'
+        : errorText;
       return (
-        <Badge className="bg-status-failed/20 text-status-failed border border-status-failed">
-          {item.error || 'Failed'}
+        <Badge
+          className="bg-status-failed/20 text-status-failed border border-status-failed max-w-[150px] truncate"
+          title={errorText}
+        >
+          {truncatedError}
         </Badge>
       );
     }
@@ -60,7 +84,7 @@ export function QueueItem({ item }: QueueItemProps) {
       return (
         <Badge
           className={cn(
-            'border',
+            'border whitespace-nowrap',
             isLow
               ? 'bg-warning/20 text-warning border-warning'
               : 'bg-status-completed/20 text-status-completed border-status-completed'
@@ -78,26 +102,34 @@ export function QueueItem({ item }: QueueItemProps) {
   return (
     <div
       className={cn(
-        'flex items-center gap-3 px-4 py-3 hover:bg-card cursor-pointer transition-colors',
-        isSelected && 'bg-primary/10',
-        item.status === 'completed' && 'hover:bg-card'
+        'flex items-center gap-3 px-4 py-3 transition-colors',
+        isSelected && 'bg-primary/10'
       )}
-      onClick={handleClick}
     >
-      {/* Checkbox */}
+      {/* Checkbox - shift-click here for range selection */}
       <input
         type="checkbox"
         checked={isSelected}
-        onChange={handleCheckboxChange}
-        onClick={(e) => e.stopPropagation()}
-        className="w-4 h-4 rounded border-border bg-background text-primary focus:ring-primary focus:ring-offset-0"
+        onChange={() => {}} // Controlled by onClick
+        onClick={handleCheckboxClick}
+        className="w-4 h-4 rounded border-border bg-background text-primary focus:ring-primary focus:ring-offset-0 cursor-pointer"
       />
 
       {/* File info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="font-medium truncate">{item.fileName}</span>
-          <span className="text-xs text-muted-foreground uppercase">
+          {/* Filename - clickable for completed items */}
+          <span
+            onClick={handleFilenameClick}
+            className={cn(
+              'font-medium truncate',
+              item.status === 'completed' &&
+                'cursor-pointer hover:underline hover:text-primary transition-colors'
+            )}
+          >
+            {item.fileName}
+          </span>
+          <span className="text-xs text-muted-foreground uppercase flex-shrink-0">
             {item.fileType}
           </span>
         </div>

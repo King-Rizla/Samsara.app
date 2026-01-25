@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useQueueStore } from '../../stores/queueStore';
+import { useEditorStore } from '../../stores/editorStore';
 import { Button } from '../ui/button';
 
 export function QueueControls() {
@@ -8,6 +9,9 @@ export function QueueControls() {
   const clearSelection = useQueueStore((state) => state.clearSelection);
   const retryFailed = useQueueStore((state) => state.retryFailed);
   const deleteSelected = useQueueStore((state) => state.deleteSelected);
+
+  const activeCVId = useEditorStore((state) => state.activeCVId);
+  const setActiveCV = useEditorStore((state) => state.setActiveCV);
 
   const selectedCount = selectedIds.size;
 
@@ -32,6 +36,10 @@ export function QueueControls() {
   };
 
   const handleDelete = async () => {
+    // Close editor if the active CV is being deleted
+    if (activeCVId && selectedIds.has(activeCVId)) {
+      setActiveCV(null);
+    }
     await deleteSelected();
   };
 

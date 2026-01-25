@@ -1,0 +1,67 @@
+@import "@fontsource/jetbrains-mono";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Terminal dark theme - always dark, no light mode */
+    --background: 0 0% 0%;           /* Pure black */
+    --foreground: 0 0% 100%;         /* Pure white */
+
+    /* Samsara brand accent - purple/magenta */
+    --primary: 280 100% 60%;         /* Purple */
+    --primary-foreground: 0 0% 100%;
+
+    /* Status colors */
+    --status-submitted: 45 100% 50%; /* Yellow/Orange */
+    --status-completed: 142 76% 36%; /* Green */
+    --status-failed: 0 84% 60%;      /* Red */
+
+    /* Low confidence highlight */
+    --warning: 45 100% 50%;
+    --warning-foreground: 0 0% 0%;
+
+    /* UI elements */
+    --card: 0 0% 5%;                 /* Slightly lighter than background */
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 5%;
+    --popover-foreground: 0 0% 100%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 65%;
+    --accent: 280 100% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 20%;              /* Subtle borders */
+    --input: 0 0% 10%;
+    --ring: 280 100% 60%;            /* Focus ring = brand color */
+
+    --radius: 0.25rem;               /* Minimal rounding for terminal feel */
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+/* Low confidence field highlighting */
+.low-confidence {
+  @apply bg-warning/20 border border-warning;
+}
+
+/* Interactive elements - outlined terminal style */
+.btn-terminal {
+  @apply bg-transparent border border-border text-foreground;
+}
+
+.btn-terminal:hover {
+  @apply bg-primary/10 border-primary;
+}

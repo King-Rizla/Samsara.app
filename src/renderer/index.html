@@ -3,91 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <title>Samsara - Resume Editor</title>
-    <link rel="stylesheet" href="./index.css" />
   </head>
   <body>
-    <div id="app">
-      <header class="app-header">
-        <h1>Samsara</h1>
-        <p class="subtitle">AI-powered resume editing</p>
-      </header>
-
-      <!-- Drop Zone -->
-      <div id="drop-zone" class="drop-zone">
-        <div class="drop-zone-content">
-          <div class="drop-icon">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="12" y1="18" x2="12" y2="12"></line>
-              <line x1="9" y1="15" x2="15" y2="15"></line>
-            </svg>
-          </div>
-          <p class="drop-text">Drop CV here to parse</p>
-          <p class="drop-hint">Supports PDF and DOCX files</p>
-        </div>
-      </div>
-
-      <!-- Loading Spinner -->
-      <div id="loading" class="loading hidden">
-        <div class="spinner"></div>
-        <p>Parsing CV...</p>
-      </div>
-
-      <!-- Error Display -->
-      <div id="error" class="error hidden">
-        <p id="error-message"></p>
-      </div>
-
-      <!-- Results Display -->
-      <div id="results" class="results hidden">
-        <!-- Parse Stats -->
-        <div class="parse-stats">
-          <span class="stat">
-            <strong>Confidence:</strong> <span id="stat-confidence">-</span>
-          </span>
-          <span class="stat">
-            <strong>Parse Time:</strong> <span id="stat-time">-</span>
-          </span>
-          <span class="stat">
-            <strong>File:</strong> <span id="stat-file">-</span>
-          </span>
-        </div>
-
-        <!-- Warnings -->
-        <div id="warnings" class="warnings hidden"></div>
-
-        <!-- Contact Section -->
-        <section class="section" id="contact-section">
-          <h2>Contact Information</h2>
-          <div class="contact-grid" id="contact-grid"></div>
-        </section>
-
-        <!-- Work History Section -->
-        <section class="section" id="work-section">
-          <h2>Work History</h2>
-          <div id="work-list" class="entry-list"></div>
-        </section>
-
-        <!-- Education Section -->
-        <section class="section" id="education-section">
-          <h2>Education</h2>
-          <div id="education-list" class="entry-list"></div>
-        </section>
-
-        <!-- Skills Section -->
-        <section class="section" id="skills-section">
-          <h2>Skills</h2>
-          <div id="skills-list" class="skills-grid"></div>
-        </section>
-
-        <!-- Parse Another -->
-        <div class="parse-another">
-          <button id="parse-another-btn" class="btn">Parse Another CV</button>
-        </div>
-      </div>
-    </div>
-
-    <script type="module" src="./renderer.ts"></script>
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
   </body>
 </html>

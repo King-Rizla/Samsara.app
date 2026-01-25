@@ -193,7 +193,7 @@ export async function extractCV(filePath: string): Promise<unknown> {
   const result = await sendToPython({
     action: 'extract_cv',
     file_path: filePath
-  }, 60000); // 60 second timeout for large files
+  }, 120000); // 120 second timeout for LLM extraction
 
   return result;
 }

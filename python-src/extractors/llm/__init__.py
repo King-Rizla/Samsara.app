@@ -13,12 +13,14 @@ from extractors.llm.schemas import (
     LLMSkillGroup,
     LLMSkills,
     LLMContact,
+    LLMFullExtraction,
 )
 from extractors.llm.prompts import (
     WORK_HISTORY_PROMPT,
     EDUCATION_PROMPT,
     SKILLS_PROMPT,
     CONTACT_PROMPT,
+    FULL_EXTRACTION_PROMPT,
 )
 
 __all__ = [
@@ -32,9 +34,11 @@ __all__ = [
     "LLMSkillGroup",
     "LLMSkills",
     "LLMContact",
+    "LLMFullExtraction",
     # Prompts
     "WORK_HISTORY_PROMPT",
     "EDUCATION_PROMPT",
     "SKILLS_PROMPT",
     "CONTACT_PROMPT",
+    "FULL_EXTRACTION_PROMPT",
 ]

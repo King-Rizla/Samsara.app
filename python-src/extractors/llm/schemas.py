@@ -132,3 +132,24 @@ class LLMContact(BaseModel):
         default=None,
         description="Portfolio or personal website URL"
     )
+
+
+class LLMFullExtraction(BaseModel):
+    """Complete CV extraction in a single LLM call - faster and more accurate."""
+
+    contact: LLMContact = Field(
+        default_factory=LLMContact,
+        description="Contact information: name, email, phone, address, linkedin, github, portfolio"
+    )
+    work_history: List[LLMWorkEntry] = Field(
+        default_factory=list,
+        description="All work experience entries, most recent first"
+    )
+    education: List[LLMEducationEntry] = Field(
+        default_factory=list,
+        description="All education entries"
+    )
+    skills: List[LLMSkillGroup] = Field(
+        default_factory=list,
+        description="Skills grouped by category as the candidate organized them"
+    )

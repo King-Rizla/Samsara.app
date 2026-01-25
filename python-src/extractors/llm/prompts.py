@@ -84,3 +84,57 @@ Guidelines:
 - If unsure about any field, omit it rather than guessing
 
 Return as JSON only. Do not include any explanation or commentary."""
+
+
+FULL_EXTRACTION_PROMPT = """You are a CV/resume parser. Extract ALL information from this CV in a single pass.
+
+The CV text may be jumbled due to multi-column PDF layouts. Use your understanding of CV structure to correctly categorize each piece of information.
+
+## CONTACT INFORMATION
+Extract: name, email, phone, address, linkedin, github, portfolio
+- Only extract what is explicitly stated
+- Do not guess or infer contact details
+
+## WORK HISTORY
+Extract ALL jobs, even if they appear mixed with other sections. For each job:
+- company: Organization name (NOT the job title)
+- position: Job title/role (NOT the company)
+- start_date: When started (e.g., "January 2020", "2020")
+- end_date: When ended, or "Present" if current
+- description: Brief role summary
+- highlights: Key achievements as bullet points
+
+Guidelines:
+- "Personal Trainer" is a JOB TITLE, not a skill
+- "Warehouse Operative" is a JOB TITLE, not a skill
+- Look for date ranges near job titles to identify work entries
+- List jobs in reverse chronological order (most recent first)
+- Use British date format (3/2/2020 = 3rd February)
+
+## EDUCATION
+Extract ALL education entries. For each:
+- institution: School/college/university name
+- degree: Qualification type (BSc, BA, A-Level, GCSE, BTEC, etc.)
+- field_of_study: Subject/major
+- start_date, end_date: Years attended
+- grade: Classification if mentioned (First, 2:1, Distinction, etc.)
+
+## SKILLS
+Extract actual SKILLS only. Look for a "Skills" section in the CV.
+
+What ARE skills (extract these):
+- Soft skills: Management Skills, Leadership, Communication, Creativity, Critical Thinking
+- Technical skills: Digital Marketing, Copy Writing, SEO, Excel, PowerPoint
+- Languages: English, Spanish, French
+- Tools/Software: Photoshop, Salesforce, SAP
+
+What are NOT skills (do NOT extract these):
+- Job descriptions: "Loading containers", "Making phone calls", "Working shifts"
+- Job titles: "Warehouse Operative", "Personal Trainer", "Sales Assistant"
+- Company names, dates, locations
+
+For each skill group:
+- category: Use candidate's exact category name (e.g., "Technical Skills"), or "Skills" if ungrouped
+- skills: List of individual skill names only (short phrases, not sentences)
+
+Return as JSON only. Do not include any explanation."""

@@ -12,13 +12,16 @@ import time
 import spacy
 
 from parsers.base import parse_document
-from schema.cv_schema import ParsedCV
+from schema.cv_schema import ParsedCV, WorkEntry, EducationEntry, SkillGroup, ContactInfo
 from extractors.llm import OllamaClient
-from extractors.contact import extract_contacts, extract_contacts_hybrid
+from extractors.llm.schemas import LLMFullExtraction
+from extractors.llm.prompts import FULL_EXTRACTION_PROMPT
+from extractors.contact import extract_contacts
 from extractors.sections import detect_sections, get_section_text, get_section_order
-from extractors.work_history import extract_work_history, extract_work_history_hybrid
-from extractors.education import extract_education, extract_education_hybrid
-from extractors.skills import extract_skills, extract_skills_hybrid
+from extractors.work_history import extract_work_history
+from extractors.education import extract_education
+from extractors.skills import extract_skills
+from normalizers.dates import normalize_date
 
 
 def get_model_path():
@@ -42,7 +45,7 @@ print(json.dumps({"status": "model_loaded", "model": "en_core_web_sm"}), flush=T
 
 # Initialize LLM client for hybrid extraction
 print(json.dumps({"status": "initializing_llm"}), flush=True)
-llm_client = OllamaClient(model="qwen2.5:7b", timeout=60.0, keep_alive="5m")
+llm_client = OllamaClient(model="qwen2.5:7b", timeout=120.0, keep_alive="5m")
 llm_available = llm_client.is_available()
 print(json.dumps({
     "status": "llm_initialized",
@@ -149,56 +152,107 @@ def handle_request(request: dict) -> dict:
             raw_text = parse_result['raw_text']
             warnings = list(parse_result.get('warnings', []))
 
-            # Detect sections
+            # Detect sections (for section_order and other_sections)
             sections = detect_sections(raw_text)
             section_order = get_section_order(sections)
 
-            # Extract contact info (regex first, LLM fallback if incomplete)
-            contact, contact_confidence, contact_meta = extract_contacts_hybrid(raw_text, nlp, llm_client)
+            # Extraction method tracking
+            extraction_method = 'regex'  # Default to regex
 
-            # Extract work history (LLM first, regex fallback)
-            experience_text = get_section_text(raw_text, sections, 'experience')
-            work_history, work_meta = extract_work_history_hybrid(experience_text or raw_text, nlp, llm_client)
+            # Try SINGLE unified LLM extraction (1 call instead of 4)
+            contact = {}
+            work_history = []
+            education = []
+            skills = []
 
-            # Extract education (LLM first, regex fallback)
-            education_text = get_section_text(raw_text, sections, 'education')
-            education, edu_meta = extract_education_hybrid(education_text or raw_text, nlp, llm_client)
+            if llm_client and llm_client.is_available():
+                llm_result = llm_client.extract(
+                    text=raw_text,
+                    prompt=FULL_EXTRACTION_PROMPT,
+                    schema=LLMFullExtraction,
+                    temperature=0.0
+                )
 
-            # Extract skills (LLM first, regex fallback)
-            skills_text = get_section_text(raw_text, sections, 'skills')
-            skills, skills_meta = extract_skills_hybrid(skills_text or raw_text, llm_client)
+                if llm_result:
+                    extraction_method = 'llm'
 
-            # Extract certifications
+                    # Convert LLM contact to ContactInfo
+                    if llm_result.contact:
+                        contact = ContactInfo(
+                            name=llm_result.contact.name,
+                            email=llm_result.contact.email,
+                            phone=llm_result.contact.phone,
+                            address=llm_result.contact.address,
+                            linkedin=llm_result.contact.linkedin,
+                            github=llm_result.contact.github,
+                            portfolio=llm_result.contact.portfolio
+                        )
+
+                    # Convert LLM work history to WorkEntry list
+                    for entry in llm_result.work_history:
+                        work_history.append(WorkEntry(
+                            company=entry.company or '',
+                            position=entry.position or '',
+                            start_date=normalize_date(entry.start_date) if entry.start_date else None,
+                            end_date=normalize_date(entry.end_date) if entry.end_date else None,
+                            description=entry.description or '',
+                            highlights=entry.highlights or [],
+                            confidence=0.85
+                        ))
+
+                    # Convert LLM education to EducationEntry list
+                    for entry in llm_result.education:
+                        education.append(EducationEntry(
+                            institution=entry.institution or '',
+                            degree=entry.degree or '',
+                            field_of_study=entry.field_of_study,
+                            start_date=normalize_date(entry.start_date) if entry.start_date else None,
+                            end_date=normalize_date(entry.end_date) if entry.end_date else None,
+                            grade=entry.grade,
+                            confidence=0.85
+                        ))
+
+                    # Convert LLM skills to SkillGroup list
+                    for group in llm_result.skills:
+                        if group.skills:  # Only add groups with actual skills
+                            skills.append(SkillGroup(
+                                category=group.category or 'Skills',
+                                skills=group.skills
+                            ))
+
+            # Fallback to regex if LLM failed or unavailable
+            if extraction_method == 'regex':
+                contact, _ = extract_contacts(raw_text, nlp)
+                work_history = extract_work_history(raw_text, nlp)
+                education = extract_education(raw_text, nlp)
+                skills = extract_skills(raw_text)
+
+            # Extract certifications (simple regex - not worth LLM call)
             cert_text = get_section_text(raw_text, sections, 'certifications')
             certifications = []
             if cert_text:
-                # Simple extraction: each line is a certification
                 for line in cert_text.split('\n'):
                     line = line.strip()
                     if line and len(line) > 3:
                         certifications.append(line)
 
-            # Extract languages
+            # Extract languages (simple regex - not worth LLM call)
             lang_text = get_section_text(raw_text, sections, 'languages')
             languages = []
             if lang_text:
-                # Split on commas or newlines
                 for part in lang_text.replace('\n', ',').split(','):
                     part = part.strip()
                     if part and len(part) > 1:
                         languages.append(part)
 
             # Calculate overall confidence
-            confidences = [contact_confidence]
+            confidences = [0.85 if extraction_method == 'llm' else 0.5]
             if work_history:
                 confidences.extend(e.get('confidence', 0.5) for e in work_history)
             if education:
                 confidences.extend(e.get('confidence', 0.5) for e in education)
 
-            if confidences:
-                parse_confidence = round(sum(confidences) / len(confidences), 2)
-            else:
-                parse_confidence = 0.0
+            parse_confidence = round(sum(confidences) / len(confidences), 2) if confidences else 0.0
 
             # Build other_sections dict
             other_sections = {}
@@ -223,10 +277,10 @@ def handle_request(request: dict) -> dict:
                 'parse_confidence': parse_confidence,
                 'warnings': warnings,
                 'extraction_methods': {
-                    'contact': contact_meta.get('method', 'regex'),
-                    'work_history': work_meta.get('method', 'regex'),
-                    'education': edu_meta.get('method', 'regex'),
-                    'skills': skills_meta.get('method', 'regex'),
+                    'contact': extraction_method,
+                    'work_history': extraction_method,
+                    'education': extraction_method,
+                    'skills': extraction_method,
                     'llm_available': llm_available
                 }
             }

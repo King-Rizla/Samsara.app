@@ -355,6 +355,7 @@ async function processFile(filePath: string, fileName: string): Promise<void> {
   try {
     console.log('Extracting CV from:', filePath);
     const result = await window.api.extractCV(filePath);
+    console.log('Extraction result:', result);
 
     if (!result.success) {
       showError(result.error || 'Unknown error during CV extraction');

@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'node:path';
 import * as fs from 'fs';
 import started from 'electron-squirrel-startup';
-import { initDatabase, closeDatabase, insertCV, getAllCVs, ParsedCV } from './database';
+import { initDatabase, closeDatabase, insertCV, getAllCVs, getCVFull, updateCVField, deleteCV, ParsedCV } from './database';
 import { startPython, stopPython, extractCV } from './pythonManager';
 
 // Vite global variables for dev server and renderer name
@@ -193,4 +193,107 @@ ipcMain.handle('get-dropped-file-path', async (_event, webkitRelativePath: strin
   // should have the path property available. If we get here, something went wrong.
   console.warn('get-dropped-file-path called with:', webkitRelativePath);
   return { success: false, error: 'File path not available. Please use the file picker instead.' };
+});
+
+/**
+ * Get full CV data by ID.
+ * Returns { success: true, data: ParsedCV } on success
+ * Returns { success: false, error: string } on failure
+ */
+ipcMain.handle('get-cv', async (_event, cvId: string) => {
+  try {
+    const data = getCVFull(cvId);
+    if (!data) {
+      return { success: false, error: 'CV not found' };
+    }
+    return { success: true, data };
+  } catch (error) {
+    console.error('get-cv error:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+});
+
+/**
+ * Update a specific field in a CV.
+ * fieldPath format: "contact.email", "work_history[0].company"
+ * Returns { success: true } on success
+ * Returns { success: false, error: string } on failure
+ */
+ipcMain.handle('update-cv-field', async (_event, cvId: string, fieldPath: string, value: unknown) => {
+  try {
+    const success = updateCVField(cvId, fieldPath, value);
+    return { success };
+  } catch (error) {
+    console.error('update-cv-field error:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+});
+
+/**
+ * Delete a CV by ID.
+ * Returns { success: true } on success
+ * Returns { success: false, error: string } on failure
+ */
+ipcMain.handle('delete-cv', async (_event, cvId: string) => {
+  try {
+    const success = deleteCV(cvId);
+    return { success };
+  } catch (error) {
+    console.error('delete-cv error:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+});
+
+/**
+ * Reprocess a CV (retry extraction).
+ * This re-uses the extract-cv logic for retrying failed CVs.
+ * Returns { success: true, data: ParsedCV, id: string } on success
+ * Returns { success: false, error: string } on failure
+ */
+ipcMain.handle('reprocess-cv', async (_event, filePath: string) => {
+  const startTime = Date.now();
+
+  // Validate file path
+  if (!filePath || typeof filePath !== 'string') {
+    return { success: false, error: 'Invalid file path' };
+  }
+
+  // Check file exists
+  if (!fs.existsSync(filePath)) {
+    return { success: false, error: `File not found: ${filePath}` };
+  }
+
+  // Check file extension
+  const ext = path.extname(filePath).toLowerCase();
+  const validExtensions = ['.pdf', '.docx', '.doc'];
+  if (!validExtensions.includes(ext)) {
+    return {
+      success: false,
+      error: `Unsupported file type: ${ext}. Supported formats: PDF, DOCX, DOC`
+    };
+  }
+
+  try {
+    // Extract CV using Python sidecar (same as extract-cv)
+    const cvData = await extractCV(filePath) as ParsedCV;
+
+    // Persist to database (creates new entry)
+    const id = insertCV(cvData, filePath);
+
+    const totalTime = Date.now() - startTime;
+    console.log(`CV reprocess completed in ${totalTime}ms`);
+
+    return {
+      success: true,
+      data: cvData,
+      id,
+      totalTime
+    };
+  } catch (error) {
+    console.error('CV reprocess failed:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error during CV reprocessing'
+    };
+  }
 });

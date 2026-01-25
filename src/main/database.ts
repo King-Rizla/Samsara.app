@@ -257,3 +257,113 @@ export function deleteCV(id: string): boolean {
   const result = stmt.run(id);
   return result.changes > 0;
 }
+
+/**
+ * Update a specific field in a CV record.
+ * fieldPath format: "contact.email", "work_history[0].company", etc.
+ */
+export function updateCVField(id: string, fieldPath: string, value: unknown): boolean {
+  const database = getDatabase();
+  const now = new Date().toISOString();
+
+  const cv = database.prepare('SELECT * FROM cvs WHERE id = ?').get(id) as CVRecord | undefined;
+  if (!cv) return false;
+
+  // Parse field path to determine which JSON column to update
+  const [section, ...rest] = fieldPath.split('.');
+  const columnMap: Record<string, string> = {
+    contact: 'contact_json',
+    work_history: 'work_history_json',
+    education: 'education_json',
+    skills: 'skills_json',
+    certifications: 'certifications_json',
+    languages: 'languages_json',
+    other_sections: 'other_sections_json',
+  };
+
+  const column = columnMap[section];
+  if (!column) {
+    console.error(`Unknown section: ${section}`);
+    return false;
+  }
+
+  try {
+    // Parse existing JSON
+    const currentData = JSON.parse(cv[column as keyof CVRecord] as string || '{}');
+
+    // Apply update using nested path
+    applyNestedUpdate(currentData, rest, value);
+
+    // Save back to database
+    const stmt = database.prepare(`UPDATE cvs SET ${column} = ?, updated_at = ? WHERE id = ?`);
+    stmt.run(JSON.stringify(currentData), now, id);
+
+    console.log(`Updated CV ${id} field ${fieldPath}`);
+    return true;
+  } catch (error) {
+    console.error('Failed to update CV field:', error);
+    return false;
+  }
+}
+
+/**
+ * Helper to apply updates to nested object paths including array indices.
+ * Handles paths like: "email", "name", "[0].company", "[1].position"
+ */
+function applyNestedUpdate(obj: unknown, pathParts: string[], value: unknown): void {
+  if (pathParts.length === 0) {
+    // Direct section replacement (e.g., entire contact object)
+    Object.assign(obj as object, value);
+    return;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let current: any = obj;
+  for (let i = 0; i < pathParts.length - 1; i++) {
+    const part = pathParts[i];
+    const arrayMatch = part.match(/^\[(\d+)\]$/);
+
+    if (arrayMatch) {
+      const index = parseInt(arrayMatch[1], 10);
+      current = current[index];
+    } else {
+      current = current[part];
+    }
+  }
+
+  const lastPart = pathParts[pathParts.length - 1];
+  const lastArrayMatch = lastPart.match(/^\[(\d+)\]$/);
+
+  if (lastArrayMatch) {
+    const index = parseInt(lastArrayMatch[1], 10);
+    current[index] = value;
+  } else {
+    current[lastPart] = value;
+  }
+}
+
+/**
+ * Get full CV data by ID for editor.
+ * Returns parsed CV object or null if not found.
+ */
+export function getCVFull(id: string): ParsedCV | null {
+  const database = getDatabase();
+  const cv = database.prepare('SELECT * FROM cvs WHERE id = ?').get(id) as CVRecord | undefined;
+
+  if (!cv) return null;
+
+  return {
+    contact: JSON.parse(cv.contact_json || '{}'),
+    work_history: JSON.parse(cv.work_history_json || '[]'),
+    education: JSON.parse(cv.education_json || '[]'),
+    skills: JSON.parse(cv.skills_json || '[]'),
+    certifications: JSON.parse(cv.certifications_json || '[]'),
+    languages: JSON.parse(cv.languages_json || '[]'),
+    other_sections: JSON.parse(cv.other_sections_json || '{}'),
+    raw_text: cv.raw_text || '',
+    section_order: JSON.parse(cv.section_order_json || '[]'),
+    parse_confidence: cv.parse_confidence,
+    warnings: JSON.parse(cv.warnings_json || '[]'),
+    extract_time_ms: cv.parse_time_ms || undefined,
+  };
+}

@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Architecture as the Advantage - Zero Latency, Zero Egress, Zero Per-Seat Tax
-**Current focus:** Phase 2.1 - LLM Extraction (Local LLM for improved work/education/skills)
+**Current focus:** Phase 2.1 complete - Ready for Phase 3
 
 ## Current Position
 
-Phase: 2.1 of 6 (LLM Extraction)
-Plan: 1 of 2 in current phase
-Status: In progress
-Last activity: 2026-01-25 - Completed 02.1-01-PLAN.md (Ollama Integration Layer)
+Phase: 2.1 of 6 (LLM Extraction) - COMPLETE
+Plan: 2 of 2 in current phase
+Status: Phase complete, pending verification
+Last activity: 2026-01-25 - Completed 02.1-02-PLAN.md (Hybrid Extraction Pipeline)
 
-Progress: [####......] 37% (7/19 plans)
+Progress: [####......] 42% (8/19 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
-- Average duration: 14 min
-- Total execution time: 1.70 hours
+- Total plans completed: 8
+- Average duration: 17 min
+- Total execution time: 2.15 hours
 
 **By Phase:**
 
@@ -29,15 +29,15 @@ Progress: [####......] 37% (7/19 plans)
 |-------|-------|-------|----------|
 | 1. Foundation & Distribution | 3/3 | 58 min | 19 min |
 | 2. Parsing Pipeline | 3/3 | 44 min | 15 min |
-| 2.1. LLM Extraction | 1/2 | 5 min | 5 min |
+| 2.1. LLM Extraction | 2/2 | 50 min | 25 min |
 | 3. Visual Editor | 0/2 | - | - |
 | 4. JD Matching | 0/3 | - | - |
 | 5. Anonymization & Branding | 0/3 | - | - |
 | 6. Bulk Processing & OS Integration | 0/3 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 15 min, 7 min, 12 min, 25 min, 5 min
-- Trend: Consistent execution, LLM integration faster than expected
+- Last 5 plans: 7 min, 12 min, 25 min, 5 min, 45 min
+- Trend: LLM integration required iteration with user testing
 
 *Updated after each plan completion*
 
@@ -73,28 +73,34 @@ Recent decisions affecting current work:
 - [02.1-01]: Qwen 2.5 7B default model (Qwen3 breaks JSON with thinking tags)
 - [02.1-01]: 60s timeout for extraction, 5m keep_alive to avoid cold-start delays
 - [02.1-01]: Never raise exceptions in OllamaClient - return None for fallback
+- [02.1-02]: Single unified LLM call instead of 4 separate calls (cost + speed efficiency)
+- [02.1-02]: Pass full raw_text to LLM for better multi-column PDF handling
+- [02.1-02]: 120s timeout for unified extraction (complex schema)
+- [User]: 1 API call always preferred over multiple for cost efficiency
 
 ### Pending Todos
 
-- Phase 2.1: Local LLM extraction enhancement (user-decided follow-up)
+- **[PERFORMANCE]** LLM extraction takes ~50 seconds - needs optimization in future phase
+  - Consider smaller/faster model
+  - Consider simplified schema
+  - Consider parallel processing or caching
 
 ### Blockers/Concerns
 
 - [Research] PDF parsing may fail on 30-40% of real resumes - need adversarial corpus testing
 - [Research] macOS Gatekeeper rejects unsigned Python binaries - sign ALL binaries including PyInstaller output
-- [02-03] Work history, education, skills extraction quality needs LLM enhancement (Phase 2.1)
+- [02.1-02] LLM extraction time (~50s) is too long - future optimization needed
 
 ## Session Continuity
 
-Last session: 2026-01-25T11:40:19Z
-Stopped at: Completed 02.1-01-PLAN.md (Ollama Integration Layer)
+Last session: 2026-01-25T14:30:00Z
+Stopped at: Completed Phase 2.1 - LLM Extraction (all 2 plans)
 Resume file: None
 
 ## Next Steps
 
-**Phase 2.1 Plan 02: Hybrid Integration** — Wire LLM extraction into existing pipeline
-- Update work_history.py, education.py, skills.py with LLM-first approach
-- Add extraction_method metadata to responses
-- Fallback to regex when Ollama unavailable
+**Phase 3: Visual Editor** — Split view with human-in-the-loop corrections
+- PDF rendering with pdf.js
+- Inline field editing with confidence indicators
 
-Run `/gsd:execute-phase 02.1-02` to continue.
+Run `/gsd:plan-phase 3` to create execution plans.

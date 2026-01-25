@@ -12,7 +12,7 @@ Samsara v1 delivers a local-first CV formatter and JD matching tool that replace
 
 - [x] **Phase 1: Foundation & Distribution** - Prove PyInstaller + spaCy bundling and code signing work before building features
 - [x] **Phase 2: Parsing Pipeline** - Single-CV extraction with <2s performance on adversarial corpus
-- [ ] **Phase 2.1: LLM Extraction** - Local LLM enhancement for work history, education, and skills extraction
+- [x] **Phase 2.1: LLM Extraction** - Local LLM enhancement for work history, education, and skills extraction
 - [ ] **Phase 3: Visual Editor** - Split view with human-in-the-loop corrections
 - [ ] **Phase 4: JD Matching** - Score and rank CVs against job descriptions
 - [ ] **Phase 5: Anonymization & Branding** - Redaction, blind profiles, and themed PDF output
@@ -66,8 +66,8 @@ Plans:
 **Plans**: 2 plans in 2 waves
 
 Plans:
-- [ ] 02.1-01-PLAN.md - Ollama integration with client, schemas, and prompts
-- [ ] 02.1-02-PLAN.md - Hybrid extraction pipeline with fallback logic
+- [x] 02.1-01-PLAN.md - Ollama integration with client, schemas, and prompts
+- [x] 02.1-02-PLAN.md - Unified LLM extraction pipeline with fallback logic
 
 ### Phase 3: Visual Editor
 **Goal**: Recruiters can review and correct parsing errors in a split-view interface
@@ -143,7 +143,7 @@ Phases execute in numeric order: 1 -> 2 -> 2.1 -> 3 -> 4 -> 5 -> 6
 |-------|----------------|--------|-----------|
 | 1. Foundation & Distribution | 3/3 | Complete | 2026-01-24 |
 | 2. Parsing Pipeline | 3/3 | Complete | 2026-01-24 |
-| 2.1. LLM Extraction | 0/2 | Not started | - |
+| 2.1. LLM Extraction | 2/2 | Complete | 2026-01-25 |
 | 3. Visual Editor | 0/2 | Not started | - |
 | 4. JD Matching | 0/3 | Not started | - |
 | 5. Anonymization & Branding | 0/3 | Not started | - |

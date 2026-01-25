@@ -13,11 +13,12 @@ import spacy
 
 from parsers.base import parse_document
 from schema.cv_schema import ParsedCV
-from extractors.contact import extract_contacts
+from extractors.llm import OllamaClient
+from extractors.contact import extract_contacts, extract_contacts_hybrid
 from extractors.sections import detect_sections, get_section_text, get_section_order
-from extractors.work_history import extract_work_history
-from extractors.education import extract_education
-from extractors.skills import extract_skills
+from extractors.work_history import extract_work_history, extract_work_history_hybrid
+from extractors.education import extract_education, extract_education_hybrid
+from extractors.skills import extract_skills, extract_skills_hybrid
 
 
 def get_model_path():
@@ -39,6 +40,16 @@ model_path = get_model_path()
 nlp = spacy.load(model_path, disable=["parser", "lemmatizer"])
 print(json.dumps({"status": "model_loaded", "model": "en_core_web_sm"}), flush=True)
 
+# Initialize LLM client for hybrid extraction
+print(json.dumps({"status": "initializing_llm"}), flush=True)
+llm_client = OllamaClient(model="qwen2.5:7b", timeout=60.0, keep_alive="5m")
+llm_available = llm_client.is_available()
+print(json.dumps({
+    "status": "llm_initialized",
+    "llm_available": llm_available,
+    "model": "qwen2.5:7b" if llm_available else None
+}), flush=True)
+
 
 def handle_request(request: dict) -> dict:
     """Handle a single JSON request and return response."""
@@ -52,7 +63,9 @@ def handle_request(request: dict) -> dict:
             'data': {
                 'status': 'healthy',
                 'model': 'en_core_web_sm',
-                'model_loaded': nlp is not None
+                'model_loaded': nlp is not None,
+                'llm_available': llm_available,
+                'llm_model': 'qwen2.5:7b' if llm_available else None
             }
         }
 
@@ -140,20 +153,20 @@ def handle_request(request: dict) -> dict:
             sections = detect_sections(raw_text)
             section_order = get_section_order(sections)
 
-            # Extract contact info
-            contact, contact_confidence = extract_contacts(raw_text, nlp)
+            # Extract contact info (regex first, LLM fallback if incomplete)
+            contact, contact_confidence, contact_meta = extract_contacts_hybrid(raw_text, nlp, llm_client)
 
-            # Extract work history (from experience section if found, else full text)
+            # Extract work history (LLM first, regex fallback)
             experience_text = get_section_text(raw_text, sections, 'experience')
-            work_history = extract_work_history(experience_text or raw_text, nlp)
+            work_history, work_meta = extract_work_history_hybrid(experience_text or raw_text, nlp, llm_client)
 
-            # Extract education (from education section if found, else full text)
+            # Extract education (LLM first, regex fallback)
             education_text = get_section_text(raw_text, sections, 'education')
-            education = extract_education(education_text or raw_text, nlp)
+            education, edu_meta = extract_education_hybrid(education_text or raw_text, nlp, llm_client)
 
-            # Extract skills (from skills section if found, else full text)
+            # Extract skills (LLM first, regex fallback)
             skills_text = get_section_text(raw_text, sections, 'skills')
-            skills = extract_skills(skills_text or raw_text)
+            skills, skills_meta = extract_skills_hybrid(skills_text or raw_text, llm_client)
 
             # Extract certifications
             cert_text = get_section_text(raw_text, sections, 'certifications')
@@ -208,7 +221,14 @@ def handle_request(request: dict) -> dict:
                 'raw_text': raw_text,
                 'section_order': section_order,
                 'parse_confidence': parse_confidence,
-                'warnings': warnings
+                'warnings': warnings,
+                'extraction_methods': {
+                    'contact': contact_meta.get('method', 'regex'),
+                    'work_history': work_meta.get('method', 'regex'),
+                    'education': edu_meta.get('method', 'regex'),
+                    'skills': skills_meta.get('method', 'regex'),
+                    'llm_available': llm_available
+                }
             }
 
             return {

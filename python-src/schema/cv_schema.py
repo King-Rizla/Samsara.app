@@ -45,6 +45,15 @@ class SkillGroup(TypedDict):
     skills: List[str]
 
 
+class ExtractionMethods(TypedDict, total=False):
+    """Metadata about which extraction method was used for each field."""
+    contact: str        # 'regex', 'llm', or 'hybrid'
+    work_history: str   # 'regex' or 'llm'
+    education: str      # 'regex' or 'llm'
+    skills: str         # 'regex' or 'llm'
+    llm_available: bool # Whether LLM was available during extraction
+
+
 class ParsedCV(TypedDict, total=False):
     """Complete parsed CV structure."""
     contact: ContactInfo
@@ -58,3 +67,4 @@ class ParsedCV(TypedDict, total=False):
     section_order: List[str]
     parse_confidence: float
     warnings: List[str]
+    extraction_methods: ExtractionMethods

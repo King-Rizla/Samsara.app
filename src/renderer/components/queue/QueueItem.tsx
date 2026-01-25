@@ -42,15 +42,19 @@ export function QueueItem({ item }: QueueItemProps) {
     [toggleSelect, selectRange, item.id]
   );
 
-  // Handle filename click - opens CV editor for completed items
+  const setFailedItem = useEditorStore((state) => state.setFailedItem);
+
+  // Handle filename click - opens CV editor for completed items, error panel for failed
   const handleFilenameClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
       if (item.status === 'completed') {
         loadCV(item.id);
+      } else if (item.status === 'failed') {
+        setFailedItem(item);
       }
     },
-    [loadCV, item.id, item.status]
+    [loadCV, setFailedItem, item]
   );
 
   const getStatusBadge = () => {
@@ -64,17 +68,9 @@ export function QueueItem({ item }: QueueItemProps) {
     }
 
     if (item.status === 'failed') {
-      // Truncate error message to prevent overflow
-      const errorText = item.error || 'Failed';
-      const truncatedError = errorText.length > 20
-        ? errorText.slice(0, 20) + '...'
-        : errorText;
       return (
-        <Badge
-          className="bg-status-failed/20 text-status-failed border border-status-failed max-w-[150px] truncate"
-          title={errorText}
-        >
-          {truncatedError}
+        <Badge className="bg-status-failed/20 text-status-failed border border-status-failed">
+          Error
         </Badge>
       );
     }
@@ -110,7 +106,8 @@ export function QueueItem({ item }: QueueItemProps) {
       <input
         type="checkbox"
         checked={isSelected}
-        onChange={() => {}} // Controlled by onClick
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        onChange={() => {}} // Required for controlled input, actual logic in onClick
         onClick={handleCheckboxClick}
         className="w-4 h-4 rounded border-border bg-background text-primary focus:ring-primary focus:ring-offset-0 cursor-pointer"
       />
@@ -118,13 +115,15 @@ export function QueueItem({ item }: QueueItemProps) {
       {/* File info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          {/* Filename - clickable for completed items */}
+          {/* Filename - clickable for completed and failed items */}
           <span
             onClick={handleFilenameClick}
             className={cn(
               'font-medium truncate',
-              item.status === 'completed' &&
-                'cursor-pointer hover:underline hover:text-primary transition-colors'
+              (item.status === 'completed' || item.status === 'failed') &&
+                'cursor-pointer hover:underline transition-colors',
+              item.status === 'completed' && 'hover:text-primary',
+              item.status === 'failed' && 'hover:text-status-failed'
             )}
           >
             {item.fileName}

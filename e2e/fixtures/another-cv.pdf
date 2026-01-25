@@ -1,0 +1,78 @@
+%PDF-1.4
+%Second test PDF for E2E testing
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<<
+  /Type /Page
+  /Parent 2 0 R
+  /MediaBox [0 0 612 792]
+  /Contents 4 0 R
+  /Resources << /Font << /F1 5 0 R >> >>
+>>
+endobj
+4 0 obj
+<< /Length 450 >>
+stream
+BT
+/F1 18 Tf
+50 750 Td
+(Jane Sample) Tj
+0 -25 Td
+/F1 12 Tf
+(Product Manager) Tj
+0 -20 Td
+(jane.sample@example.com | +1 555-987-6543) Tj
+0 -30 Td
+/F1 14 Tf
+(Experience) Tj
+0 -20 Td
+/F1 11 Tf
+(Product Inc - Senior Product Manager) Tj
+0 -15 Td
+(2019 - Present) Tj
+0 -15 Td
+(- Launched 3 successful products) Tj
+0 -15 Td
+(- Managed $2M product budget) Tj
+0 -15 Td
+(Startup Co - Product Manager) Tj
+0 -15 Td
+(2017 - 2019) Tj
+0 -30 Td
+/F1 14 Tf
+(Education) Tj
+0 -20 Td
+/F1 11 Tf
+(Business School - MBA) Tj
+0 -15 Td
+(2015 - 2017) Tj
+0 -30 Td
+/F1 14 Tf
+(Skills) Tj
+0 -20 Td
+/F1 11 Tf
+(Product Strategy, Agile, Data Analysis, SQL) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f
+0000000051 00000 n
+0000000100 00000 n
+0000000157 00000 n
+0000000298 00000 n
+0000000803 00000 n
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+882
+%%EOF

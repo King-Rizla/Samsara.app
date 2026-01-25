@@ -106,3 +106,12 @@ python-src/__pycache__/
 *.db
 *.db-wal
 *.db-shm
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+e2e/screenshots/
+e2e/fixtures/user-data/
+e2e/fixtures/temp/

@@ -11,7 +11,8 @@ export function QueueControls() {
   const deleteSelected = useQueueStore((state) => state.deleteSelected);
 
   const activeCVId = useEditorStore((state) => state.activeCVId);
-  const setActiveCV = useEditorStore((state) => state.setActiveCV);
+  const failedItem = useEditorStore((state) => state.failedItem);
+  const closePanel = useEditorStore((state) => state.closePanel);
 
   const selectedCount = selectedIds.size;
 
@@ -36,9 +37,10 @@ export function QueueControls() {
   };
 
   const handleDelete = async () => {
-    // Close editor if the active CV is being deleted
-    if (activeCVId && selectedIds.has(activeCVId)) {
-      setActiveCV(null);
+    // Close panel if the currently viewed item is being deleted
+    const currentViewedId = activeCVId || failedItem?.id;
+    if (currentViewedId && selectedIds.has(currentViewedId)) {
+      closePanel();
     }
     await deleteSelected();
   };

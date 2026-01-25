@@ -6,6 +6,8 @@ import path from 'path';
 // to avoid ESM-only plugin issues with electron-forge
 export default defineConfig({
   root: path.resolve(__dirname, 'src/renderer'),
+  // Use relative paths for Electron file:// protocol
+  base: './',
   build: {
     outDir: path.resolve(__dirname, '.vite/renderer'),
   },

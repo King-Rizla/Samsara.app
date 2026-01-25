@@ -1,29 +1,57 @@
 import { create } from 'zustand';
-import type { ParsedCV } from '../types/cv';
+import type { ParsedCV, QueueItem } from '../types/cv';
+
+type ViewMode = 'cv' | 'error' | null;
 
 interface EditorStore {
+  viewMode: ViewMode;
   activeCVId: string | null;
   activeCV: ParsedCV | null;
+  failedItem: QueueItem | null;  // For viewing error details
   isDirty: boolean;
   pendingChanges: Map<string, unknown>;  // fieldPath -> value
 
   // Actions
   setActiveCV: (id: string | null, data?: ParsedCV) => void;
+  setFailedItem: (item: QueueItem | null) => void;
   updateField: (fieldPath: string, value: unknown) => void;
   saveChanges: () => Promise<void>;
   discardChanges: () => void;
   loadCV: (id: string) => Promise<void>;
+  closePanel: () => void;
 }
 
 export const useEditorStore = create<EditorStore>((set, get) => ({
+  viewMode: null,
   activeCVId: null,
   activeCV: null,
+  failedItem: null,
   isDirty: false,
   pendingChanges: new Map(),
 
   setActiveCV: (id, data) => set({
+    viewMode: id ? 'cv' : null,
     activeCVId: id,
     activeCV: data || null,
+    failedItem: null,
+    isDirty: false,
+    pendingChanges: new Map(),
+  }),
+
+  setFailedItem: (item) => set({
+    viewMode: item ? 'error' : null,
+    failedItem: item,
+    activeCVId: null,
+    activeCV: null,
+    isDirty: false,
+    pendingChanges: new Map(),
+  }),
+
+  closePanel: () => set({
+    viewMode: null,
+    activeCVId: null,
+    activeCV: null,
+    failedItem: null,
     isDirty: false,
     pendingChanges: new Map(),
   }),
@@ -69,8 +97,10 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       const result = await window.api.getCV(id);
       if (result.success && result.data) {
         set({
+          viewMode: 'cv',
           activeCVId: id,
           activeCV: result.data,
+          failedItem: null,
           isDirty: false,
           pendingChanges: new Map(),
         });
@@ -108,4 +138,9 @@ function applyFieldUpdate(cv: ParsedCV, fieldPath: string, value: unknown): Pars
   current[lastPart] = value;
 
   return result;
+}
+
+// Expose store for E2E testing (development/test only)
+if (typeof window !== 'undefined') {
+  (window as unknown as { __editorStore: typeof useEditorStore }).__editorStore = useEditorStore;
 }

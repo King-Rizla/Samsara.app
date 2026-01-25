@@ -179,3 +179,8 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
     }
   },
 }));
+
+// Expose store for E2E testing (development/test only)
+if (typeof window !== 'undefined') {
+  (window as unknown as { __queueStore: typeof useQueueStore }).__queueStore = useQueueStore;
+}

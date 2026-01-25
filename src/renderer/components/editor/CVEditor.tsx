@@ -9,14 +9,14 @@ import { ConfidenceBadge } from './ConfidenceBadge';
 export function CVEditor() {
   const activeCVId = useEditorStore((state) => state.activeCVId);
   const activeCV = useEditorStore((state) => state.activeCV);
-  const setActiveCV = useEditorStore((state) => state.setActiveCV);
+  const closePanel = useEditorStore((state) => state.closePanel);
 
   if (!activeCVId || !activeCV) {
     return null;
   }
 
   const handleClose = () => {
-    setActiveCV(null);
+    closePanel();
   };
 
   return (

@@ -1,4 +1,5 @@
 export { CVEditor } from './CVEditor';
+export { ErrorDetailPanel } from './ErrorDetailPanel';
 export { ContactSection } from './ContactSection';
 export { WorkSection } from './WorkSection';
 export { EducationSection } from './EducationSection';

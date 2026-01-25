@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 2.1 of 6 (LLM Extraction)
-Plan: 0 of 2 in current phase
-Status: Ready to plan
-Last activity: 2026-01-24 - Phase 2 verified complete, Phase 2.1 inserted
+Plan: 1 of 2 in current phase
+Status: In progress
+Last activity: 2026-01-25 - Completed 02.1-01-PLAN.md (Ollama Integration Layer)
 
-Progress: [####......] 32% (6/19 plans)
+Progress: [####......] 37% (7/19 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: 16 min
-- Total execution time: 1.62 hours
+- Total plans completed: 7
+- Average duration: 14 min
+- Total execution time: 1.70 hours
 
 **By Phase:**
 
@@ -29,15 +29,15 @@ Progress: [####......] 32% (6/19 plans)
 |-------|-------|-------|----------|
 | 1. Foundation & Distribution | 3/3 | 58 min | 19 min |
 | 2. Parsing Pipeline | 3/3 | 44 min | 15 min |
-| 2.1. LLM Extraction | 0/2 | - | - |
+| 2.1. LLM Extraction | 1/2 | 5 min | 5 min |
 | 3. Visual Editor | 0/2 | - | - |
 | 4. JD Matching | 0/3 | - | - |
 | 5. Anonymization & Branding | 0/3 | - | - |
 | 6. Bulk Processing & OS Integration | 0/3 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 33 min, 15 min, 7 min, 12 min, 25 min
-- Trend: Consistent execution, UI integration tasks take longer
+- Last 5 plans: 15 min, 7 min, 12 min, 25 min, 5 min
+- Trend: Consistent execution, LLM integration faster than expected
 
 *Updated after each plan completion*
 
@@ -70,6 +70,9 @@ Recent decisions affecting current work:
 - [02-03]: Native dialog.showOpenDialog as fallback for click-to-select
 - [02-03]: 70% confidence threshold for low-confidence field highlighting
 - [User]: Local LLM extraction for improved work/education/skills deferred to Phase 2.1
+- [02.1-01]: Qwen 2.5 7B default model (Qwen3 breaks JSON with thinking tags)
+- [02.1-01]: 60s timeout for extraction, 5m keep_alive to avoid cold-start delays
+- [02.1-01]: Never raise exceptions in OllamaClient - return None for fallback
 
 ### Pending Todos
 
@@ -83,15 +86,15 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-01-24T15:10:00Z
-Stopped at: Completed Phase 2 - Parsing Pipeline (all 3 plans)
+Last session: 2026-01-25T11:40:19Z
+Stopped at: Completed 02.1-01-PLAN.md (Ollama Integration Layer)
 Resume file: None
 
 ## Next Steps
 
-**Phase 2.1: LLM Extraction** — Enhance extraction with local LLM (Ollama)
-- Hybrid approach: regex for contact (LLM fallback), LLM for work/education/skills
-- Local-only processing, zero cost per CV
-- Target: improved accuracy for semantic fields
+**Phase 2.1 Plan 02: Hybrid Integration** — Wire LLM extraction into existing pipeline
+- Update work_history.py, education.py, skills.py with LLM-first approach
+- Add extraction_method metadata to responses
+- Fallback to regex when Ollama unavailable
 
-Run `/gsd:plan-phase 2.1` to create execution plans.
+Run `/gsd:execute-phase 02.1-02` to continue.

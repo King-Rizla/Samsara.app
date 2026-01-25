@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQueueStore } from '../../stores/queueStore';
 import { Button } from '../ui/button';
 
@@ -10,11 +11,13 @@ export function QueueControls() {
 
   const selectedCount = selectedIds.size;
 
-  // Check if any selected items are failed (for retry button)
-  const hasFailedSelected = [...selectedIds].some((id) => {
-    const item = items.find((i) => i.id === id);
-    return item?.status === 'failed';
-  });
+  // Memoize derived state to avoid recalculation on every render
+  const hasFailedSelected = useMemo(() => {
+    return [...selectedIds].some((id) => {
+      const item = items.find((i) => i.id === id);
+      return item?.status === 'failed';
+    });
+  }, [selectedIds, items]);
 
   if (selectedCount === 0) {
     return null;

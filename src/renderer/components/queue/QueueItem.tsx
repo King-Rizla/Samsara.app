@@ -10,13 +10,12 @@ interface QueueItemProps {
 }
 
 export function QueueItem({ item }: QueueItemProps) {
-  const selectedIds = useQueueStore((state) => state.selectedIds);
+  // Use boolean selector to avoid Set reference comparison issues with React 19
+  const isSelected = useQueueStore((state) => state.selectedIds.has(item.id));
   const toggleSelect = useQueueStore((state) => state.toggleSelect);
   const selectRange = useQueueStore((state) => state.selectRange);
 
   const loadCV = useEditorStore((state) => state.loadCV);
-
-  const isSelected = selectedIds.has(item.id);
 
   const handleCheckboxChange = useCallback(() => {
     toggleSelect(item.id);

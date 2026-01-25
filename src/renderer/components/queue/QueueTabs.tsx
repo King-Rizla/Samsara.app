@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { useQueueStore } from '../../stores/queueStore';
 import { QueueList } from './QueueList';
@@ -7,11 +8,12 @@ import { DropZone } from './DropZone';
 export function QueueTabs() {
   const items = useQueueStore((state) => state.items);
 
-  const counts = {
+  // Memoize counts to avoid recalculating on every render
+  const counts = useMemo(() => ({
     completed: items.filter((i) => i.status === 'completed').length,
     submitted: items.filter((i) => i.status === 'submitted').length,
     failed: items.filter((i) => i.status === 'failed').length,
-  };
+  }), [items]);
 
   return (
     <div className="flex flex-col h-full">

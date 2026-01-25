@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQueueStore } from '../../stores/queueStore';
 import { QueueItem } from './QueueItem';
 import type { QueueStatus } from '../../types/cv';
@@ -7,8 +8,12 @@ interface QueueListProps {
 }
 
 export function QueueList({ status }: QueueListProps) {
-  const items = useQueueStore((state) =>
-    state.items.filter((item) => item.status === status)
+  // Get stable reference to items array, then filter with useMemo
+  // This avoids React 19's infinite loop detection with useSyncExternalStore
+  const allItems = useQueueStore((state) => state.items);
+  const items = useMemo(
+    () => allItems.filter((item) => item.status === status),
+    [allItems, status]
   );
 
   if (items.length === 0) {

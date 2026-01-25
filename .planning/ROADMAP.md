@@ -4,19 +4,26 @@
 
 Samsara v1 delivers a local-first CV formatter and JD matching tool that replaces expensive cloud-based parsing SaaS (DaXtra, AllSorted) with zero-latency desktop processing. The roadmap prioritizes proving the hardest technical challenge first (Python bundling with spaCy), then builds the parsing pipeline, visual editor, JD matching, anonymization/branding, and finally bulk processing. Each phase delivers a complete, verifiable capability.
 
+**Testing Strategy:** Dedicated testing phases (T1, T2, T3) follow major feature milestones to ensure quality before moving forward. Testing phases expand E2E coverage using the Playwright infrastructure established in Phase 3.
+
 ## Phases
 
 **Phase Numbering:**
 - Integer phases (1, 2, 3...): Planned milestone work
 - Decimal phases (e.g., 2.1): Urgent insertions if needed
+- T-prefixed phases (T1, T2, T3): Dedicated testing phases
 
 - [x] **Phase 1: Foundation & Distribution** - Prove PyInstaller + spaCy bundling and code signing work before building features
 - [x] **Phase 2: Parsing Pipeline** - Single-CV extraction with <2s performance on adversarial corpus
 - [x] **Phase 2.1: LLM Extraction** - Local LLM enhancement for work history, education, and skills extraction
-- [ ] **Phase 3: Visual Editor** - Queue management with human-in-the-loop corrections
+- [x] **Phase 3: Visual Editor** - Queue management with human-in-the-loop corrections
+- [x] **Phase 3.T: E2E Test Foundation** - Playwright infrastructure, fixtures, and core test coverage
 - [ ] **Phase 4: JD Matching** - Score and rank CVs against job descriptions
+- [ ] **Phase 4.T: JD Matching Tests** - E2E coverage for JD parsing, scoring, and ranking
 - [ ] **Phase 5: Anonymization & Branding** - Redaction, blind profiles, and themed PDF output
+- [ ] **Phase 5.T: Export & Branding Tests** - E2E coverage for PDF generation and anonymization
 - [ ] **Phase 6: Bulk Processing & OS Integration** - 100+ file queue with context menu integration
+- [ ] **Phase 6.T: Performance & Integration Tests** - Load testing, memory profiling, and OS integration tests
 
 ## Phase Details
 
@@ -74,23 +81,38 @@ Plans:
 **Depends on**: Phase 2.1
 **Requirements**: F-03a, F-03b
 **Success Criteria** (what must be TRUE):
-  1. User sees queue with three tabs (Completed, Submitted, Failed) with item counts
-  2. User can click on low-confidence fields (highlighted) and fix values directly
-  3. User corrections save immediately to SQLite without re-parsing
-  4. User can retry failed items or delete items from queue
-  5. Terminal aesthetic applied: dark background, JetBrains Mono, purple accent
+  1. User sees queue with three tabs (Completed, Submitted, Failed) with item counts ✓
+  2. User can click on low-confidence fields (highlighted) and fix values directly ✓
+  3. User corrections save immediately to SQLite without re-parsing ✓
+  4. User can retry failed items or delete items from queue ✓
+  5. Terminal aesthetic applied: dark background, JetBrains Mono, purple accent ✓
 **Plans**: 5 plans in 5 waves
 
 Plans:
-- [ ] 03-01-PLAN.md — React + Tailwind + shadcn/ui foundation with terminal theme
-- [ ] 03-02-PLAN.md — Zustand stores and IPC handlers for queue/editor state
-- [ ] 03-03-PLAN.md — Queue tabs, item display, selection, and bulk actions
-- [ ] 03-04-PLAN.md — CV editor with inline field editing and confidence badges
-- [ ] 03-05-PLAN.md — Human verification checkpoint
+- [x] 03-01-PLAN.md — React + Tailwind + shadcn/ui foundation with terminal theme
+- [x] 03-02-PLAN.md — Zustand stores and IPC handlers for queue/editor state
+- [x] 03-03-PLAN.md — Queue tabs, item display, selection, and bulk actions
+- [x] 03-04-PLAN.md — CV editor with inline field editing and confidence badges
+- [x] 03-05-PLAN.md — Human verification checkpoint
+
+### Phase 3.T: E2E Test Foundation
+**Goal**: Establish Playwright testing infrastructure with mock data injection for Electron
+**Depends on**: Phase 3
+**Requirements**: None (quality assurance phase)
+**Success Criteria** (what must be TRUE):
+  1. Playwright configured for Electron testing with proper app launch/teardown ✓
+  2. Test fixtures created (4 CVs, 4 JDs) with corresponding mock data ✓
+  3. Store patching workaround implemented (contextBridge limitation) ✓
+  4. Core editor tests passing with mock data injection ✓
+  5. Infrastructure ready for expanding test coverage ✓
+**Plans**: 1 plan (infrastructure)
+
+Plans:
+- [x] 03.T-01-PLAN.md — Playwright setup, fixtures, mock utilities, and core tests
 
 ### Phase 4: JD Matching
 **Goal**: Score and rank CVs against job descriptions with highlighted matches
-**Depends on**: Phase 2 (requires parsed skills data)
+**Depends on**: Phase 3.T (requires Visual Editor and test infrastructure)
 **Requirements**: M-01a, M-01b, M-01c, M-01d, M-01e
 **Success Criteria** (what must be TRUE):
   1. User can paste or upload a Job Description and it gets parsed/stored
@@ -98,32 +120,62 @@ Plans:
   3. System calculates match score (%) for each CV against the JD using extracted skills
   4. CVs appear in a ranked list ordered by match score
   5. Matching skills/requirements are visually highlighted when viewing a CV in context of a JD
-**Plans**: TBD
+**Plans**: 3 plans in 3 waves
 
 Plans:
-- [ ] 04-01: JD input and parsing (skills/requirements extraction)
-- [ ] 04-02: Matching algorithm and scoring engine
-- [ ] 04-03: Ranked results view with highlighted matches
+- [ ] 04-01-PLAN.md — JD input UI and parsing (skills/requirements extraction via LLM)
+- [ ] 04-02-PLAN.md — Matching algorithm and scoring engine
+- [ ] 04-03-PLAN.md — Ranked results view with highlighted matches
+
+### Phase 4.T: JD Matching Tests
+**Goal**: E2E test coverage for JD matching functionality
+**Depends on**: Phase 4
+**Requirements**: None (quality assurance phase)
+**Success Criteria** (what must be TRUE):
+  1. JD upload/paste and parsing tests pass
+  2. CV-to-JD assignment tests pass
+  3. Scoring accuracy validated against known test cases
+  4. Ranked results display tests pass
+  5. Skill highlighting tests pass
+**Plans**: 1 plan
+
+Plans:
+- [ ] 04.T-01-PLAN.md — JD matching E2E tests with mock JD fixtures
 
 ### Phase 5: Anonymization & Branding
 **Goal**: Generate blind profiles and branded client-ready PDFs
-**Depends on**: Phase 3
+**Depends on**: Phase 4.T
 **Requirements**: F-02b, F-02c, F-03c
 **Success Criteria** (what must be TRUE):
   1. User can apply "Blackout" redaction that visually removes contact details from PDF layer
   2. User can generate a "Blind Profile" front sheet summarizing skills without identifying information
   3. User can apply theme.json (logo, colors, headers) to generate branded client PDF
   4. Branded/anonymized PDF generates in <500ms after editing is complete
-**Plans**: TBD
+**Plans**: 3 plans in 3 waves
 
 Plans:
-- [ ] 05-01: Anonymization engine with visual redaction
-- [ ] 05-02: Blind Profile front sheet generation
-- [ ] 05-03: Branding engine with theme.json and ReportLab PDF output
+- [ ] 05-01-PLAN.md — Anonymization engine with visual redaction
+- [ ] 05-02-PLAN.md — Blind Profile front sheet generation
+- [ ] 05-03-PLAN.md — Branding engine with theme.json and ReportLab PDF output
+
+### Phase 5.T: Export & Branding Tests
+**Goal**: E2E test coverage for PDF generation and anonymization
+**Depends on**: Phase 5
+**Requirements**: None (quality assurance phase)
+**Success Criteria** (what must be TRUE):
+  1. Blackout redaction removes all PII from PDF output
+  2. Blind Profile generates correctly formatted front sheet
+  3. Branding applies theme correctly (logo, colors, headers)
+  4. PDF generation completes within performance target
+  5. Output files are valid PDFs that open correctly
+**Plans**: 1 plan
+
+Plans:
+- [ ] 05.T-01-PLAN.md — Export and branding E2E tests with PDF validation
 
 ### Phase 6: Bulk Processing & OS Integration
 **Goal**: Process 100+ CVs simultaneously with OS-level integration
-**Depends on**: Phase 5
+**Depends on**: Phase 5.T
 **Requirements**: F-01a, F-01b
 **Success Criteria** (what must be TRUE):
   1. User can drag-and-drop a folder containing 100+ PDF/DOCX files and see queue progress
@@ -131,28 +183,50 @@ Plans:
   3. Bulk processing completes 100 CVs without memory growth or crashes
   4. Individual file failures do not stop the batch (error logged, processing continues)
   5. Batch IPC sends 10-50 file paths per message (not one-by-one)
-**Plans**: TBD
+**Plans**: 3 plans in 3 waves
 
 Plans:
-- [ ] 06-01: Drag-drop queue with progress tracking
-- [ ] 06-02: Batch IPC and memory management
-- [ ] 06-03: OS context menu integration (Windows/macOS)
+- [ ] 06-01-PLAN.md — Drag-drop queue with progress tracking
+- [ ] 06-02-PLAN.md — Batch IPC and memory management
+- [ ] 06-03-PLAN.md — OS context menu integration (Windows/macOS)
+
+### Phase 6.T: Performance & Integration Tests
+**Goal**: Load testing, memory profiling, and OS integration validation
+**Depends on**: Phase 6
+**Requirements**: None (quality assurance phase)
+**Success Criteria** (what must be TRUE):
+  1. 100-file batch completes without memory leaks
+  2. Failure isolation verified (bad files don't crash batch)
+  3. OS context menu integration tested on Windows and macOS
+  4. Performance regression tests established as baseline
+  5. Full E2E smoke test suite passes
+**Plans**: 1 plan
+
+Plans:
+- [ ] 06.T-01-PLAN.md — Performance tests, memory profiling, and OS integration tests
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 2.1 -> 3 -> 4 -> 5 -> 6
+Phases execute in order: 1 → 2 → 2.1 → 3 → 3.T → 4 → 4.T → 5 → 5.T → 6 → 6.T
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation & Distribution | 3/3 | Complete | 2026-01-24 |
 | 2. Parsing Pipeline | 3/3 | Complete | 2026-01-24 |
 | 2.1. LLM Extraction | 2/2 | Complete | 2026-01-25 |
-| 3. Visual Editor | 0/5 | Not started | - |
+| 3. Visual Editor | 5/5 | Complete | 2026-01-25 |
+| 3.T. E2E Test Foundation | 1/1 | Complete | 2026-01-25 |
 | 4. JD Matching | 0/3 | Not started | - |
+| 4.T. JD Matching Tests | 0/1 | Not started | - |
 | 5. Anonymization & Branding | 0/3 | Not started | - |
+| 5.T. Export & Branding Tests | 0/1 | Not started | - |
 | 6. Bulk Processing & OS Integration | 0/3 | Not started | - |
+| 6.T. Performance & Integration Tests | 0/1 | Not started | - |
+
+**Total Progress:** 14/22 plans complete (64%)
 
 ---
 *Roadmap created: 2026-01-23*
+*Roadmap updated: 2026-01-25 (added testing phases)*
 *Milestone: The Sovereign Formatter (v1)*

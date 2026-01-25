@@ -7,4 +7,9 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, '.vite/renderer'),
   },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, 'src/renderer'),
+    },
+  },
 });

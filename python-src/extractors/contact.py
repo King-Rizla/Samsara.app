@@ -8,6 +8,9 @@ import re
 from typing import Tuple, List, Optional
 
 from schema.cv_schema import ContactInfo
+from extractors.llm.client import OllamaClient
+from extractors.llm.schemas import LLMContact
+from extractors.llm.prompts import CONTACT_PROMPT
 
 
 # Email pattern - comprehensive but not overly complex
@@ -207,3 +210,64 @@ def extract_contacts(text: str, nlp) -> Tuple[ContactInfo, float]:
         confidence = 0.7 if confidence_factors[0] >= 0.8 else 0.5
 
     return contact, round(confidence, 2)
+
+
+def extract_contacts_hybrid(
+    text: str,
+    nlp,
+    llm_client: Optional[OllamaClient] = None
+) -> Tuple[ContactInfo, float, dict]:
+    """
+    Extract contact info with regex first, LLM as fallback for incomplete data.
+
+    Contact info is deterministic - regex is reliable for emails, phones, URLs.
+    Only use LLM if regex extraction is incomplete (missing name, email, or phone).
+
+    Returns:
+        Tuple of (contact, confidence, metadata with method/llm_available)
+    """
+    metadata = {"method": "regex", "llm_available": False}
+
+    # Try regex extraction first (it's reliable for contact patterns)
+    contact, confidence = extract_contacts(text, nlp)
+
+    # Check if contact data is incomplete - missing name, email, or phone
+    is_incomplete = (
+        not contact.get('name') or
+        not contact.get('email') or
+        not contact.get('phone')
+    )
+
+    # Only try LLM if regex returned incomplete data AND LLM is available
+    if is_incomplete and llm_client and llm_client.is_available():
+        metadata["llm_available"] = True
+
+        llm_result = llm_client.extract(
+            text=text,
+            prompt=CONTACT_PROMPT,
+            schema=LLMContact,
+            temperature=0.0
+        )
+
+        if llm_result:
+            # Merge LLM results with regex results (regex takes priority for non-empty fields)
+            merged = _merge_contact_info(contact, llm_result)
+            if merged != contact:
+                metadata["method"] = "hybrid"  # Both methods contributed
+                return merged, 0.80, metadata
+
+    return contact, confidence, metadata
+
+
+def _merge_contact_info(regex_contact: ContactInfo, llm_contact) -> ContactInfo:
+    """Merge LLM contact info with regex results. Regex takes priority for non-empty fields."""
+    merged = ContactInfo(
+        name=regex_contact.get('name') or llm_contact.name,
+        email=regex_contact.get('email') or llm_contact.email,
+        phone=regex_contact.get('phone') or llm_contact.phone,
+        address=regex_contact.get('address') or llm_contact.address,
+        linkedin=regex_contact.get('linkedin') or llm_contact.linkedin,
+        github=regex_contact.get('github') or llm_contact.github,
+        portfolio=regex_contact.get('portfolio') or llm_contact.portfolio,
+    )
+    return merged

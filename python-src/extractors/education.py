@@ -4,10 +4,13 @@ Education extraction from CV text.
 Extracts education entries with institution, degree, field, and dates.
 """
 import re
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from schema.cv_schema import EducationEntry
 from normalizers.dates import normalize_date, extract_date_range
+from extractors.llm.client import OllamaClient
+from extractors.llm.schemas import LLMEducation
+from extractors.llm.prompts import EDUCATION_PROMPT
 
 
 # Degree patterns
@@ -292,3 +295,63 @@ def extract_education(text: str, nlp) -> List[EducationEntry]:
                     entries.append(entry)
 
     return entries
+
+
+def extract_education_hybrid(
+    text: str,
+    nlp,
+    llm_client: Optional[OllamaClient] = None
+) -> Tuple[List[EducationEntry], dict]:
+    """
+    Extract education with LLM, fallback to regex.
+
+    Returns:
+        Tuple of (entries, metadata with method/llm_available)
+    """
+    metadata = {"method": "regex", "llm_available": False}
+
+    # Try LLM extraction first
+    if llm_client and llm_client.is_available():
+        metadata["llm_available"] = True
+
+        llm_result = llm_client.extract(
+            text=text,
+            prompt=EDUCATION_PROMPT,
+            schema=LLMEducation,
+            temperature=0.0
+        )
+
+        if llm_result and llm_result.entries:
+            entries = []
+            for e in llm_result.entries:
+                entry = _llm_to_education_entry(e)
+                if _validate_education_entry(entry):
+                    entries.append(entry)
+
+            if entries:
+                metadata["method"] = "llm"
+                return entries, metadata
+
+    # Fallback to regex/NER
+    entries = extract_education(text, nlp)
+    return entries, metadata
+
+
+def _llm_to_education_entry(llm_entry) -> EducationEntry:
+    """Convert LLM output to schema EducationEntry."""
+    return EducationEntry(
+        institution=llm_entry.institution or '',
+        degree=llm_entry.degree or '',
+        field_of_study=llm_entry.field_of_study,
+        start_date=normalize_date(llm_entry.start_date) if llm_entry.start_date else None,
+        end_date=normalize_date(llm_entry.end_date) if llm_entry.end_date else None,
+        grade=llm_entry.grade,
+        confidence=0.85  # Higher confidence for LLM extraction
+    )
+
+
+def _validate_education_entry(entry: EducationEntry) -> bool:
+    """Validate extracted education entry has minimum required data."""
+    if not entry.get('institution') and not entry.get('degree'):
+        return False
+    return True

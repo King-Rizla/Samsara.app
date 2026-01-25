@@ -4,9 +4,12 @@ Skills extraction from CV text.
 Preserves candidate's own skill groupings and categories.
 """
 import re
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from schema.cv_schema import SkillGroup
+from extractors.llm.client import OllamaClient
+from extractors.llm.schemas import LLMSkills
+from extractors.llm.prompts import SKILLS_PROMPT
 
 
 # Common skill category patterns
@@ -218,3 +221,50 @@ def merge_skill_groups(groups: List[SkillGroup]) -> List[SkillGroup]:
             )
 
     return list(merged.values())
+
+
+def extract_skills_hybrid(
+    text: str,
+    llm_client: Optional[OllamaClient] = None
+) -> Tuple[List[SkillGroup], dict]:
+    """
+    Extract skills with LLM, fallback to regex.
+
+    Returns:
+        Tuple of (skill_groups, metadata with method/llm_available)
+    """
+    metadata = {"method": "regex", "llm_available": False}
+
+    # Try LLM extraction first
+    if llm_client and llm_client.is_available():
+        metadata["llm_available"] = True
+
+        llm_result = llm_client.extract(
+            text=text,
+            prompt=SKILLS_PROMPT,
+            schema=LLMSkills,
+            temperature=0.0
+        )
+
+        if llm_result and llm_result.groups:
+            skill_groups = []
+            for g in llm_result.groups:
+                group = _llm_to_skill_group(g)
+                if group['skills']:  # Only add groups with actual skills
+                    skill_groups.append(group)
+
+            if skill_groups:
+                metadata["method"] = "llm"
+                return skill_groups, metadata
+
+    # Fallback to regex
+    skills = extract_skills(text)
+    return skills, metadata
+
+
+def _llm_to_skill_group(llm_group) -> SkillGroup:
+    """Convert LLM output to schema SkillGroup."""
+    return SkillGroup(
+        category=llm_group.category or 'General',
+        skills=llm_group.skills or []
+    )

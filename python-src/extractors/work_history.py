@@ -4,10 +4,13 @@ Work history extraction from CV text.
 Extracts job entries with company, position, dates, and descriptions.
 """
 import re
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from schema.cv_schema import WorkEntry
 from normalizers.dates import normalize_date, extract_date_range
+from extractors.llm.client import OllamaClient
+from extractors.llm.schemas import LLMWorkHistory
+from extractors.llm.prompts import WORK_HISTORY_PROMPT
 
 
 # Date range patterns for work history
@@ -240,3 +243,63 @@ def extract_work_history(text: str, nlp) -> List[WorkEntry]:
                 entries.append(entry)
 
     return entries
+
+
+def extract_work_history_hybrid(
+    text: str,
+    nlp,
+    llm_client: Optional[OllamaClient] = None
+) -> Tuple[List[WorkEntry], dict]:
+    """
+    Extract work history with LLM, fallback to regex.
+
+    Returns:
+        Tuple of (entries, metadata with method/llm_available)
+    """
+    metadata = {"method": "regex", "llm_available": False}
+
+    # Try LLM extraction first
+    if llm_client and llm_client.is_available():
+        metadata["llm_available"] = True
+
+        llm_result = llm_client.extract(
+            text=text,
+            prompt=WORK_HISTORY_PROMPT,
+            schema=LLMWorkHistory,
+            temperature=0.0
+        )
+
+        if llm_result and llm_result.entries:
+            entries = []
+            for e in llm_result.entries:
+                entry = _llm_to_work_entry(e)
+                if _validate_work_entry(entry):
+                    entries.append(entry)
+
+            if entries:
+                metadata["method"] = "llm"
+                return entries, metadata
+
+    # Fallback to regex/NER
+    entries = extract_work_history(text, nlp)
+    return entries, metadata
+
+
+def _llm_to_work_entry(llm_entry) -> WorkEntry:
+    """Convert LLM output to schema WorkEntry."""
+    return WorkEntry(
+        company=llm_entry.company or '',
+        position=llm_entry.position or '',
+        start_date=normalize_date(llm_entry.start_date) if llm_entry.start_date else None,
+        end_date=normalize_date(llm_entry.end_date) if llm_entry.end_date else None,
+        description=llm_entry.description or '',
+        highlights=llm_entry.highlights or [],
+        confidence=0.85  # Higher confidence for LLM extraction
+    )
+
+
+def _validate_work_entry(entry: WorkEntry) -> bool:
+    """Validate extracted work entry has minimum required data."""
+    if not entry.get('company') and not entry.get('position'):
+        return False
+    return True

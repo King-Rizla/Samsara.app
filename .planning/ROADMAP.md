@@ -63,11 +63,11 @@ Plans:
   3. Local LLM extracts skills preserving candidate groupings
   4. Hybrid approach: regex for contact (with LLM fallback), LLM for semantic fields
   5. Extraction completes in <5s total (acceptable for accuracy improvement)
-**Plans**: TBD
+**Plans**: 2 plans in 2 waves
 
 Plans:
-- [ ] 02.1-01: Ollama integration and LLM extraction prompts
-- [ ] 02.1-02: Hybrid extraction pipeline with fallback logic
+- [ ] 02.1-01-PLAN.md - Ollama integration with client, schemas, and prompts
+- [ ] 02.1-02-PLAN.md - Hybrid extraction pipeline with fallback logic
 
 ### Phase 3: Visual Editor
 **Goal**: Recruiters can review and correct parsing errors in a split-view interface

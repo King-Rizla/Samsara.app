@@ -13,7 +13,7 @@ Samsara v1 delivers a local-first CV formatter and JD matching tool that replace
 - [x] **Phase 1: Foundation & Distribution** - Prove PyInstaller + spaCy bundling and code signing work before building features
 - [x] **Phase 2: Parsing Pipeline** - Single-CV extraction with <2s performance on adversarial corpus
 - [x] **Phase 2.1: LLM Extraction** - Local LLM enhancement for work history, education, and skills extraction
-- [ ] **Phase 3: Visual Editor** - Split view with human-in-the-loop corrections
+- [ ] **Phase 3: Visual Editor** - Queue management with human-in-the-loop corrections
 - [ ] **Phase 4: JD Matching** - Score and rank CVs against job descriptions
 - [ ] **Phase 5: Anonymization & Branding** - Redaction, blind profiles, and themed PDF output
 - [ ] **Phase 6: Bulk Processing & OS Integration** - 100+ file queue with context menu integration
@@ -70,19 +70,23 @@ Plans:
 - [x] 02.1-02-PLAN.md - Unified LLM extraction pipeline with fallback logic
 
 ### Phase 3: Visual Editor
-**Goal**: Recruiters can review and correct parsing errors in a split-view interface
+**Goal**: Queue management interface with human-in-the-loop corrections and terminal aesthetic design system
 **Depends on**: Phase 2.1
 **Requirements**: F-03a, F-03b
 **Success Criteria** (what must be TRUE):
-  1. User sees original CV on left and parsed fields on right in split view
+  1. User sees queue with three tabs (Completed, Submitted, Failed) with item counts
   2. User can click on low-confidence fields (highlighted) and fix values directly
   3. User corrections save immediately to SQLite without re-parsing
-  4. User can trigger re-parse of a CV if original changes
-**Plans**: TBD
+  4. User can retry failed items or delete items from queue
+  5. Terminal aesthetic applied: dark background, JetBrains Mono, purple accent
+**Plans**: 5 plans in 5 waves
 
 Plans:
-- [ ] 03-01: PDF rendering with pdf.js in split view
-- [ ] 03-02: Inline field editing with confidence indicators
+- [ ] 03-01-PLAN.md — React + Tailwind + shadcn/ui foundation with terminal theme
+- [ ] 03-02-PLAN.md — Zustand stores and IPC handlers for queue/editor state
+- [ ] 03-03-PLAN.md — Queue tabs, item display, selection, and bulk actions
+- [ ] 03-04-PLAN.md — CV editor with inline field editing and confidence badges
+- [ ] 03-05-PLAN.md — Human verification checkpoint
 
 ### Phase 4: JD Matching
 **Goal**: Score and rank CVs against job descriptions with highlighted matches
@@ -144,7 +148,7 @@ Phases execute in numeric order: 1 -> 2 -> 2.1 -> 3 -> 4 -> 5 -> 6
 | 1. Foundation & Distribution | 3/3 | Complete | 2026-01-24 |
 | 2. Parsing Pipeline | 3/3 | Complete | 2026-01-24 |
 | 2.1. LLM Extraction | 2/2 | Complete | 2026-01-25 |
-| 3. Visual Editor | 0/2 | Not started | - |
+| 3. Visual Editor | 0/5 | Not started | - |
 | 4. JD Matching | 0/3 | Not started | - |
 | 5. Anonymization & Branding | 0/3 | Not started | - |
 | 6. Bulk Processing & OS Integration | 0/3 | Not started | - |

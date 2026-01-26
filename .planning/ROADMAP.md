@@ -24,6 +24,7 @@ Samsara v1 delivers a local-first CV formatter and JD matching tool that replace
 - [ ] **Phase 5.T: Export & Branding Tests** - E2E coverage for PDF generation and anonymization
 - [ ] **Phase 6: Bulk Processing & OS Integration** - 100+ file queue with context menu integration
 - [ ] **Phase 6.T: Performance & Integration Tests** - Load testing, memory profiling, and OS integration tests
+- [ ] **Phase 7: Testing and Bug Fixing Protocol** - Comprehensive testing pass and bug resolution
 
 ## Phase Details
 
@@ -154,9 +155,9 @@ Plans:
 **Plans**: 3 plans in 3 waves
 
 Plans:
-- [ ] 05-01-PLAN.md — Anonymization engine with visual redaction
-- [ ] 05-02-PLAN.md — Blind Profile front sheet generation
-- [ ] 05-03-PLAN.md — Branding engine with theme.json and ReportLab PDF output
+- [ ] 05-01-PLAN.md — Redaction engine with PyMuPDF (Full/Client/Punt modes)
+- [ ] 05-02-PLAN.md — Blind Profile generation with ReportLab and recruiter settings
+- [ ] 05-03-PLAN.md — Export UI with mode selection and bulk export
 
 ### Phase 5.T: Export & Branding Tests
 **Goal**: E2E test coverage for PDF generation and anonymization
@@ -205,10 +206,43 @@ Plans:
 Plans:
 - [ ] 06.T-01-PLAN.md — Performance tests, memory profiling, and OS integration tests
 
+### Phase 7: Testing and Bug Fixing Protocol
+**Goal**: Make Claude bug-test itself with automated security gates, self-auditing prompts, and stacked scanners
+**Depends on**: Phase 6.T
+**Requirements**: None (quality assurance phase)
+**Success Criteria** (what must be TRUE):
+  1. CLAUDE.md file in repo root with mandatory pre-completion checks (secrets, injection, validation, tests, types)
+  2. Pre-commit hooks block commits with security vulnerabilities or type errors
+  3. Automated scanners configured: semgrep (SAST/OWASP), bandit (Python), ruff (lint), mypy (types), gitleaks (secrets)
+  4. Self-audit test suite: 20+ unit tests per critical function designed to break it
+  5. Edge case corpus generated: null, empty, negative, unicode, 100k arrays for fuzzing
+  6. Security audit completed: SQL injection, auth bypasses, privilege escalation, input validation gaps
+  7. Secret scan passed: no API keys in comments, passwords in configs, tokens in error messages
+  8. All identified bugs fixed and verified
+**Plans**: 0 plans (estimated 3-4 plans)
+
+**The Loop:**
+```
+Claude writes code → CLAUDE.md forces self-review → Automated scanners catch the rest → Pre-commit blocks garbage → GitHub Action reviews the PR
+```
+
+**Protocol Stack:**
+- **CLAUDE.md gate**: Automatic checks every session (secrets, injection, path traversal, validation, tests, types)
+- **Self-snitching prompts**: "Write 20 tests to break this", "Find every vulnerability like a pentester", "Generate 50 edge cases"
+- **Tool integrations**: claude-code-action (PR reviews), claude-agent-sdk (batch audits)
+- **Scanner stack**: semgrep, bandit, ruff, mypy, snyk, gitleaks
+- **Pre-commit hooks**: Physical blocker preventing vulnerable commits
+
+Plans:
+- [ ] 07-01-PLAN.md — CLAUDE.md setup + pre-commit hooks + scanner stack configuration
+- [ ] 07-02-PLAN.md — Self-audit test generation (unit tests, edge cases, fuzzing corpus)
+- [ ] 07-03-PLAN.md — Security audit (injection, auth, secrets scan) + bug fixes
+- [ ] 07-04-PLAN.md — Final verification pass + documentation
+
 ## Progress
 
 **Execution Order:**
-Phases execute in order: 1 → 2 → 2.1 → 3 → 3.T → 4 → 4.T → 5 → 5.T → 6 → 6.T
+Phases execute in order: 1 → 2 → 2.1 → 3 → 3.T → 4 → 4.T → 5 → 5.T → 6 → 6.T → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -223,8 +257,9 @@ Phases execute in order: 1 → 2 → 2.1 → 3 → 3.T → 4 → 4.T → 5 → 5
 | 5.T. Export & Branding Tests | 0/1 | Not started | - |
 | 6. Bulk Processing & OS Integration | 0/3 | Not started | - |
 | 6.T. Performance & Integration Tests | 0/1 | Not started | - |
+| 7. Testing and Bug Fixing Protocol | 0/4 | Not started | - |
 
-**Total Progress:** 15/22 plans complete (68%)
+**Total Progress:** 15/26 plans complete (58%)
 
 ---
 *Roadmap created: 2026-01-23*

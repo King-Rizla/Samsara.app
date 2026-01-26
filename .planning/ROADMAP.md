@@ -123,7 +123,7 @@ Plans:
 **Plans**: 3 plans in 3 waves
 
 Plans:
-- [ ] 04-01-PLAN.md — JD input UI and parsing (skills/requirements extraction via LLM)
+- [x] 04-01-PLAN.md — JD input UI and parsing (skills/requirements extraction via LLM)
 - [ ] 04-02-PLAN.md — Matching algorithm and scoring engine
 - [ ] 04-03-PLAN.md — Ranked results view with highlighted matches
 
@@ -217,14 +217,14 @@ Phases execute in order: 1 → 2 → 2.1 → 3 → 3.T → 4 → 4.T → 5 → 5
 | 2.1. LLM Extraction | 2/2 | Complete | 2026-01-25 |
 | 3. Visual Editor | 5/5 | Complete | 2026-01-25 |
 | 3.T. E2E Test Foundation | 1/1 | Complete | 2026-01-25 |
-| 4. JD Matching | 0/3 | Not started | - |
+| 4. JD Matching | 1/3 | In progress | - |
 | 4.T. JD Matching Tests | 0/1 | Not started | - |
 | 5. Anonymization & Branding | 0/3 | Not started | - |
 | 5.T. Export & Branding Tests | 0/1 | Not started | - |
 | 6. Bulk Processing & OS Integration | 0/3 | Not started | - |
 | 6.T. Performance & Integration Tests | 0/1 | Not started | - |
 
-**Total Progress:** 14/22 plans complete (64%)
+**Total Progress:** 15/22 plans complete (68%)
 
 ---
 *Roadmap created: 2026-01-23*

@@ -153,3 +153,61 @@ class LLMFullExtraction(BaseModel):
         default_factory=list,
         description="Skills grouped by category as the candidate organized them"
     )
+
+
+# ============================================================================
+# JD (Job Description) Extraction Schemas
+# ============================================================================
+
+class LLMSkillRequirement(BaseModel):
+    """A skill requirement from a job description."""
+
+    skill: str = Field(
+        description="The skill name (e.g., 'Python', 'React', 'Project Management')"
+    )
+    importance: str = Field(
+        description="'required', 'preferred', or 'nice-to-have'"
+    )
+    category: Optional[str] = Field(
+        default=None,
+        description="Category if grouped in JD (e.g., 'Technical Skills', 'Soft Skills')"
+    )
+
+
+class LLMJDExtraction(BaseModel):
+    """Complete JD extraction in a single LLM call."""
+
+    title: str = Field(
+        description="Job title (e.g., 'Senior Software Engineer', 'Product Manager')"
+    )
+    company: Optional[str] = Field(
+        default=None,
+        description="Company name if mentioned"
+    )
+
+    required_skills: List[LLMSkillRequirement] = Field(
+        default_factory=list,
+        description="Skills explicitly marked as required, mandatory, or must-have"
+    )
+    preferred_skills: List[LLMSkillRequirement] = Field(
+        default_factory=list,
+        description="Skills marked as preferred, desired, nice-to-have, or bonus"
+    )
+
+    experience_min_years: Optional[int] = Field(
+        default=None,
+        description="Minimum years of experience required (e.g., '5+ years' -> 5)"
+    )
+    experience_max_years: Optional[int] = Field(
+        default=None,
+        description="Maximum years of experience if range given"
+    )
+
+    education_level: Optional[str] = Field(
+        default=None,
+        description="Required education level (Bachelor's, Master's, PhD)"
+    )
+    certifications: List[str] = Field(
+        default_factory=list,
+        description="Required or preferred certifications"
+    )

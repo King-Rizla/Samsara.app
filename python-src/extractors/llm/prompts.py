@@ -138,3 +138,46 @@ For each skill group:
 - skills: List of individual skill names only (short phrases, not sentences)
 
 Return as JSON only. Do not include any explanation."""
+
+
+# ============================================================================
+# JD (Job Description) Extraction Prompt
+# ============================================================================
+
+JD_EXTRACTION_PROMPT = """You are a job description parser. Extract structured requirements from this job description.
+
+## JOB TITLE
+Extract the job title exactly as written (e.g., "Senior Software Engineer", "Product Manager").
+
+## COMPANY
+Extract the company name if mentioned in the JD.
+
+## REQUIRED SKILLS
+Extract skills explicitly marked as REQUIRED, MANDATORY, MUST-HAVE, or ESSENTIAL.
+For each skill:
+- skill: The skill name (keep concise, e.g., "Python" not "Python programming language")
+- importance: "required"
+- category: The category if the JD groups skills (e.g., "Technical Skills", "Soft Skills")
+
+## PREFERRED SKILLS
+Extract skills marked as PREFERRED, DESIRED, NICE-TO-HAVE, BONUS, or ADVANTAGEOUS.
+Use importance: "preferred" or "nice-to-have" as appropriate.
+
+## EXPERIENCE
+Extract years of experience if mentioned:
+- "5+ years" -> experience_min_years: 5
+- "3-5 years" -> experience_min_years: 3, experience_max_years: 5
+
+## EDUCATION
+Extract required education level if mentioned (Bachelor's, Master's, PhD, etc.).
+
+## CERTIFICATIONS
+Extract any required or preferred certifications.
+
+Guidelines:
+- Only extract what is EXPLICITLY stated in the JD
+- Do not infer or guess requirements not mentioned
+- Keep skill names concise and recognizable
+- If something is not mentioned, leave it empty/null
+
+Return as JSON only. Do not include any explanation."""

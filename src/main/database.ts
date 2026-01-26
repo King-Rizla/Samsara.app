@@ -134,6 +134,40 @@ export function initDatabase(): Database.Database {
       );
     `);
 
+    // Create JD (Job Description) storage table
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS job_descriptions (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        company TEXT,
+        raw_text TEXT NOT NULL,
+        required_skills_json TEXT,
+        preferred_skills_json TEXT,
+        experience_min INTEGER,
+        experience_max INTEGER,
+        education_level TEXT,
+        certifications_json TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS cv_jd_matches (
+        cv_id TEXT NOT NULL,
+        jd_id TEXT NOT NULL,
+        match_score INTEGER NOT NULL,
+        matched_skills_json TEXT,
+        missing_required_json TEXT,
+        missing_preferred_json TEXT,
+        calculated_at TEXT NOT NULL,
+        PRIMARY KEY (cv_id, jd_id),
+        FOREIGN KEY (cv_id) REFERENCES cvs(id) ON DELETE CASCADE,
+        FOREIGN KEY (jd_id) REFERENCES job_descriptions(id) ON DELETE CASCADE
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_matches_jd ON cv_jd_matches(jd_id);
+      CREATE INDEX IF NOT EXISTS idx_matches_score ON cv_jd_matches(jd_id, match_score DESC);
+    `);
+
     // Store init timestamp
     const stmt = db.prepare('INSERT OR REPLACE INTO app_meta (key, value) VALUES (?, ?)');
     stmt.run('initialized_at', new Date().toISOString());
@@ -366,4 +400,158 @@ export function getCVFull(id: string): ParsedCV | null {
     warnings: JSON.parse(cv.warnings_json || '[]'),
     extract_time_ms: cv.parse_time_ms || undefined,
   };
+}
+
+// ============================================================================
+// JD (Job Description) Types and CRUD
+// ============================================================================
+
+export interface SkillRequirement {
+  skill: string;
+  importance: 'required' | 'preferred' | 'nice-to-have';
+  category?: string;
+}
+
+export interface JDRecord {
+  id: string;
+  title: string;
+  company: string | null;
+  raw_text: string;
+  required_skills_json: string | null;
+  preferred_skills_json: string | null;
+  experience_min: number | null;
+  experience_max: number | null;
+  education_level: string | null;
+  certifications_json: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JDSummary {
+  id: string;
+  title: string;
+  company: string | null;
+  created_at: string;
+  required_count: number;
+  preferred_count: number;
+}
+
+export interface ParsedJD {
+  title: string;
+  company?: string;
+  raw_text: string;
+  required_skills: SkillRequirement[];
+  preferred_skills: SkillRequirement[];
+  experience_min?: number;
+  experience_max?: number;
+  education_level?: string;
+  certifications: string[];
+}
+
+export interface FullJD extends ParsedJD {
+  id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Insert a new JD into the database.
+ * Returns the generated ID.
+ */
+export function insertJD(jd: ParsedJD): string {
+  const database = getDatabase();
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  const stmt = database.prepare(`
+    INSERT INTO job_descriptions (
+      id, title, company, raw_text,
+      required_skills_json, preferred_skills_json,
+      experience_min, experience_max,
+      education_level, certifications_json,
+      created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  stmt.run(
+    id,
+    jd.title,
+    jd.company || null,
+    jd.raw_text,
+    jd.required_skills ? JSON.stringify(jd.required_skills) : null,
+    jd.preferred_skills ? JSON.stringify(jd.preferred_skills) : null,
+    jd.experience_min ?? null,
+    jd.experience_max ?? null,
+    jd.education_level || null,
+    jd.certifications ? JSON.stringify(jd.certifications) : null,
+    now,
+    now
+  );
+
+  console.log(`Inserted JD with ID: ${id}`);
+  return id;
+}
+
+/**
+ * Get a JD by its ID.
+ * Returns null if not found.
+ */
+export function getJD(id: string): FullJD | null {
+  const database = getDatabase();
+  const row = database.prepare('SELECT * FROM job_descriptions WHERE id = ?').get(id) as JDRecord | undefined;
+
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    title: row.title,
+    company: row.company || undefined,
+    raw_text: row.raw_text,
+    required_skills: JSON.parse(row.required_skills_json || '[]'),
+    preferred_skills: JSON.parse(row.preferred_skills_json || '[]'),
+    experience_min: row.experience_min ?? undefined,
+    experience_max: row.experience_max ?? undefined,
+    education_level: row.education_level || undefined,
+    certifications: JSON.parse(row.certifications_json || '[]'),
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+/**
+ * Get all JDs with summary information.
+ * Returns id, title, company, created_at, and skill counts.
+ */
+export function getAllJDs(): JDSummary[] {
+  const database = getDatabase();
+  const rows = database.prepare(`
+    SELECT id, title, company, raw_text, required_skills_json, preferred_skills_json, created_at
+    FROM job_descriptions
+    ORDER BY created_at DESC
+  `).all() as (JDRecord & { required_skills_json: string | null; preferred_skills_json: string | null })[];
+
+  return rows.map(row => {
+    const requiredSkills = JSON.parse(row.required_skills_json || '[]');
+    const preferredSkills = JSON.parse(row.preferred_skills_json || '[]');
+
+    return {
+      id: row.id,
+      title: row.title,
+      company: row.company,
+      created_at: row.created_at,
+      required_count: requiredSkills.length,
+      preferred_count: preferredSkills.length,
+    };
+  });
+}
+
+/**
+ * Delete a JD by its ID.
+ * Returns true if a record was deleted.
+ */
+export function deleteJD(id: string): boolean {
+  const database = getDatabase();
+  const stmt = database.prepare('DELETE FROM job_descriptions WHERE id = ?');
+  const result = stmt.run(id);
+  return result.changes > 0;
 }

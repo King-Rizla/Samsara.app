@@ -14,8 +14,8 @@ import spacy
 from parsers.base import parse_document
 from schema.cv_schema import ParsedCV, WorkEntry, EducationEntry, SkillGroup, ContactInfo
 from extractors.llm import OllamaClient
-from extractors.llm.schemas import LLMFullExtraction
-from extractors.llm.prompts import FULL_EXTRACTION_PROMPT
+from extractors.llm.schemas import LLMFullExtraction, LLMJDExtraction
+from extractors.llm.prompts import FULL_EXTRACTION_PROMPT, JD_EXTRACTION_PROMPT
 from extractors.contact import extract_contacts
 from extractors.sections import detect_sections, get_section_text, get_section_order
 from extractors.work_history import extract_work_history
@@ -313,6 +313,72 @@ def handle_request(request: dict) -> dict:
                 'id': request_id,
                 'success': False,
                 'error': f'Unexpected error extracting CV: {str(e)}'
+            }
+
+    if action == 'extract_jd':
+        jd_text = request.get('text')
+        if not jd_text:
+            return {
+                'id': request_id,
+                'success': False,
+                'error': 'Missing required parameter: text'
+            }
+
+        try:
+            start_time = time.perf_counter()
+
+            # Use LLM for JD extraction (required - no regex fallback for JDs)
+            if not llm_client or not llm_client.is_available():
+                return {
+                    'id': request_id,
+                    'success': False,
+                    'error': 'LLM not available. Please ensure Ollama is running with qwen2.5:7b model.'
+                }
+
+            llm_result = llm_client.extract(
+                text=jd_text,
+                prompt=JD_EXTRACTION_PROMPT,
+                schema=LLMJDExtraction,
+                temperature=0.0
+            )
+
+            if not llm_result:
+                return {
+                    'id': request_id,
+                    'success': False,
+                    'error': 'Failed to extract JD requirements. LLM returned no result.'
+                }
+
+            elapsed_ms = int((time.perf_counter() - start_time) * 1000)
+
+            # Convert to response format
+            return {
+                'id': request_id,
+                'success': True,
+                'data': {
+                    'title': llm_result.title,
+                    'company': llm_result.company,
+                    'required_skills': [
+                        {'skill': s.skill, 'importance': s.importance, 'category': s.category}
+                        for s in llm_result.required_skills
+                    ],
+                    'preferred_skills': [
+                        {'skill': s.skill, 'importance': s.importance, 'category': s.category}
+                        for s in llm_result.preferred_skills
+                    ],
+                    'experience_min': llm_result.experience_min_years,
+                    'experience_max': llm_result.experience_max_years,
+                    'education_level': llm_result.education_level,
+                    'certifications': llm_result.certifications,
+                    'extract_time_ms': elapsed_ms
+                }
+            }
+
+        except Exception as e:
+            return {
+                'id': request_id,
+                'success': False,
+                'error': f'Error extracting JD: {str(e)}'
             }
 
     return {

@@ -104,6 +104,36 @@ contextBridge.exposeInMainWorld('api', {
    */
   reprocessCV: (filePath: string): Promise<ExtractResult> =>
     ipcRenderer.invoke('reprocess-cv', filePath),
+
+  // JD (Job Description) operations
+
+  /**
+   * Extract JD from text and persist to database.
+   * Returns { success: boolean, data?: JobDescription, error?: string }
+   */
+  extractJD: (text: string): Promise<{ success: boolean; data?: unknown; error?: string }> =>
+    ipcRenderer.invoke('extract-jd', text),
+
+  /**
+   * Get all stored JDs (summary info).
+   * Returns { success: boolean, data?: JDSummary[], error?: string }
+   */
+  getAllJDs: (): Promise<{ success: boolean; data?: unknown[]; error?: string }> =>
+    ipcRenderer.invoke('get-all-jds'),
+
+  /**
+   * Get full JD data by ID.
+   * Returns { success: boolean, data?: JobDescription, error?: string }
+   */
+  getJD: (jdId: string): Promise<{ success: boolean; data?: unknown; error?: string }> =>
+    ipcRenderer.invoke('get-jd', jdId),
+
+  /**
+   * Delete a JD by ID.
+   * Returns { success: boolean, error?: string }
+   */
+  deleteJD: (jdId: string): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke('delete-jd', jdId),
 });
 
 /**

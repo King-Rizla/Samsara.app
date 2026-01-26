@@ -2,8 +2,8 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'node:path';
 import * as fs from 'fs';
 import started from 'electron-squirrel-startup';
-import { initDatabase, closeDatabase, insertCV, getAllCVs, getCVFull, updateCVField, deleteCV, ParsedCV } from './database';
-import { startPython, stopPython, extractCV } from './pythonManager';
+import { initDatabase, closeDatabase, insertCV, getAllCVs, getCVFull, updateCVField, deleteCV, ParsedCV, insertJD, getJD, getAllJDs, deleteJD, ParsedJD } from './database';
+import { startPython, stopPython, extractCV, sendToPython } from './pythonManager';
 
 // Vite global variables for dev server and renderer name
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
@@ -295,5 +295,113 @@ ipcMain.handle('reprocess-cv', async (_event, filePath: string) => {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error during CV reprocessing'
     };
+  }
+});
+
+// ============================================================================
+// JD (Job Description) IPC Handlers
+// ============================================================================
+
+/**
+ * Extract JD from text and persist to database.
+ * Returns { success: true, data: JobDescription } on success
+ * Returns { success: false, error: string } on failure
+ */
+ipcMain.handle('extract-jd', async (_event, text: string) => {
+  // Validate text
+  if (!text || typeof text !== 'string' || text.trim().length === 0) {
+    return { success: false, error: 'Invalid or empty JD text' };
+  }
+
+  try {
+    // Send to Python sidecar for LLM extraction
+    const result = await sendToPython({
+      action: 'extract_jd',
+      text,
+    }, 120000) as {
+      title: string;
+      company?: string;
+      required_skills: Array<{ skill: string; importance: string; category?: string }>;
+      preferred_skills: Array<{ skill: string; importance: string; category?: string }>;
+      experience_min?: number;
+      experience_max?: number;
+      education_level?: string;
+      certifications: string[];
+      extract_time_ms: number;
+    };
+
+    // Store in database
+    const jdData: ParsedJD = {
+      title: result.title,
+      company: result.company,
+      raw_text: text,
+      required_skills: result.required_skills,
+      preferred_skills: result.preferred_skills,
+      experience_min: result.experience_min,
+      experience_max: result.experience_max,
+      education_level: result.education_level,
+      certifications: result.certifications || [],
+    };
+
+    const id = insertJD(jdData);
+
+    // Return full JD with ID
+    const jd = getJD(id);
+    return { success: true, data: jd };
+  } catch (error) {
+    console.error('JD extraction failed:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to extract JD'
+    };
+  }
+});
+
+/**
+ * Get all stored JDs (summary info only).
+ */
+ipcMain.handle('get-all-jds', async () => {
+  try {
+    const jds = getAllJDs();
+    return { success: true, data: jds };
+  } catch (error) {
+    console.error('Failed to get JDs:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+});
+
+/**
+ * Get full JD data by ID.
+ * Returns { success: true, data: JobDescription } on success
+ * Returns { success: false, error: string } on failure
+ */
+ipcMain.handle('get-jd', async (_event, jdId: string) => {
+  try {
+    const jd = getJD(jdId);
+    if (!jd) {
+      return { success: false, error: 'JD not found' };
+    }
+    return { success: true, data: jd };
+  } catch (error) {
+    console.error('get-jd error:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+});
+
+/**
+ * Delete a JD by ID.
+ * Returns { success: true } on success
+ * Returns { success: false, error: string } on failure
+ */
+ipcMain.handle('delete-jd', async (_event, jdId: string) => {
+  try {
+    const deleted = deleteJD(jdId);
+    return { success: deleted, error: deleted ? undefined : 'JD not found' };
+  } catch (error) {
+    console.error('delete-jd error:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 });

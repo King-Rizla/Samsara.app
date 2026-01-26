@@ -8,6 +8,7 @@ interface JDStore {
   activeJD: JobDescription | null;
   matchResults: MatchResult[];
   isExtracting: boolean;
+  isMatching: boolean;
 
   // Actions
   loadJDs: () => Promise<void>;
@@ -16,6 +17,8 @@ interface JDStore {
   deleteJD: (id: string) => Promise<void>;
   setMatchResults: (results: MatchResult[]) => void;
   clearActiveJD: () => void;
+  matchCVs: (cvIds: string[]) => Promise<{ success: boolean; error?: string }>;
+  loadMatchResults: () => Promise<void>;
 }
 
 export const useJDStore = create<JDStore>((set, get) => ({
@@ -24,6 +27,7 @@ export const useJDStore = create<JDStore>((set, get) => ({
   activeJD: null,
   matchResults: [],
   isExtracting: false,
+  isMatching: false,
 
   loadJDs: async () => {
     try {
@@ -96,6 +100,44 @@ export const useJDStore = create<JDStore>((set, get) => ({
     activeJD: null,
     matchResults: []
   }),
+
+  matchCVs: async (cvIds) => {
+    const { activeJDId } = get();
+    if (!activeJDId) {
+      return { success: false, error: 'No JD selected' };
+    }
+
+    set({ isMatching: true });
+    try {
+      const result = await window.api.matchCVsToJD(activeJDId, cvIds);
+      if (result.success && result.results) {
+        set({ matchResults: result.results as MatchResult[] });
+        return { success: true };
+      }
+      return { success: false, error: result.error || 'Matching failed' };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Matching failed'
+      };
+    } finally {
+      set({ isMatching: false });
+    }
+  },
+
+  loadMatchResults: async () => {
+    const { activeJDId } = get();
+    if (!activeJDId) return;
+
+    try {
+      const result = await window.api.getMatchResults(activeJDId);
+      if (result.success && result.data) {
+        set({ matchResults: result.data as MatchResult[] });
+      }
+    } catch (err) {
+      console.error('Failed to load match results:', err);
+    }
+  },
 }));
 
 // Expose store for E2E testing

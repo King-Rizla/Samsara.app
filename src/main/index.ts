@@ -2,7 +2,12 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'node:path';
 import * as fs from 'fs';
 import started from 'electron-squirrel-startup';
-import { initDatabase, closeDatabase, insertCV, getAllCVs, getCVFull, updateCVField, deleteCV, ParsedCV, insertJD, getJD, getAllJDs, deleteJD, ParsedJD } from './database';
+import {
+  initDatabase, closeDatabase,
+  insertCV, getAllCVs, getCVFull, updateCVField, deleteCV, ParsedCV,
+  insertJD, getJD, getAllJDs, deleteJD, ParsedJD,
+  insertMatchResult, getMatchResultsForJD
+} from './database';
 import { startPython, stopPython, extractCV, sendToPython } from './pythonManager';
 
 // Vite global variables for dev server and renderer name
@@ -403,5 +408,171 @@ ipcMain.handle('delete-jd', async (_event, jdId: string) => {
   } catch (error) {
     console.error('delete-jd error:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+});
+
+// ============================================================================
+// CV-JD Matching IPC Handlers
+// ============================================================================
+
+/**
+ * Helper: Flatten CV skills from grouped format into a normalized array.
+ */
+function flattenSkills(skillGroups: Array<{ category: string; skills: string[] }>): string[] {
+  const skills: string[] = [];
+  for (const group of skillGroups) {
+    skills.push(...group.skills.map(s => s.toLowerCase().trim()));
+  }
+  return skills;
+}
+
+/**
+ * Helper: Check if a skill matches any CV skill (exact or substring).
+ */
+function skillMatches(needle: string, haystack: string[]): boolean {
+  const normalized = needle.toLowerCase().trim();
+
+  // Exact match
+  if (haystack.includes(normalized)) return true;
+
+  // Substring match
+  for (const skill of haystack) {
+    if (skill.includes(normalized) || normalized.includes(skill)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Helper: Calculate match score for a CV-JD pair.
+ */
+function calculateMatch(
+  cvId: string,
+  jdId: string,
+  cvSkills: string[],
+  requiredSkills: Array<{ skill: string }>,
+  preferredSkills: Array<{ skill: string }>
+) {
+  const matchedRequired: string[] = [];
+  const missingRequired: string[] = [];
+  const matchedPreferred: string[] = [];
+  const missingPreferred: string[] = [];
+
+  for (const req of requiredSkills) {
+    if (skillMatches(req.skill, cvSkills)) {
+      matchedRequired.push(req.skill);
+    } else {
+      missingRequired.push(req.skill);
+    }
+  }
+
+  for (const pref of preferredSkills) {
+    if (skillMatches(pref.skill, cvSkills)) {
+      matchedPreferred.push(pref.skill);
+    } else {
+      missingPreferred.push(pref.skill);
+    }
+  }
+
+  // 70% required, 30% preferred
+  const requiredScore = requiredSkills.length > 0
+    ? (matchedRequired.length / requiredSkills.length) * 0.7
+    : 0.7;
+
+  const preferredScore = preferredSkills.length > 0
+    ? (matchedPreferred.length / preferredSkills.length) * 0.3
+    : 0.3;
+
+  return {
+    cv_id: cvId,
+    jd_id: jdId,
+    match_score: Math.round((requiredScore + preferredScore) * 100),
+    matched_skills: [...matchedRequired, ...matchedPreferred],
+    missing_required: missingRequired,
+    missing_preferred: missingPreferred,
+    calculated_at: new Date().toISOString(),
+  };
+}
+
+/**
+ * Match multiple CVs against a JD.
+ * Calculates match scores and stores results in database.
+ * Returns { success: true, results: MatchResult[] } on success
+ * Returns { success: false, error: string } on failure
+ */
+ipcMain.handle('match-cvs-to-jd', async (_event, jdId: string, cvIds: string[]) => {
+  try {
+    const jd = getJD(jdId);
+    if (!jd) {
+      return { success: false, error: 'JD not found' };
+    }
+
+    // Parse JD skills from JSON
+    const requiredSkills = jd.required_skills || [];
+    const preferredSkills = jd.preferred_skills || [];
+
+    const results = [];
+
+    for (const cvId of cvIds) {
+      const cv = getCVFull(cvId);
+      if (!cv) continue;
+
+      // Calculate match using simplified main-process logic
+      const cvSkills = flattenSkills(cv.skills);
+      const matchResult = calculateMatch(
+        cvId,
+        jdId,
+        cvSkills,
+        requiredSkills,
+        preferredSkills
+      );
+
+      // Store in database
+      insertMatchResult(matchResult);
+      results.push(matchResult);
+    }
+
+    // Sort by score descending
+    results.sort((a, b) => b.match_score - a.match_score);
+
+    return { success: true, results };
+  } catch (error) {
+    console.error('match-cvs-to-jd error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Match calculation failed'
+    };
+  }
+});
+
+/**
+ * Get match results for a JD.
+ * Returns { success: true, data: MatchResult[] } on success
+ * Returns { success: false, error: string } on failure
+ */
+ipcMain.handle('get-match-results', async (_event, jdId: string) => {
+  try {
+    const results = getMatchResultsForJD(jdId);
+
+    // Parse JSON fields
+    const parsed = results.map(r => ({
+      cv_id: r.cv_id,
+      jd_id: r.jd_id,
+      match_score: r.match_score,
+      matched_skills: JSON.parse(r.matched_skills_json || '[]'),
+      missing_required: JSON.parse(r.missing_required_json || '[]'),
+      missing_preferred: JSON.parse(r.missing_preferred_json || '[]'),
+      calculated_at: r.calculated_at,
+    }));
+
+    return { success: true, data: parsed };
+  } catch (error) {
+    console.error('get-match-results error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get match results'
+    };
   }
 });

@@ -555,3 +555,88 @@ export function deleteJD(id: string): boolean {
   const result = stmt.run(id);
   return result.changes > 0;
 }
+
+// ============================================================================
+// Match Result Types and CRUD
+// ============================================================================
+
+export interface MatchResultRecord {
+  cv_id: string;
+  jd_id: string;
+  match_score: number;
+  matched_skills_json: string | null;
+  missing_required_json: string | null;
+  missing_preferred_json: string | null;
+  calculated_at: string;
+}
+
+export interface MatchResultInput {
+  cv_id: string;
+  jd_id: string;
+  match_score: number;
+  matched_skills: string[];
+  missing_required: string[];
+  missing_preferred: string[];
+  calculated_at: string;
+}
+
+/**
+ * Insert or update a match result.
+ */
+export function insertMatchResult(result: MatchResultInput): void {
+  const database = getDatabase();
+
+  const stmt = database.prepare(`
+    INSERT OR REPLACE INTO cv_jd_matches (
+      cv_id, jd_id, match_score,
+      matched_skills_json, missing_required_json, missing_preferred_json,
+      calculated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  stmt.run(
+    result.cv_id,
+    result.jd_id,
+    result.match_score,
+    JSON.stringify(result.matched_skills),
+    JSON.stringify(result.missing_required),
+    JSON.stringify(result.missing_preferred),
+    result.calculated_at
+  );
+}
+
+/**
+ * Get all match results for a JD, sorted by score descending.
+ */
+export function getMatchResultsForJD(jdId: string): MatchResultRecord[] {
+  const database = getDatabase();
+
+  const stmt = database.prepare(`
+    SELECT * FROM cv_jd_matches
+    WHERE jd_id = ?
+    ORDER BY match_score DESC
+  `);
+
+  return stmt.all(jdId) as MatchResultRecord[];
+}
+
+/**
+ * Delete all match results for a JD.
+ */
+export function deleteMatchResultsForJD(jdId: string): void {
+  const database = getDatabase();
+  const stmt = database.prepare('DELETE FROM cv_jd_matches WHERE jd_id = ?');
+  stmt.run(jdId);
+}
+
+/**
+ * Get match result for a specific CV-JD pair.
+ */
+export function getMatchResult(cvId: string, jdId: string): MatchResultRecord | null {
+  const database = getDatabase();
+  const stmt = database.prepare(`
+    SELECT * FROM cv_jd_matches
+    WHERE cv_id = ? AND jd_id = ?
+  `);
+  return (stmt.get(cvId, jdId) as MatchResultRecord) || null;
+}

@@ -134,6 +134,22 @@ contextBridge.exposeInMainWorld('api', {
    */
   deleteJD: (jdId: string): Promise<{ success: boolean; error?: string }> =>
     ipcRenderer.invoke('delete-jd', jdId),
+
+  // Match operations
+
+  /**
+   * Match CVs against a JD.
+   * Returns { success: boolean, results?: MatchResult[], error?: string }
+   */
+  matchCVsToJD: (jdId: string, cvIds: string[]): Promise<{ success: boolean; results?: unknown[]; error?: string }> =>
+    ipcRenderer.invoke('match-cvs-to-jd', jdId, cvIds),
+
+  /**
+   * Get match results for a JD.
+   * Returns { success: boolean, data?: MatchResult[], error?: string }
+   */
+  getMatchResults: (jdId: string): Promise<{ success: boolean; data?: unknown[]; error?: string }> =>
+    ipcRenderer.invoke('get-match-results', jdId),
 });
 
 /**

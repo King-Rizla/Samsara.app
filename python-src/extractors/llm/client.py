@@ -49,6 +49,8 @@ class OllamaClient:
         self.keep_alive = keep_alive
         self._client = None
         self._available: Optional[bool] = None
+        self._last_token_usage: dict | None = None
+        self._model_name: str = model
 
     def is_available(self) -> bool:
         """
@@ -127,13 +129,37 @@ class OllamaClient:
                 },
             )
 
+            # Capture token usage from response
+            self._last_token_usage = {
+                'prompt_tokens': response.prompt_eval_count or 0,
+                'completion_tokens': response.eval_count or 0,
+                'total_tokens': (response.prompt_eval_count or 0) + (response.eval_count or 0),
+                'model': self._model_name,
+            }
+
             # Parse and validate the response
             return schema.model_validate_json(response.message.content)
 
         except Exception:
             # LLM error, validation error, timeout, etc.
+            # Set token usage to zeros for consistent tracking
+            self._last_token_usage = {
+                'prompt_tokens': 0,
+                'completion_tokens': 0,
+                'total_tokens': 0,
+                'model': self._model_name,
+            }
             # Return None to trigger fallback to regex extraction
             return None
+
+    def get_last_token_usage(self) -> dict:
+        """Return token usage from the last extraction call."""
+        return self._last_token_usage or {
+            'prompt_tokens': 0,
+            'completion_tokens': 0,
+            'total_tokens': 0,
+            'model': self._model_name,
+        }
 
     def reset_availability(self) -> None:
         """

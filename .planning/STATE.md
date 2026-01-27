@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 ## Current Position
 
-Phase: 4.6 of 7 (Queue Infrastructure & Persistence) - COMPLETE
-Plan: 4 of 4 in current phase
+Phase: 4.6 of 7 (Queue Infrastructure & Persistence) - COMPLETE (with gap closure)
+Plan: 5 of 5 in current phase (04.6-05 gap closure plan added and completed)
 Status: Phase complete
-Last activity: 2026-01-27 - Completed 04.6-04-PLAN.md (UI Integration)
+Last activity: 2026-01-27 - Completed 04.6-05-PLAN.md (Timeout-on-ACK fix)
 
-Progress: [##################--] 100% (27/28 plans through Phase 4.6)
+Progress: [##################--] 100% (28/29 plans through Phase 4.6)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 27
+- Total plans completed: 28
 - Average duration: 12 min
-- Total execution time: 3.4 hours
+- Total execution time: 3.5 hours
 
 **By Phase:**
 
@@ -35,14 +35,14 @@ Progress: [##################--] 100% (27/28 plans through Phase 4.6)
 | 4. JD Matching | 3/3 | ~45 min | 15 min |
 | 4.T. JD Matching Tests | 1/1 | ~30 min | 30 min |
 | 4.5. Project Homepage | 4/4 | 29 min | 7 min |
-| 4.6. Queue Infrastructure | 4/4 | 13 min | 3 min |
+| 4.6. Queue Infrastructure | 5/5 | 18 min | 4 min |
 | 5. Anonymization & Branding | 0/3 | - | - |
 | 5.T. Export & Branding Tests | 0/1 | - | - |
 | 6. Bulk Processing & OS Integration | 0/3 | - | - |
 | 6.T. Performance & Integration Tests | 0/1 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 9 min, 6 min, 3 min, 3 min, 4 min
+- Last 5 plans: 6 min, 3 min, 3 min, 4 min, 5 min
 - Trend: IPC/preload/UI integration plans very fast
 
 *Updated after each plan completion*
@@ -121,6 +121,9 @@ Recent decisions affecting current work:
 - [04.6-04]: Map DB 'processing' status to UI 'submitted' for backward compatibility
 - [04.6-04]: Add 'Queued...' to ProcessingStage type for pre-processing state
 - [04.6-04]: Subscribe to queue updates at App level (single listener, global scope)
+- [04.6-05]: ACK pattern for timeout coordination: Python sends processing_started ACK
+- [04.6-05]: Timeout starts on ACK, not submission - queue fairness guaranteed
+- [04.6-05]: Single timeout boundary (QueueManager only, not pythonManager)
 
 ### Pending Todos
 
@@ -145,16 +148,17 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 04.6-04-PLAN.md (UI Integration) - Phase 4.6 complete
+Stopped at: Completed 04.6-05-PLAN.md (Timeout-on-ACK fix) - Phase 4.6 complete with gap closure
 Resume file: None
 
 ## Next Steps
 
-**Phase 4.6: Queue Infrastructure & Persistence** - COMPLETE
+**Phase 4.6: Queue Infrastructure & Persistence** - COMPLETE (with gap closure)
 - [x] Plan 04.6-01: Database schema migration (status column, queue functions)
 - [x] Plan 04.6-02: Queue manager with serial processing
 - [x] Plan 04.6-03: Preload API for queue operations
 - [x] Plan 04.6-04: UI integration with real-time updates
+- [x] Plan 04.6-05: Timeout-on-ACK fix (gap closure)
 
 **Phase 4.7: Dashboard Enhancements** - NOT STARTED
 - Goal: Project quick-access and usage tracking

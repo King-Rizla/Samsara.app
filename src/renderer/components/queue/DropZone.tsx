@@ -1,56 +1,54 @@
 import { useState, useCallback } from 'react';
 import { useQueueStore } from '../../stores/queueStore';
+import { useProjectStore } from '../../stores/projectStore';
 import { cn } from '../../lib/utils';
 
 export function DropZone() {
   const [isDragging, setIsDragging] = useState(false);
   const addItem = useQueueStore((state) => state.addItem);
-  const updateStatus = useQueueStore((state) => state.updateStatus);
-  const updateStage = useQueueStore((state) => state.updateStage);
+  const activeProjectId = useProjectStore((state) => state.activeProjectId);
 
   const processFile = useCallback(
     async (fileName: string, filePath: string) => {
       const fileType = fileName.split('.').pop()?.toLowerCase() || 'unknown';
-      const itemId = crypto.randomUUID();
-
-      // Add to queue as submitted
-      addItem({
-        id: itemId,
-        fileName,
-        fileType,
-        filePath,
-        status: 'submitted',
-        stage: 'Parsing...',
-      });
 
       try {
-        // Update stage as processing continues
-        updateStage(itemId, 'Extracting...');
+        // Enqueue CV - this is instant, just persists to DB
+        const result = await window.api.enqueueCV(fileName, filePath, activeProjectId || undefined);
 
-        const result = await window.api.extractCV(filePath);
-
-        if (result.success && result.data) {
-          updateStage(itemId, 'Saving...');
-
-          // Small delay to show saving stage
-          await new Promise((resolve) => setTimeout(resolve, 200));
-
-          updateStatus(itemId, 'completed', {
-            data: result.data,
-            parseConfidence: result.data.parse_confidence,
+        if (result.success && result.id) {
+          // Add to queue store with 'queued' status
+          // Status updates will come via push notifications
+          addItem({
+            id: result.id,
+            fileName,
+            fileType,
+            filePath,
+            status: 'queued',
+            stage: 'Queued...',
           });
         } else {
-          updateStatus(itemId, 'failed', {
-            error: result.error || 'Extraction failed',
+          // Failed to enqueue - add as failed item locally
+          addItem({
+            fileName,
+            fileType,
+            filePath,
+            status: 'failed',
+            error: result.error || 'Failed to enqueue',
           });
         }
       } catch (err) {
-        updateStatus(itemId, 'failed', {
-          error: err instanceof Error ? err.message : 'Unknown error',
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        addItem({
+          fileName,
+          fileType,
+          filePath,
+          status: 'failed',
+          error: errorMessage,
         });
       }
     },
-    [addItem, updateStatus, updateStage]
+    [addItem, activeProjectId]
   );
 
   const handleDrop = useCallback(
@@ -62,6 +60,8 @@ export function DropZone() {
       const files = Array.from(e.dataTransfer.files);
       const validExtensions = ['.pdf', '.docx', '.doc'];
 
+      // Collect valid files first
+      const validFiles: { name: string; path: string }[] = [];
       for (const file of files) {
         const ext = '.' + file.name.split('.').pop()?.toLowerCase();
         if (!validExtensions.includes(ext)) {
@@ -71,8 +71,14 @@ export function DropZone() {
 
         const filePath = window.electronFile.getPath(file);
         if (filePath) {
-          processFile(file.name, filePath);
+          validFiles.push({ name: file.name, path: filePath });
         }
+      }
+
+      // Process files sequentially to avoid timeout issues
+      // Python sidecar handles one file at a time, so parallel requests just queue up and timeout
+      for (const file of validFiles) {
+        await processFile(file.name, file.path);
       }
     },
     [processFile]
@@ -100,6 +106,7 @@ export function DropZone() {
 
   return (
     <div
+      data-testid="drop-zone"
       className={cn(
         'border-t border-border p-4 cursor-pointer transition-colors',
         isDragging ? 'bg-primary/10 border-primary' : 'hover:bg-card'

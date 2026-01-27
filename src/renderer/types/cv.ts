@@ -51,7 +51,7 @@ export interface ParsedCV {
 }
 
 export type QueueStatus = 'queued' | 'submitted' | 'completed' | 'failed';
-export type ProcessingStage = 'Parsing...' | 'Extracting...' | 'Saving...';
+export type ProcessingStage = 'Queued...' | 'Parsing...' | 'Extracting...' | 'Saving...';
 
 export interface QueueItem {
   id: string;

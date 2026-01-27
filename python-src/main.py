@@ -314,6 +314,14 @@ def handle_request(request: dict) -> dict:
                 }
             }
 
+            # Get token usage from LLM client (or zeros if not used)
+            token_usage = llm_client.get_last_token_usage() if llm_client else {
+                'prompt_tokens': 0,
+                'completion_tokens': 0,
+                'total_tokens': 0,
+                'model': None,
+            }
+
             return {
                 'id': request_id,
                 'success': True,
@@ -321,27 +329,50 @@ def handle_request(request: dict) -> dict:
                     **parsed_cv,
                     'extract_time_ms': elapsed_ms,
                     'document_type': parse_result['document_type'],
-                    'page_count': parse_result['page_count']
+                    'page_count': parse_result['page_count'],
+                    'token_usage': token_usage
                 }
             }
 
         except FileNotFoundError as e:
+            # Include token usage even on failure (may have consumed tokens before error)
+            token_usage = llm_client.get_last_token_usage() if llm_client else {
+                'prompt_tokens': 0,
+                'completion_tokens': 0,
+                'total_tokens': 0,
+                'model': None,
+            }
             return {
                 'id': request_id,
                 'success': False,
-                'error': str(e)
+                'error': str(e),
+                'data': {'token_usage': token_usage}
             }
         except ValueError as e:
+            token_usage = llm_client.get_last_token_usage() if llm_client else {
+                'prompt_tokens': 0,
+                'completion_tokens': 0,
+                'total_tokens': 0,
+                'model': None,
+            }
             return {
                 'id': request_id,
                 'success': False,
-                'error': str(e)
+                'error': str(e),
+                'data': {'token_usage': token_usage}
             }
         except Exception as e:
+            token_usage = llm_client.get_last_token_usage() if llm_client else {
+                'prompt_tokens': 0,
+                'completion_tokens': 0,
+                'total_tokens': 0,
+                'model': None,
+            }
             return {
                 'id': request_id,
                 'success': False,
-                'error': f'Unexpected error extracting CV: {str(e)}'
+                'error': f'Unexpected error extracting CV: {str(e)}',
+                'data': {'token_usage': token_usage}
             }
 
     if action == 'extract_jd':
@@ -376,13 +407,29 @@ def handle_request(request: dict) -> dict:
             )
 
             if not llm_result:
+                # Include token usage even if extraction failed (tokens may have been consumed)
+                token_usage = llm_client.get_last_token_usage() if llm_client else {
+                    'prompt_tokens': 0,
+                    'completion_tokens': 0,
+                    'total_tokens': 0,
+                    'model': None,
+                }
                 return {
                     'id': request_id,
                     'success': False,
-                    'error': 'Failed to extract JD requirements. LLM returned no result.'
+                    'error': 'Failed to extract JD requirements. LLM returned no result.',
+                    'data': {'token_usage': token_usage}
                 }
 
             elapsed_ms = int((time.perf_counter() - start_time) * 1000)
+
+            # Get token usage from LLM client
+            token_usage = llm_client.get_last_token_usage() if llm_client else {
+                'prompt_tokens': 0,
+                'completion_tokens': 0,
+                'total_tokens': 0,
+                'model': None,
+            }
 
             # Convert to response format
             return {
@@ -403,15 +450,23 @@ def handle_request(request: dict) -> dict:
                     'experience_max': llm_result.experience_max_years,
                     'education_level': llm_result.education_level,
                     'certifications': llm_result.certifications,
-                    'extract_time_ms': elapsed_ms
+                    'extract_time_ms': elapsed_ms,
+                    'token_usage': token_usage
                 }
             }
 
         except Exception as e:
+            token_usage = llm_client.get_last_token_usage() if llm_client else {
+                'prompt_tokens': 0,
+                'completion_tokens': 0,
+                'total_tokens': 0,
+                'model': None,
+            }
             return {
                 'id': request_id,
                 'success': False,
-                'error': f'Error extracting JD: {str(e)}'
+                'error': f'Error extracting JD: {str(e)}',
+                'data': {'token_usage': token_usage}
             }
 
     return {

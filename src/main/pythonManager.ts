@@ -19,7 +19,8 @@ let currentLLMMode: 'local' | 'cloud' = 'local';
 const pendingRequests = new Map<string, {
   resolve: (value: unknown) => void;
   reject: (reason: Error) => void;
-  timeout: NodeJS.Timeout;
+  timeout: NodeJS.Timeout | null;  // Can be null when no timeout (e.g., extractCV)
+  onAck?: (event: string) => void;  // Optional ACK callback
 }>();
 
 let requestCounter = 0;
@@ -80,7 +81,7 @@ export async function startPython(mode: 'local' | 'cloud' = 'local', apiKey?: st
 
     // Reject all pending requests
     for (const [id, pending] of pendingRequests) {
-      clearTimeout(pending.timeout);
+      if (pending.timeout) clearTimeout(pending.timeout);
       pending.reject(new Error('Python process exited'));
     }
     pendingRequests.clear();
@@ -102,10 +103,20 @@ export async function startPython(mode: 'local' | 'cloud' = 'local', apiKey?: st
         return;
       }
 
+      // Handle ACK messages - type: 'ack' with event
+      // ACK is not the final response - it signals processing has started
+      if (response.type === 'ack' && response.id) {
+        const pending = pendingRequests.get(response.id);
+        if (pending && pending.onAck) {
+          pending.onAck(response.event);
+        }
+        return;  // Keep waiting for final response
+      }
+
       // Handle request responses
       const pending = pendingRequests.get(response.id);
       if (pending) {
-        clearTimeout(pending.timeout);
+        if (pending.timeout) clearTimeout(pending.timeout);
         pendingRequests.delete(response.id);
         if (response.success) {
           pending.resolve(response.data);
@@ -138,7 +149,11 @@ export async function startPython(mode: 'local' | 'cloud' = 'local', apiKey?: st
   throw new Error('Python sidecar failed to start within 10 seconds');
 }
 
-export function sendToPython(request: object, timeoutMs = 30000): Promise<unknown> {
+export function sendToPython(
+  request: object,
+  timeoutMs = 30000,
+  onAck?: (event: string) => void  // Optional callback for ACK messages
+): Promise<unknown> {
   return new Promise((resolve, reject) => {
     if (!pythonProcess || !pythonProcess.stdin) {
       reject(new Error('Python process not running'));
@@ -148,12 +163,13 @@ export function sendToPython(request: object, timeoutMs = 30000): Promise<unknow
     const id = generateRequestId();
     const requestWithId = { ...request, id };
 
-    const timeout = setTimeout(() => {
+    // Only set timeout if timeoutMs > 0 (0 means no internal timeout)
+    const timeout = timeoutMs > 0 ? setTimeout(() => {
       pendingRequests.delete(id);
       reject(new Error(`Request ${id} timed out after ${timeoutMs}ms`));
-    }, timeoutMs);
+    }, timeoutMs) : null;
 
-    pendingRequests.set(id, { resolve, reject, timeout });
+    pendingRequests.set(id, { resolve, reject, timeout, onAck });
 
     pythonProcess.stdin.write(JSON.stringify(requestWithId) + '\n');
   });
@@ -215,16 +231,33 @@ export async function restartWithMode(mode: 'local' | 'cloud', apiKey?: string):
 /**
  * Extract CV data from a file.
  * Sends extract_cv action to Python sidecar and returns parsed CV.
+ *
+ * @param filePath - Path to the CV file
+ * @param onProcessingStarted - Optional callback fired when Python confirms processing has begun
+ *                              This allows QueueManager to start timeout from actual processing start
  */
-export async function extractCV(filePath: string): Promise<unknown> {
+export async function extractCV(
+  filePath: string,
+  onProcessingStarted?: () => void
+): Promise<unknown> {
   if (!pythonReady) {
     throw new Error('Python sidecar is not ready');
   }
 
-  const result = await sendToPython({
-    action: 'extract_cv',
-    file_path: filePath
-  }, 120000); // 120 second timeout for LLM extraction
+  // Pass 0 for timeout - QueueManager handles timeout after ACK
+  // Pass callback that fires when Python sends processing_started ACK
+  const result = await sendToPython(
+    {
+      action: 'extract_cv',
+      file_path: filePath
+    },
+    0,  // No internal timeout - QueueManager manages timeout after ACK
+    onProcessingStarted ? (event) => {
+      if (event === 'processing_started') {
+        onProcessingStarted();
+      }
+    } : undefined
+  );
 
   return result;
 }

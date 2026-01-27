@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { QueueItem, QueueStatus, ProcessingStage } from '../types/cv';
+import type { QueueItem, QueueStatus, ProcessingStage, QueueStatusUpdate } from '../types/cv';
 import { useProjectStore } from './projectStore';
 
 interface QueueStore {
@@ -27,6 +27,9 @@ interface QueueStore {
 
   // Load from database
   loadFromDatabase: () => Promise<void>;
+
+  // Handle queue status updates from main process
+  handleQueueStatusUpdate: (update: QueueStatusUpdate) => void;
 }
 
 export const useQueueStore = create<QueueStore>((set, get) => ({
@@ -133,6 +136,7 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
 
   retryFailed: async (ids) => {
     const { items, updateStatus, updateStage } = get();
+    const projectId = useProjectStore.getState().activeProjectId;
     for (const id of ids) {
       const item = items.find((i) => i.id === id);
       if (item && item.status === 'failed') {
@@ -140,7 +144,8 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
         updateStage(id, 'Parsing...');
 
         try {
-          const result = await window.api.reprocessCV(item.filePath);
+          // Pass activeProjectId to associate reprocessed CV with current project
+          const result = await window.api.reprocessCV(item.filePath, projectId || undefined);
           if (result.success && result.data) {
             updateStatus(id, 'completed', {
               data: result.data,
@@ -174,21 +179,71 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
   loadFromDatabase: async () => {
     try {
       const projectId = useProjectStore.getState().activeProjectId;
-      const result = await window.api.getAllCVs(projectId || undefined);
-      if (result.success && result.data) {
-        const items: QueueItem[] = result.data.map((cv) => ({
-          id: cv.id,
-          fileName: cv.file_name,
-          fileType: cv.file_name.split('.').pop()?.toLowerCase() || 'unknown',
-          filePath: cv.file_path || '',
-          status: 'completed' as QueueStatus,
-          parseConfidence: cv.parse_confidence,
-          createdAt: cv.created_at,
-        }));
-        set({ items });
-      }
+
+      // Load completed CVs
+      const completedResult = await window.api.getAllCVs(projectId || undefined);
+      const completedItems: QueueItem[] = completedResult.success && completedResult.data
+        ? completedResult.data.map((cv) => ({
+            id: cv.id,
+            fileName: cv.file_name,
+            fileType: cv.file_name.split('.').pop()?.toLowerCase() || 'unknown',
+            filePath: cv.file_path || '',
+            status: 'completed' as QueueStatus,
+            parseConfidence: cv.parse_confidence,
+            createdAt: cv.created_at,
+          }))
+        : [];
+
+      // Load queued/processing CVs
+      const queuedResult = await window.api.getQueuedCVs(projectId || undefined);
+      const queuedItems: QueueItem[] = queuedResult.success && queuedResult.data
+        ? queuedResult.data.map((cv) => ({
+            id: cv.id,
+            fileName: cv.file_name,
+            fileType: cv.file_name.split('.').pop()?.toLowerCase() || 'unknown',
+            filePath: cv.file_path,
+            status: cv.status === 'queued' ? 'queued' as QueueStatus :
+                    cv.status === 'processing' ? 'submitted' as QueueStatus :
+                    cv.status as QueueStatus,
+            stage: cv.status === 'processing' ? 'Extracting...' as ProcessingStage : undefined,
+            error: cv.error_message || undefined,
+            createdAt: cv.created_at,
+          }))
+        : [];
+
+      // Combine and sort by createdAt (newest first)
+      const allItems = [...queuedItems, ...completedItems];
+      allItems.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      set({ items: allItems });
     } catch (err) {
       console.error('Failed to load CVs from database:', err);
+    }
+  },
+
+  handleQueueStatusUpdate: (update: QueueStatusUpdate) => {
+    const { updateStatus, updateStage } = get();
+
+    switch (update.status) {
+      case 'queued':
+        // Item already added via addItem, nothing to do
+        break;
+
+      case 'processing':
+        // Find item and update to submitted/extracting
+        updateStage(update.id, 'Extracting...');
+        break;
+
+      case 'completed':
+        updateStatus(update.id, 'completed', {
+          data: update.data,
+          parseConfidence: update.parseConfidence,
+        });
+        break;
+
+      case 'failed':
+        updateStatus(update.id, 'failed', { error: update.error });
+        break;
     }
   },
 }));

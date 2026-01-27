@@ -96,7 +96,15 @@ python-dist/
 python-build/
 python-src/.venv/
 python-src/__pycache__/
+python-src/build/
+python-src/dist/
 *.pyc
+
+# Junk files
+nul
+
+# Built binaries
+resources/
 
 # Environment files
 .env*

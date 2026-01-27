@@ -1,9 +1,11 @@
 import { useEffect } from 'react';
 import { Button } from '../ui/button';
 import { useJDStore } from '../../stores/jdStore';
+import { useEditorStore } from '../../stores/editorStore';
 
 export function JDList() {
   const { jds, activeJDId, loadJDs, selectJD, deleteJD } = useJDStore();
+  const showJDDetail = useEditorStore((state) => state.showJDDetail);
 
   useEffect(() => {
     loadJDs();
@@ -48,17 +50,31 @@ export function JDList() {
                 <span>{jd.preferred_count} preferred</span>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground hover:text-destructive"
-              onClick={(e) => {
-                e.stopPropagation();
-                deleteJD(jd.id);
-              }}
-            >
-              Delete
-            </Button>
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-primary"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  selectJD(jd.id);
+                  showJDDetail();
+                }}
+              >
+                View
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-destructive"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteJD(jd.id);
+                }}
+              >
+                Delete
+              </Button>
+            </div>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
             {new Date(jd.created_at).toLocaleDateString()}

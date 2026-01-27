@@ -13,9 +13,13 @@ import spacy
 
 from parsers.base import parse_document
 from schema.cv_schema import ParsedCV, WorkEntry, EducationEntry, SkillGroup, ContactInfo
-from extractors.llm import OllamaClient
+from extractors.llm import OllamaClient, OpenAIClient
 from extractors.llm.schemas import LLMFullExtraction, LLMJDExtraction
 from extractors.llm.prompts import FULL_EXTRACTION_PROMPT, JD_EXTRACTION_PROMPT
+
+# LLM Mode: "local" (Ollama) or "cloud" (OpenAI)
+# Set via SAMSARA_LLM_MODE environment variable
+LLM_MODE = os.environ.get("SAMSARA_LLM_MODE", "local").lower()
 from extractors.contact import extract_contacts
 from extractors.sections import detect_sections, get_section_text, get_section_order
 from extractors.work_history import extract_work_history
@@ -43,14 +47,30 @@ model_path = get_model_path()
 nlp = spacy.load(model_path, disable=["parser", "lemmatizer"])
 print(json.dumps({"status": "model_loaded", "model": "en_core_web_sm"}), flush=True)
 
-# Initialize LLM client for hybrid extraction
-print(json.dumps({"status": "initializing_llm"}), flush=True)
-llm_client = OllamaClient(model="qwen2.5:7b", timeout=120.0, keep_alive="5m")
-llm_available = llm_client.is_available()
+# Initialize LLM client based on mode
+print(json.dumps({"status": "initializing_llm", "mode": LLM_MODE}), flush=True)
+
+if LLM_MODE == "cloud":
+    # Cloud mode: Use OpenAI GPT-4o-mini (fast, requires API key)
+    llm_client = OpenAIClient(model="gpt-4o-mini", timeout=30.0)
+    llm_available = llm_client.is_available()
+    llm_model = "gpt-4o-mini" if llm_available else None
+    if not llm_available:
+        print(json.dumps({
+            "status": "warning",
+            "message": "OpenAI API key not set. Set OPENAI_API_KEY environment variable."
+        }), flush=True)
+else:
+    # Local mode (default): Use Ollama with Qwen 2.5 7B (private, slower)
+    llm_client = OllamaClient(model="qwen2.5:7b", timeout=120.0, keep_alive="5m")
+    llm_available = llm_client.is_available()
+    llm_model = "qwen2.5:7b" if llm_available else None
+
 print(json.dumps({
     "status": "llm_initialized",
     "llm_available": llm_available,
-    "model": "qwen2.5:7b" if llm_available else None
+    "llm_mode": LLM_MODE,
+    "model": llm_model
 }), flush=True)
 
 
@@ -68,7 +88,8 @@ def handle_request(request: dict) -> dict:
                 'model': 'en_core_web_sm',
                 'model_loaded': nlp is not None,
                 'llm_available': llm_available,
-                'llm_model': 'qwen2.5:7b' if llm_available else None
+                'llm_mode': LLM_MODE,
+                'llm_model': llm_model
             }
         }
 
@@ -329,10 +350,14 @@ def handle_request(request: dict) -> dict:
 
             # Use LLM for JD extraction (required - no regex fallback for JDs)
             if not llm_client or not llm_client.is_available():
+                if LLM_MODE == "cloud":
+                    error_msg = 'OpenAI API not available. Please set OPENAI_API_KEY environment variable.'
+                else:
+                    error_msg = 'LLM not available. Please ensure Ollama is running with qwen2.5:7b model.'
                 return {
                     'id': request_id,
                     'success': False,
-                    'error': 'LLM not available. Please ensure Ollama is running with qwen2.5:7b model.'
+                    'error': error_msg
                 }
 
             llm_result = llm_client.extract(

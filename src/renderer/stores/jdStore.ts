@@ -54,7 +54,9 @@ export const useJDStore = create<JDStore>((set, get) => ({
   extractJD: async (text) => {
     set({ isExtracting: true, inputError: null });
     try {
-      const result = await window.api.extractJD(text);
+      // Pass activeProjectId to associate JD with current project
+      const projectId = useProjectStore.getState().activeProjectId;
+      const result = await window.api.extractJD(text, projectId || undefined);
       if (result.success && result.data) {
         // Reload JD list to include new JD and clear input
         await get().loadJDs();

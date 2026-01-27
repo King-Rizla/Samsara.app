@@ -20,6 +20,8 @@ import {
   waitForItemStatus,
   getFixturesPath,
   ensureFixturesDir,
+  getQueuePanel,
+  getDropZone,
 } from './utils/helpers';
 import { createMinimalTestPDF, createInvalidFile } from './fixtures/test-data';
 
@@ -53,7 +55,7 @@ test.describe('File Processing', () => {
 
   test('clicking drop zone triggers file selection', async () => {
     // Click the drop zone
-    const dropZone = page.locator('text=Drop CV files here or click to select').locator('..');
+    const dropZone = getDropZone(page);
     await dropZone.click();
 
     // Note: In a real test with the full app, this would open the native file dialog.
@@ -65,7 +67,7 @@ test.describe('File Processing', () => {
   });
 
   test('drag over drop zone shows active state', async () => {
-    const dropZone = page.locator('text=Drop CV files here or click to select').locator('..');
+    const dropZone = getDropZone(page);
 
     // Simulate drag enter
     await dropZone.dispatchEvent('dragenter', { bubbles: true });

@@ -15,6 +15,7 @@ import * as path from 'path';
 let pythonProcess: ChildProcess | null = null;
 let pythonReady = false;
 let readlineInterface: readline.Interface | null = null;
+let currentLLMMode: 'local' | 'cloud' = 'local';
 const pendingRequests = new Map<string, {
   resolve: (value: unknown) => void;
   reject: (reason: Error) => void;
@@ -39,18 +40,30 @@ function findPythonPath(): string {
   return path.join(__dirname, '..', '..', 'python-dist', 'samsara-backend', exeName);
 }
 
-export async function startPython(): Promise<void> {
+export async function startPython(mode: 'local' | 'cloud' = 'local', apiKey?: string): Promise<void> {
   if (pythonProcess) {
     console.log('Python process already running');
     return;
   }
 
+  currentLLMMode = mode;
   const pythonPath = findPythonPath();
-  console.log(`Starting Python sidecar: ${pythonPath}`);
+  console.log(`Starting Python sidecar: ${pythonPath} (mode: ${mode})`);
+
+  // Build environment variables
+  const env = { ...process.env };
+  env.SAMSARA_LLM_MODE = mode;
+  if (mode === 'cloud' && apiKey) {
+    env.OPENAI_API_KEY = apiKey;
+    console.log('Set OPENAI_API_KEY for Python process (length:', apiKey.length, ')');
+  } else if (mode === 'cloud') {
+    console.log('WARNING: Cloud mode but no API key provided!');
+  }
 
   pythonProcess = spawn(pythonPath, [], {
     stdio: ['pipe', 'pipe', 'pipe'],
     windowsHide: true,
+    env,
   });
 
   // Handle stderr for debugging
@@ -179,6 +192,24 @@ export function stopPython(): void {
 
 export function isPythonReady(): boolean {
   return pythonReady;
+}
+
+export function getLLMMode(): 'local' | 'cloud' {
+  return currentLLMMode;
+}
+
+/**
+ * Restart Python sidecar with a new LLM mode.
+ * Used when user changes settings.
+ */
+export async function restartWithMode(mode: 'local' | 'cloud', apiKey?: string): Promise<void> {
+  console.log(`Restarting Python sidecar with mode: ${mode}`);
+  stopPython();
+
+  // Wait for process to fully stop
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  await startPython(mode, apiKey);
 }
 
 /**

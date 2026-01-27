@@ -17,6 +17,7 @@ import {
   clickClearSelection,
   isEditorVisible,
   clickFilename,
+  getQueuePanel,
 } from './utils/helpers';
 
 test.describe('Bulk Operations', () => {
@@ -35,11 +36,13 @@ test.describe('Bulk Operations', () => {
   });
 
   test('delete button appears when items are selected', async () => {
+    const queuePanel = getQueuePanel(page);
+
     // Delete button should only appear when selection count > 0
     await clickTab(page, 'Completed');
 
     // Initially hidden
-    const deleteButton = page.locator('button:has-text("Delete")');
+    const deleteButton = queuePanel.locator('button:has-text("Delete")');
     await expect(deleteButton).not.toBeVisible();
 
     // Note: Need items to test further
@@ -47,6 +50,8 @@ test.describe('Bulk Operations', () => {
   });
 
   test('delete button has destructive styling', async () => {
+    const queuePanel = getQueuePanel(page);
+
     // When visible, delete button should have red/destructive colors
     // This test verifies the CSS classes are applied correctly
 
@@ -60,7 +65,7 @@ test.describe('Bulk Operations', () => {
       await getItemCheckbox(items.first()).click();
 
       // Delete button should be visible
-      const deleteButton = page.locator('button:has-text("Delete")');
+      const deleteButton = queuePanel.locator('button:has-text("Delete")');
       await expect(deleteButton).toBeVisible();
 
       // Should have destructive styling classes
@@ -165,6 +170,8 @@ test.describe('Bulk Operations', () => {
 
   test.describe('Retry Operations', () => {
     test('retry button only appears when failed items are selected', async () => {
+      const queuePanel = getQueuePanel(page);
+
       // Retry button should only show when at least one failed item is selected
 
       await clickTab(page, 'Completed');
@@ -177,11 +184,11 @@ test.describe('Bulk Operations', () => {
         await getItemCheckbox(items.first()).click();
 
         // Retry button should NOT be visible for completed items
-        const retryButton = page.locator('button:has-text("Retry")');
+        const retryButton = queuePanel.locator('button:has-text("Retry")');
         await expect(retryButton).not.toBeVisible();
 
         // Delete button should be visible
-        const deleteButton = page.locator('button:has-text("Delete")');
+        const deleteButton = queuePanel.locator('button:has-text("Delete")');
         await expect(deleteButton).toBeVisible();
       }
     });

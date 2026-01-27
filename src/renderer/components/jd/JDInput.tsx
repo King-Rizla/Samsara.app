@@ -1,31 +1,32 @@
-import { useState, useRef } from 'react';
+import { useRef } from 'react';
 import { Button } from '../ui/button';
 import { useJDStore } from '../../stores/jdStore';
 
 /**
  * JDInput component for inputting job descriptions.
  * Supports both pasting text directly and uploading .txt files.
+ * State is persisted in the store so extraction continues when switching tabs.
  */
 export function JDInput() {
-  const [text, setText] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const { extractJD, isExtracting } = useJDStore();
+  const {
+    extractJD,
+    isExtracting,
+    inputText,
+    inputError,
+    setInputText,
+    setInputError,
+    clearInput,
+  } = useJDStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async () => {
-    if (!text.trim()) {
-      setError('Please paste a job description or upload a file');
+    if (!inputText.trim()) {
+      setInputError('Please paste a job description or upload a file');
       return;
     }
 
-    setError(null);
-    const result = await extractJD(text);
-
-    if (result.success) {
-      setText('');  // Clear on success
-    } else {
-      setError(result.error || 'Failed to extract JD');
-    }
+    // extractJD handles clearing input on success and setting error on failure
+    await extractJD(inputText);
   };
 
   // File upload handler - reads .txt file content into textarea
@@ -35,22 +36,21 @@ export function JDInput() {
 
     // Validate file type
     if (!file.name.endsWith('.txt') && file.type !== 'text/plain') {
-      setError('Please upload a .txt file');
+      setInputError('Please upload a .txt file');
       return;
     }
 
     // Validate file size (max 1MB)
     if (file.size > 1024 * 1024) {
-      setError('File too large. Maximum size is 1MB.');
+      setInputError('File too large. Maximum size is 1MB.');
       return;
     }
 
     try {
       const content = await file.text();
-      setText(content);
-      setError(null);
-    } catch (err) {
-      setError('Failed to read file');
+      setInputText(content);
+    } catch {
+      setInputError('Failed to read file');
     }
 
     // Reset file input so the same file can be selected again
@@ -72,8 +72,8 @@ export function JDInput() {
         <textarea
           id="jd-input"
           data-testid="jd-input-textarea"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
+          value={inputText}
+          onChange={(e) => setInputText(e.target.value)}
           placeholder="Paste the full job description here, or use the 'Upload File' button below..."
           className="w-full h-64 p-3 bg-muted border border-border rounded-md
                      text-foreground placeholder:text-muted-foreground
@@ -108,33 +108,39 @@ export function JDInput() {
         </span>
       </div>
 
-      {error && (
-        <p className="text-sm text-destructive" data-testid="jd-error">{error}</p>
+      {inputError && (
+        <p className="text-sm text-destructive" data-testid="jd-error">{inputError}</p>
       )}
 
       <div className="flex justify-end gap-2">
         <Button
           variant="outline"
-          onClick={() => setText('')}
-          disabled={isExtracting || !text}
+          onClick={clearInput}
+          disabled={isExtracting || !inputText}
           data-testid="jd-clear-button"
         >
           Clear
         </Button>
         <Button
           onClick={handleSubmit}
-          disabled={isExtracting || !text.trim()}
+          disabled={isExtracting || !inputText.trim()}
           data-testid="jd-submit-button"
         >
-          {isExtracting ? 'Extracting...' : 'Extract Requirements'}
+          {isExtracting ? (
+            <span className="flex items-center gap-2">
+              <span className="animate-pulse">Extracting</span>
+              <span className="inline-flex">
+                <span className="animate-[bounce_1s_infinite_0ms]">.</span>
+                <span className="animate-[bounce_1s_infinite_200ms]">.</span>
+                <span className="animate-[bounce_1s_infinite_400ms]">.</span>
+              </span>
+            </span>
+          ) : (
+            'Extract Requirements'
+          )}
         </Button>
       </div>
 
-      {isExtracting && (
-        <p className="text-sm text-muted-foreground">
-          Analyzing job description with AI... This may take 30-60 seconds.
-        </p>
-      )}
     </div>
   );
 }

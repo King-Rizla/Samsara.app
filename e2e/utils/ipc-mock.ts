@@ -14,6 +14,14 @@ import {
   MOCK_CV_LOW_CONFIDENCE,
   MockCVData,
   MockQueueItem,
+  MockJDData,
+  MockMatchResult,
+  MOCK_JD_FULLSTACK_DEV,
+  MOCK_JD_PRODUCT_MANAGER,
+  MOCK_JD_DATA_SCIENTIST,
+  MOCK_JD_UX_DESIGNER,
+  JD_ID_TO_MOCK_DATA,
+  MOCK_MATCH_RESULTS_FULLSTACK,
 } from '../fixtures/test-data';
 
 // Legacy alias
@@ -567,4 +575,188 @@ export const CV_ID_TO_MOCK_DATA: Record<string, MockCVData> = {
   'test-cv-2': MOCK_CV_JANE_SMITH,
   'test-cv-3': MOCK_CV_ALEX_CHEN,
   'test-cv-4': MOCK_CV_MARIA_GARCIA,
+};
+
+// ============================================
+// JD (Job Description) Mock Utilities
+// ============================================
+
+/**
+ * Inject JD items directly into the jdStore.
+ *
+ * @param page - The Playwright page instance
+ * @param jds - JD items to inject (as JDSummary format)
+ */
+export async function injectJDItems(
+  page: Page,
+  jds: Array<{
+    id: string;
+    title: string;
+    company?: string;
+    created_at: string;
+    required_count: number;
+    preferred_count: number;
+  }>
+): Promise<void> {
+  await page.evaluate(
+    ({ jds }) => {
+      const jdStore = (window as unknown as { __jdStore?: {
+        setState: (state: { jds: typeof jds }) => void;
+      } }).__jdStore;
+
+      if (!jdStore) {
+        console.error('JD store not exposed on window');
+        return;
+      }
+
+      jdStore.setState({ jds });
+    },
+    { jds }
+  );
+}
+
+/**
+ * Patch the jdStore selectJD action to use mock data.
+ *
+ * @param page - The Playwright page instance
+ * @param jdDataMap - Map of JD ID to full JD data
+ */
+export async function patchSelectJDForTesting(
+  page: Page,
+  jdDataMap: Record<string, MockJDData>
+): Promise<void> {
+  await page.evaluate(
+    ({ jdDataMap }) => {
+      // Store data map on window for access
+      (window as unknown as { __testJDDataMap: Record<string, unknown> }).__testJDDataMap = jdDataMap;
+
+      const jdStore = (window as unknown as { __jdStore?: {
+        getState: () => {
+          selectJD: (id: string | null) => Promise<void>;
+        };
+        setState: (state: unknown) => void;
+      } }).__jdStore;
+
+      if (jdStore) {
+        // Override the selectJD action to use test data
+        jdStore.setState({
+          selectJD: async (id: string | null) => {
+            if (!id) {
+              jdStore.setState({ activeJDId: null, activeJD: null, matchResults: [] });
+              return;
+            }
+
+            const dataMap = (window as unknown as { __testJDDataMap: Record<string, unknown> }).__testJDDataMap;
+            const data = dataMap?.[id];
+            if (data) {
+              jdStore.setState({
+                activeJDId: id,
+                activeJD: data,
+                matchResults: [],
+              });
+            } else {
+              console.error(`Test data not found for JD ID: ${id}`);
+            }
+          },
+        });
+      }
+    },
+    { jdDataMap }
+  );
+}
+
+/**
+ * Patch the jdStore matchCVs action to return mock results.
+ *
+ * @param page - The Playwright page instance
+ * @param mockResults - Mock match results to return
+ */
+export async function patchMatchCVsForTesting(
+  page: Page,
+  mockResults: MockMatchResult[]
+): Promise<void> {
+  await page.evaluate(
+    ({ mockResults }) => {
+      (window as unknown as { __testMatchResults: unknown[] }).__testMatchResults = mockResults;
+
+      const jdStore = (window as unknown as { __jdStore?: {
+        setState: (state: unknown) => void;
+      } }).__jdStore;
+
+      if (jdStore) {
+        jdStore.setState({
+          matchCVs: async (cvIds: string[]) => {
+            const results = (window as unknown as { __testMatchResults: unknown[] }).__testMatchResults;
+            // Filter results to only include requested CV IDs and sort by score
+            const filtered = (results as MockMatchResult[])
+              .filter(r => cvIds.includes(r.cv_id))
+              .sort((a, b) => b.match_score - a.match_score);
+
+            jdStore.setState({ matchResults: filtered, isMatching: false });
+            return { success: true };
+          },
+        });
+      }
+    },
+    { mockResults }
+  );
+}
+
+/**
+ * Create JD summary items from mock data for injection.
+ */
+export function createMockJDSummaries(): Array<{
+  id: string;
+  title: string;
+  company?: string;
+  created_at: string;
+  required_count: number;
+  preferred_count: number;
+}> {
+  return [
+    {
+      id: MOCK_JD_FULLSTACK_DEV.id,
+      title: MOCK_JD_FULLSTACK_DEV.title,
+      company: MOCK_JD_FULLSTACK_DEV.company,
+      created_at: MOCK_JD_FULLSTACK_DEV.created_at,
+      required_count: MOCK_JD_FULLSTACK_DEV.required_skills.length,
+      preferred_count: MOCK_JD_FULLSTACK_DEV.preferred_skills.length,
+    },
+    {
+      id: MOCK_JD_PRODUCT_MANAGER.id,
+      title: MOCK_JD_PRODUCT_MANAGER.title,
+      company: MOCK_JD_PRODUCT_MANAGER.company,
+      created_at: MOCK_JD_PRODUCT_MANAGER.created_at,
+      required_count: MOCK_JD_PRODUCT_MANAGER.required_skills.length,
+      preferred_count: MOCK_JD_PRODUCT_MANAGER.preferred_skills.length,
+    },
+    {
+      id: MOCK_JD_DATA_SCIENTIST.id,
+      title: MOCK_JD_DATA_SCIENTIST.title,
+      company: MOCK_JD_DATA_SCIENTIST.company,
+      created_at: MOCK_JD_DATA_SCIENTIST.created_at,
+      required_count: MOCK_JD_DATA_SCIENTIST.required_skills.length,
+      preferred_count: MOCK_JD_DATA_SCIENTIST.preferred_skills.length,
+    },
+    {
+      id: MOCK_JD_UX_DESIGNER.id,
+      title: MOCK_JD_UX_DESIGNER.title,
+      company: MOCK_JD_UX_DESIGNER.company,
+      created_at: MOCK_JD_UX_DESIGNER.created_at,
+      required_count: MOCK_JD_UX_DESIGNER.required_skills.length,
+      preferred_count: MOCK_JD_UX_DESIGNER.preferred_skills.length,
+    },
+  ];
+}
+
+/**
+ * Re-export JD mock data for convenience
+ */
+export {
+  MOCK_JD_FULLSTACK_DEV,
+  MOCK_JD_PRODUCT_MANAGER,
+  MOCK_JD_DATA_SCIENTIST,
+  MOCK_JD_UX_DESIGNER,
+  JD_ID_TO_MOCK_DATA,
+  MOCK_MATCH_RESULTS_FULLSTACK,
 };

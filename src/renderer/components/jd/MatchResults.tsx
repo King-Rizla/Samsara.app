@@ -69,7 +69,7 @@ export function MatchResults() {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="h-full flex flex-col">
       {/* Header with JD info */}
       <div className="p-4 border-b border-border">
         <h3 className="font-medium text-foreground">{activeJD.title}</h3>

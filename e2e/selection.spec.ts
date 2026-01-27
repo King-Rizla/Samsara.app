@@ -14,6 +14,7 @@ import {
   getItemCheckbox,
   getSelectedCount,
   clickClearSelection,
+  getQueuePanel,
 } from './utils/helpers';
 
 test.describe('Selection', () => {
@@ -32,19 +33,21 @@ test.describe('Selection', () => {
   });
 
   test('no selection controls visible when nothing selected', async () => {
+    const queuePanel = getQueuePanel(page);
+
     // Initially, no items are selected, so controls should be hidden
     await clickTab(page, 'Completed');
 
     // The "N selected" text should not be visible
-    const selectedText = page.locator('text=/\\d+ selected/');
+    const selectedText = queuePanel.locator('text=/\\d+ selected/');
     await expect(selectedText).not.toBeVisible();
 
     // Clear button should not be visible
-    const clearButton = page.locator('button:has-text("Clear")');
+    const clearButton = queuePanel.locator('button:has-text("Clear")');
     await expect(clearButton).not.toBeVisible();
 
     // Delete button should not be visible
-    const deleteButton = page.locator('button:has-text("Delete")');
+    const deleteButton = queuePanel.locator('button:has-text("Delete")');
     await expect(deleteButton).not.toBeVisible();
   });
 

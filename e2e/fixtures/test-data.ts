@@ -787,6 +787,301 @@ export function checkFixturesExist(): { missing: string[]; exists: boolean } {
   return { missing, exists: missing.length === 0 };
 }
 
+// ============================================
+// JD (Job Description) Mock Data
+// ============================================
+
+/**
+ * Mock JD data matching the JobDescription interface.
+ */
+export interface MockJDData {
+  id: string;
+  title: string;
+  company?: string;
+  raw_text: string;
+  created_at: string;
+  updated_at: string;
+  required_skills: Array<{
+    skill: string;
+    importance: 'required' | 'preferred' | 'nice-to-have';
+    category?: string;
+  }>;
+  preferred_skills: Array<{
+    skill: string;
+    importance: 'required' | 'preferred' | 'nice-to-have';
+    category?: string;
+  }>;
+  experience_min?: number;
+  experience_max?: number;
+  education_level?: string;
+  certifications: string[];
+}
+
+/**
+ * Mock JD for Senior Full-Stack Developer role
+ * Should match well with MOCK_CV_JOHN_DOE
+ */
+export const MOCK_JD_FULLSTACK_DEV: MockJDData = {
+  id: 'mock-jd-1',
+  title: 'Senior Full-Stack Developer',
+  company: 'TechCorp',
+  raw_text: `Senior Full-Stack Developer - TechCorp
+
+We're looking for a Senior Full-Stack Developer to join our team.
+
+Required Skills:
+- TypeScript / JavaScript
+- React or Vue.js
+- Node.js
+- PostgreSQL or MongoDB
+- Docker
+- AWS
+
+Preferred Skills:
+- Next.js
+- Kubernetes
+- Python
+- CI/CD pipelines
+
+Requirements:
+- 5+ years of software development experience
+- Bachelor's degree in Computer Science or related field
+`,
+  created_at: new Date(Date.now() - 86400000).toISOString(),
+  updated_at: new Date(Date.now() - 86400000).toISOString(),
+  required_skills: [
+    { skill: 'TypeScript', importance: 'required', category: 'Languages' },
+    { skill: 'JavaScript', importance: 'required', category: 'Languages' },
+    { skill: 'React', importance: 'required', category: 'Frontend' },
+    { skill: 'Node.js', importance: 'required', category: 'Backend' },
+    { skill: 'PostgreSQL', importance: 'required', category: 'Database' },
+    { skill: 'Docker', importance: 'required', category: 'DevOps' },
+    { skill: 'AWS', importance: 'required', category: 'Cloud' },
+  ],
+  preferred_skills: [
+    { skill: 'Next.js', importance: 'preferred', category: 'Frontend' },
+    { skill: 'Kubernetes', importance: 'preferred', category: 'DevOps' },
+    { skill: 'Python', importance: 'preferred', category: 'Languages' },
+    { skill: 'CI/CD', importance: 'preferred', category: 'DevOps' },
+  ],
+  experience_min: 5,
+  education_level: "Bachelor's degree",
+  certifications: [],
+};
+
+/**
+ * Mock JD for Senior Product Manager role
+ * Should match well with MOCK_CV_JANE_SMITH
+ */
+export const MOCK_JD_PRODUCT_MANAGER: MockJDData = {
+  id: 'mock-jd-2',
+  title: 'Senior Product Manager',
+  company: 'InnovateInc',
+  raw_text: `Senior Product Manager - InnovateInc
+
+Join our product team to lead exciting B2B SaaS products.
+
+Required Skills:
+- Roadmap Planning
+- User Research
+- Agile/Scrum
+- Jira
+- Data Analysis
+
+Preferred Skills:
+- SQL
+- A/B Testing
+- Figma
+- Technical background
+
+Requirements:
+- 5+ years of product management experience
+- MBA or equivalent experience
+`,
+  created_at: new Date(Date.now() - 172800000).toISOString(),
+  updated_at: new Date(Date.now() - 172800000).toISOString(),
+  required_skills: [
+    { skill: 'Roadmap Planning', importance: 'required', category: 'Product Management' },
+    { skill: 'User Research', importance: 'required', category: 'Product Management' },
+    { skill: 'Agile', importance: 'required', category: 'Methodology' },
+    { skill: 'Scrum', importance: 'required', category: 'Methodology' },
+    { skill: 'Jira', importance: 'required', category: 'Tools' },
+  ],
+  preferred_skills: [
+    { skill: 'SQL', importance: 'preferred', category: 'Technical' },
+    { skill: 'A/B Testing', importance: 'preferred', category: 'Product Management' },
+    { skill: 'Figma', importance: 'preferred', category: 'Tools' },
+  ],
+  experience_min: 5,
+  education_level: "Master's degree",
+  certifications: ['CSPO'],
+};
+
+/**
+ * Mock JD for Data Scientist role
+ * Should match well with MOCK_CV_ALEX_CHEN
+ */
+export const MOCK_JD_DATA_SCIENTIST: MockJDData = {
+  id: 'mock-jd-3',
+  title: 'Senior Data Scientist',
+  company: 'MLTech',
+  raw_text: `Senior Data Scientist - MLTech
+
+Build cutting-edge ML models for our platform.
+
+Required Skills:
+- Python
+- Machine Learning
+- TensorFlow or PyTorch
+- SQL
+- Statistics
+
+Preferred Skills:
+- Deep Learning
+- Spark
+- AWS SageMaker
+- MLflow
+- R
+
+Requirements:
+- 4+ years of data science experience
+- MS or PhD in Computer Science, Statistics, or related field
+`,
+  created_at: new Date(Date.now() - 259200000).toISOString(),
+  updated_at: new Date(Date.now() - 259200000).toISOString(),
+  required_skills: [
+    { skill: 'Python', importance: 'required', category: 'Programming' },
+    { skill: 'Machine Learning', importance: 'required', category: 'ML' },
+    { skill: 'TensorFlow', importance: 'required', category: 'ML' },
+    { skill: 'PyTorch', importance: 'required', category: 'ML' },
+    { skill: 'SQL', importance: 'required', category: 'Database' },
+  ],
+  preferred_skills: [
+    { skill: 'Deep Learning', importance: 'preferred', category: 'ML' },
+    { skill: 'Spark', importance: 'preferred', category: 'Big Data' },
+    { skill: 'AWS SageMaker', importance: 'preferred', category: 'Cloud' },
+    { skill: 'MLflow', importance: 'preferred', category: 'MLOps' },
+    { skill: 'R', importance: 'preferred', category: 'Programming' },
+  ],
+  experience_min: 4,
+  education_level: "Master's degree",
+  certifications: [],
+};
+
+/**
+ * Mock JD for UX Designer role
+ * Should match well with MOCK_CV_MARIA_GARCIA
+ */
+export const MOCK_JD_UX_DESIGNER: MockJDData = {
+  id: 'mock-jd-4',
+  title: 'Senior UX Designer',
+  company: 'DesignStudio',
+  raw_text: `Senior UX Designer - DesignStudio
+
+Lead UX design for enterprise products.
+
+Required Skills:
+- User Research
+- Wireframing
+- Prototyping
+- Figma
+- Design Systems
+
+Preferred Skills:
+- HTML/CSS
+- Accessibility
+- Sketch
+- InVision
+
+Requirements:
+- 5+ years of UX design experience
+- Strong portfolio
+`,
+  created_at: new Date(Date.now() - 345600000).toISOString(),
+  updated_at: new Date(Date.now() - 345600000).toISOString(),
+  required_skills: [
+    { skill: 'User Research', importance: 'required', category: 'Design' },
+    { skill: 'Wireframing', importance: 'required', category: 'Design' },
+    { skill: 'Prototyping', importance: 'required', category: 'Design' },
+    { skill: 'Figma', importance: 'required', category: 'Tools' },
+    { skill: 'Design Systems', importance: 'required', category: 'Design' },
+  ],
+  preferred_skills: [
+    { skill: 'HTML/CSS', importance: 'preferred', category: 'Technical' },
+    { skill: 'Accessibility', importance: 'preferred', category: 'Design' },
+    { skill: 'Sketch', importance: 'preferred', category: 'Tools' },
+    { skill: 'InVision', importance: 'preferred', category: 'Tools' },
+  ],
+  experience_min: 5,
+  certifications: [],
+};
+
+/**
+ * All mock JD data
+ */
+export const ALL_MOCK_JDS = [
+  MOCK_JD_FULLSTACK_DEV,
+  MOCK_JD_PRODUCT_MANAGER,
+  MOCK_JD_DATA_SCIENTIST,
+  MOCK_JD_UX_DESIGNER,
+];
+
+/**
+ * Map of JD IDs to their mock data
+ */
+export const JD_ID_TO_MOCK_DATA: Record<string, MockJDData> = {
+  'mock-jd-1': MOCK_JD_FULLSTACK_DEV,
+  'mock-jd-2': MOCK_JD_PRODUCT_MANAGER,
+  'mock-jd-3': MOCK_JD_DATA_SCIENTIST,
+  'mock-jd-4': MOCK_JD_UX_DESIGNER,
+};
+
+/**
+ * Mock match results for testing
+ */
+export interface MockMatchResult {
+  cv_id: string;
+  jd_id: string;
+  match_score: number;
+  matched_skills: string[];
+  missing_required: string[];
+  missing_preferred: string[];
+  calculated_at: string;
+}
+
+/**
+ * Pre-calculated match results for Full-Stack Dev JD
+ */
+export const MOCK_MATCH_RESULTS_FULLSTACK: MockMatchResult[] = [
+  {
+    cv_id: 'test-cv-1', // John Doe - Best match
+    jd_id: 'mock-jd-1',
+    match_score: 92,
+    matched_skills: ['TypeScript', 'JavaScript', 'React', 'Node.js', 'PostgreSQL', 'Docker', 'AWS', 'Next.js', 'Python'],
+    missing_required: [],
+    missing_preferred: ['Kubernetes'],
+    calculated_at: new Date().toISOString(),
+  },
+  {
+    cv_id: 'test-cv-3', // Alex Chen - Partial match (has Python, some overlap)
+    jd_id: 'mock-jd-1',
+    match_score: 45,
+    matched_skills: ['Python', 'AWS'],
+    missing_required: ['TypeScript', 'JavaScript', 'React', 'Node.js', 'PostgreSQL', 'Docker'],
+    missing_preferred: ['Next.js', 'Kubernetes', 'CI/CD'],
+    calculated_at: new Date().toISOString(),
+  },
+  {
+    cv_id: 'test-cv-2', // Jane Smith - Low match (PM, not developer)
+    jd_id: 'mock-jd-1',
+    match_score: 18,
+    matched_skills: ['SQL'],
+    missing_required: ['TypeScript', 'JavaScript', 'React', 'Node.js', 'PostgreSQL', 'Docker', 'AWS'],
+    missing_preferred: ['Next.js', 'Kubernetes', 'Python', 'CI/CD'],
+    calculated_at: new Date().toISOString(),
+  },
+];
+
 /**
  * Initialize test fixtures.
  * Creates necessary test files for E2E tests.

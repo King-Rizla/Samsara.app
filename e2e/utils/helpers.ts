@@ -8,14 +8,36 @@ import fs from 'fs';
 export type TabName = 'Completed' | 'Submitted' | 'Failed';
 
 /**
- * Click a tab to switch views.
+ * JD panel tab names matching the UI.
+ */
+export type JDTabName = 'Job Descriptions' | 'Add JD' | 'Match Results';
+
+/**
+ * Get the queue panel locator.
+ * Use this to scope selectors to the CV queue panel only.
+ */
+export function getQueuePanel(page: Page): Locator {
+  return page.locator('[data-testid="queue-panel"]');
+}
+
+/**
+ * Get the JD panel locator.
+ * Use this to scope selectors to the JD panel only.
+ */
+export function getJDPanel(page: Page): Locator {
+  return page.locator('[data-testid="jd-panel"]');
+}
+
+/**
+ * Click a tab to switch views in the queue panel.
  *
  * @param page - The Playwright page instance
  * @param tabName - The name of the tab to click
  */
 export async function clickTab(page: Page, tabName: TabName): Promise<void> {
-  // Tab triggers contain the tab name followed by count in parentheses
-  const tabTrigger = page.locator(`[role="tab"]:has-text("${tabName}")`);
+  // Scope to queue panel to avoid matching JD panel tabs
+  const queuePanel = getQueuePanel(page);
+  const tabTrigger = queuePanel.locator(`[role="tab"]:has-text("${tabName}")`);
   await tabTrigger.click();
 
   // Wait for the tab to become active
@@ -23,14 +45,15 @@ export async function clickTab(page: Page, tabName: TabName): Promise<void> {
 }
 
 /**
- * Get the count displayed on a tab.
+ * Get the count displayed on a tab in the queue panel.
  *
  * @param page - The Playwright page instance
  * @param tabName - The name of the tab
  * @returns The count shown in parentheses
  */
 export async function getTabCount(page: Page, tabName: TabName): Promise<number> {
-  const tabTrigger = page.locator(`[role="tab"]:has-text("${tabName}")`);
+  const queuePanel = getQueuePanel(page);
+  const tabTrigger = queuePanel.locator(`[role="tab"]:has-text("${tabName}")`);
   const text = await tabTrigger.textContent();
 
   // Extract number from "TabName (N)" format
@@ -39,25 +62,27 @@ export async function getTabCount(page: Page, tabName: TabName): Promise<number>
 }
 
 /**
- * Get all queue items currently visible.
+ * Get all queue items currently visible in the queue panel.
  *
  * @param page - The Playwright page instance
  * @returns Array of locators for each queue item
  */
 export function getQueueItems(page: Page): Locator {
-  // Queue items have checkboxes and filenames
-  return page.locator('[role="tabpanel"][data-state="active"] .divide-y > div');
+  // Scope to queue panel and get items from active tab panel
+  const queuePanel = getQueuePanel(page);
+  return queuePanel.locator('[role="tabpanel"][data-state="active"] .divide-y > div');
 }
 
 /**
- * Get a queue item by filename.
+ * Get a queue item by filename in the queue panel.
  *
  * @param page - The Playwright page instance
  * @param filename - The filename to find
  * @returns Locator for the queue item
  */
 export function getQueueItemByFilename(page: Page, filename: string): Locator {
-  return page.locator(`[role="tabpanel"][data-state="active"] .divide-y > div:has-text("${filename}")`);
+  const queuePanel = getQueuePanel(page);
+  return queuePanel.locator(`[role="tabpanel"][data-state="active"] .divide-y > div:has-text("${filename}")`);
 }
 
 /**
@@ -190,7 +215,7 @@ export function getEditInput(page: Page): Locator {
  * @param filePath - Path to the file to drop
  */
 export async function simulateFileDrop(page: Page, filePath: string): Promise<void> {
-  const dropZone = page.locator('text=Drop CV files here or click to select').locator('..');
+  const dropZone = getDropZone(page);
 
   // Create a DataTransfer-like object and dispatch dragenter, dragover, drop events
   // This is a simplified simulation - actual file data must be provided via IPC
@@ -222,12 +247,20 @@ export async function simulateFileDrop(page: Page, filePath: string): Promise<vo
 }
 
 /**
+ * Get the drop zone locator.
+ */
+export function getDropZone(page: Page): Locator {
+  const queuePanel = getQueuePanel(page);
+  return queuePanel.locator('[data-testid="drop-zone"]');
+}
+
+/**
  * Click the drop zone to open file picker (then we'd need to mock the dialog).
  *
  * @param page - The Playwright page instance
  */
 export async function clickDropZone(page: Page): Promise<void> {
-  const dropZone = page.locator('text=Drop CV files here or click to select').locator('..');
+  const dropZone = getDropZone(page);
   await dropZone.click();
 }
 
@@ -422,4 +455,133 @@ export function ensureFixturesDir(): void {
   if (!fs.existsSync(fixturesDir)) {
     fs.mkdirSync(fixturesDir, { recursive: true });
   }
+}
+
+// ============================================
+// JD Panel Helpers
+// ============================================
+
+/**
+ * Click a tab to switch views in the JD panel.
+ *
+ * @param page - The Playwright page instance
+ * @param tabName - The name of the tab to click
+ */
+export async function clickJDTab(page: Page, tabName: JDTabName): Promise<void> {
+  const jdPanel = getJDPanel(page);
+  const tabTrigger = jdPanel.locator(`[role="tab"]:has-text("${tabName}")`);
+  await tabTrigger.click();
+
+  // Wait for the tab to become active
+  await expect(tabTrigger).toHaveAttribute('data-state', 'active');
+}
+
+/**
+ * Get the JD input textarea.
+ *
+ * @param page - The Playwright page instance
+ * @returns Locator for the textarea
+ */
+export function getJDInputTextarea(page: Page): Locator {
+  return page.locator('[data-testid="jd-input-textarea"]');
+}
+
+/**
+ * Get the JD submit button.
+ *
+ * @param page - The Playwright page instance
+ * @returns Locator for the submit button
+ */
+export function getJDSubmitButton(page: Page): Locator {
+  return page.locator('[data-testid="jd-submit-button"]');
+}
+
+/**
+ * Get all JD items in the JD list.
+ *
+ * @param page - The Playwright page instance
+ * @returns Locator for JD items
+ */
+export function getJDItems(page: Page): Locator {
+  const jdPanel = getJDPanel(page);
+  return jdPanel.locator('[role="tabpanel"][data-state="active"] .p-2 > div');
+}
+
+/**
+ * Get a JD item by title.
+ *
+ * @param page - The Playwright page instance
+ * @param title - The JD title to find
+ * @returns Locator for the JD item
+ */
+export function getJDItemByTitle(page: Page, title: string): Locator {
+  const jdPanel = getJDPanel(page);
+  return jdPanel.locator(`[role="tabpanel"][data-state="active"] .p-2 > div:has-text("${title}")`);
+}
+
+/**
+ * Click a JD item to select it.
+ *
+ * @param page - The Playwright page instance
+ * @param title - The JD title to click
+ */
+export async function clickJDItem(page: Page, title: string): Promise<void> {
+  const item = getJDItemByTitle(page, title);
+  await item.click();
+}
+
+/**
+ * Get match result items in the Match Results tab.
+ *
+ * @param page - The Playwright page instance
+ * @returns Locator for match result items
+ */
+export function getMatchResultItems(page: Page): Locator {
+  const jdPanel = getJDPanel(page);
+  return jdPanel.locator('[role="tabpanel"][data-state="active"] .flex-1.overflow-y-auto .space-y-2 > div');
+}
+
+/**
+ * Get the "Match All CVs" button.
+ *
+ * @param page - The Playwright page instance
+ * @returns Locator for the button
+ */
+export function getMatchAllButton(page: Page): Locator {
+  const jdPanel = getJDPanel(page);
+  return jdPanel.locator('button:has-text("Match All CVs")');
+}
+
+/**
+ * Get the "Match Selected" button.
+ *
+ * @param page - The Playwright page instance
+ * @returns Locator for the button
+ */
+export function getMatchSelectedButton(page: Page): Locator {
+  const jdPanel = getJDPanel(page);
+  return jdPanel.locator('button:has-text("Match Selected")');
+}
+
+/**
+ * Get the match score from a result item.
+ *
+ * @param item - The match result item locator
+ * @returns The score as a number (0-100)
+ */
+export async function getMatchScore(item: Locator): Promise<number> {
+  const scoreText = await item.locator('span.text-lg.font-bold').first().textContent();
+  const match = scoreText?.match(/(\d+)%/);
+  return match ? parseInt(match[1], 10) : 0;
+}
+
+/**
+ * Get the match quality badge text from a result item.
+ *
+ * @param item - The match result item locator
+ * @returns The quality label (e.g., "Strong", "Good", "Partial", "Weak")
+ */
+export async function getMatchQualityBadge(item: Locator): Promise<string | null> {
+  const badge = item.locator('[class*="border-"][class*="text-"]').last();
+  return badge.textContent();
 }

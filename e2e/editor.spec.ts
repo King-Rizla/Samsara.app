@@ -13,6 +13,7 @@ import {
   isEditorVisible,
   closeEditor,
   getEditorSection,
+  getQueuePanel,
 } from './utils/helpers';
 import {
   injectQueueItems,
@@ -41,9 +42,9 @@ test.describe('Editor Panel', () => {
     // Initially, no CV is selected, so editor should not be visible
     await expect(page.locator('h2:has-text("CV Editor")')).not.toBeVisible();
 
-    // Main content should take full width
-    const queuePanel = page.locator('main > div').first();
-    await expect(queuePanel).toHaveClass(/w-full/);
+    // Queue panel should be w-1/2 (sharing with JD panel, no editor)
+    const queuePanel = getQueuePanel(page);
+    await expect(queuePanel).toHaveClass(/w-1\/2/);
   });
 
   test.describe('with completed CV', () => {
@@ -77,21 +78,18 @@ test.describe('Editor Panel', () => {
       await expect(page.locator('h2:has-text("CV Editor")')).toBeVisible();
     });
 
-    test('split view layout shows 50/50', async () => {
+    test('split view layout shows three columns', async () => {
       await setupMockData();
       await openFirstCV();
 
-      // Both panels should be visible
+      // Three panels should be visible: queue, JD, and editor
       const mainContent = page.locator('main');
       const panels = mainContent.locator('> div');
-      await expect(panels).toHaveCount(2);
+      await expect(panels).toHaveCount(3);
 
-      // Each panel should have w-1/2 class
-      const queuePanel = panels.first();
-      const editorPanel = panels.last();
-
-      await expect(queuePanel).toHaveClass(/w-1\/2/);
-      await expect(editorPanel).toHaveClass(/w-1\/2/);
+      // Each panel should have w-1/3 class when editor is open
+      const queuePanel = getQueuePanel(page);
+      await expect(queuePanel).toHaveClass(/w-1\/3/);
     });
 
     test('queue panel shows border when editor is open', async () => {
@@ -135,7 +133,7 @@ test.describe('Editor Panel', () => {
       await expect(confidenceBadge).toBeVisible();
     });
 
-    test('close button returns to full width', async () => {
+    test('close button returns to two-column layout', async () => {
       await setupMockData();
       await openFirstCV();
 
@@ -148,9 +146,9 @@ test.describe('Editor Panel', () => {
       // Editor should be hidden
       expect(await isEditorVisible(page)).toBe(false);
 
-      // Queue panel should be full width
-      const queuePanel = page.locator('main > div').first();
-      await expect(queuePanel).toHaveClass(/w-full/);
+      // Queue panel should be w-1/2 (sharing with JD panel, no editor)
+      const queuePanel = getQueuePanel(page);
+      await expect(queuePanel).toHaveClass(/w-1\/2/);
     });
 
     test('clicking different filename switches CV', async () => {

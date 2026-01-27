@@ -28,12 +28,12 @@ export function QueueItem({ item }: QueueItemProps) {
 
   const loadCV = useEditorStore((state) => state.loadCV);
 
-  // Handle checkbox click - supports shift-click for range selection
-  const handleCheckboxClick = useCallback(
-    (e: React.MouseEvent<HTMLInputElement>) => {
-      e.stopPropagation();
-      if (e.shiftKey) {
-        e.preventDefault();
+  // Handle checkbox change - supports shift-click for range selection
+  const handleCheckboxChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      // Check for shift key from the native event
+      const nativeEvent = e.nativeEvent as MouseEvent;
+      if (nativeEvent.shiftKey) {
         selectRange(item.id);
       } else {
         toggleSelect(item.id);
@@ -106,9 +106,8 @@ export function QueueItem({ item }: QueueItemProps) {
       <input
         type="checkbox"
         checked={isSelected}
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
-        onChange={() => {}} // Required for controlled input, actual logic in onClick
-        onClick={handleCheckboxClick}
+        onChange={handleCheckboxChange}
+        onClick={(e) => e.stopPropagation()}
         className="w-4 h-4 rounded border-border bg-background text-primary focus:ring-primary focus:ring-offset-0 cursor-pointer"
       />
 

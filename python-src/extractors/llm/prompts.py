@@ -146,38 +146,38 @@ Return as JSON only. Do not include any explanation."""
 
 JD_EXTRACTION_PROMPT = """You are a job description parser. Extract structured requirements from this job description.
 
-## JOB TITLE
-Extract the job title exactly as written (e.g., "Senior Software Engineer", "Product Manager").
+## FIELDS TO EXTRACT
+- title: Job title exactly as written
+- company: Company name if mentioned (null if not)
+- required_skills: Skills marked as REQUIRED/MANDATORY/MUST-HAVE/ESSENTIAL
+- preferred_skills: Skills marked as PREFERRED/DESIRED/NICE-TO-HAVE/BONUS
+- experience_min_years: Minimum years (e.g., "5+ years" -> 5)
+- experience_max_years: Maximum years if range given (null if not)
+- education_level: Required education (Bachelor's, Master's, PhD, etc.)
+- certifications: List of required/preferred certifications
 
-## COMPANY
-Extract the company name if mentioned in the JD.
+## SKILL FORMAT
+Each skill should have: skill (name), importance ("required" or "preferred"), category (if grouped, else null)
 
-## REQUIRED SKILLS
-Extract skills explicitly marked as REQUIRED, MANDATORY, MUST-HAVE, or ESSENTIAL.
-For each skill:
-- skill: The skill name (keep concise, e.g., "Python" not "Python programming language")
-- importance: "required"
-- category: The category if the JD groups skills (e.g., "Technical Skills", "Soft Skills")
-
-## PREFERRED SKILLS
-Extract skills marked as PREFERRED, DESIRED, NICE-TO-HAVE, BONUS, or ADVANTAGEOUS.
-Use importance: "preferred" or "nice-to-have" as appropriate.
-
-## EXPERIENCE
-Extract years of experience if mentioned:
-- "5+ years" -> experience_min_years: 5
-- "3-5 years" -> experience_min_years: 3, experience_max_years: 5
-
-## EDUCATION
-Extract required education level if mentioned (Bachelor's, Master's, PhD, etc.).
-
-## CERTIFICATIONS
-Extract any required or preferred certifications.
+## OUTPUT FORMAT - Return this exact JSON structure:
+{
+  "title": "Senior Software Engineer",
+  "company": "Acme Corp",
+  "required_skills": [
+    {"skill": "Python", "importance": "required", "category": "Technical"},
+    {"skill": "SQL", "importance": "required", "category": "Technical"}
+  ],
+  "preferred_skills": [
+    {"skill": "Kubernetes", "importance": "preferred", "category": "DevOps"}
+  ],
+  "experience_min_years": 5,
+  "experience_max_years": null,
+  "education_level": "Bachelor's",
+  "certifications": ["AWS Certified"]
+}
 
 Guidelines:
 - Only extract what is EXPLICITLY stated in the JD
 - Do not infer or guess requirements not mentioned
-- Keep skill names concise and recognizable
-- If something is not mentioned, leave it empty/null
-
-Return as JSON only. Do not include any explanation."""
+- Use null for fields not mentioned
+- Return ONLY the JSON object, no explanation"""

@@ -84,7 +84,15 @@ a = Analysis(
         'lxml.etree',
         # charset detection for various encodings
         'charset_normalizer',
-    ] + collect_submodules('spacy') + collect_submodules('thinc') + collect_submodules('blis') + collect_submodules('pdfminer'),
+        # OpenAI API client
+        'openai',
+        'httpx',
+        'httpcore',
+        'h11',
+        'anyio',
+        'sniffio',
+        'distro',
+    ] + collect_submodules('spacy') + collect_submodules('thinc') + collect_submodules('blis') + collect_submodules('pdfminer') + collect_submodules('openai'),
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

@@ -174,13 +174,14 @@ Plans:
   3. Submitted tab shows queue items that survive navigation between projects
   4. Queue manager in main process sends one request at a time to Python sidecar
   5. UI receives real-time status updates as items move through queue
-**Plans**: 4 plans in 3 waves
+**Plans**: 5 plans in 3 waves
 
 Plans:
-- [ ] 04.6-01-PLAN.md — Database schema migration (status column on cvs, queue functions)
-- [ ] 04.6-02-PLAN.md — QueueManager in main process (serialization, timeout handling, push updates)
-- [ ] 04.6-03-PLAN.md — Preload API for queue operations (enqueueCV, status listeners)
-- [ ] 04.6-04-PLAN.md — Renderer integration (DropZone, queueStore, App subscription)
+- [x] 04.6-01-PLAN.md — Database schema migration (status column on cvs, queue functions)
+- [x] 04.6-02-PLAN.md — QueueManager in main process (serialization, timeout handling, push updates)
+- [x] 04.6-03-PLAN.md — Preload API for queue operations (enqueueCV, status listeners)
+- [x] 04.6-04-PLAN.md — Renderer integration (DropZone, queueStore, App subscription)
+- [ ] 04.6-05-PLAN.md — Gap closure: Python ACK + timeout coordination (fix timeout bug)
 
 ### Phase 4.7: Dashboard Enhancements (INSERTED)
 **Goal**: Enhance dashboard with project quick-access and usage tracking for cost visibility
@@ -313,7 +314,7 @@ Phases execute in order: 1 → 2 → 2.1 → 3 → 3.T → 4 → 4.T → 4.5 →
 | 4. JD Matching | 3/3 | Complete | 2026-01-27 |
 | 4.T. JD Matching Tests | 1/1 | Complete | 2026-01-27 |
 | 4.5. Project Homepage & Organization | 4/4 | Complete | 2026-01-27 |
-| 4.6. Queue Infrastructure & Persistence | 0/4 | Not started | - |
+| 4.6. Queue Infrastructure & Persistence | 4/5 | Gap closure | - |
 | 4.7. Dashboard Enhancements | 0/5 | Not started | - |
 | 5. Anonymization & Branding | 0/3 | Not started | - |
 | 5.T. Export & Branding Tests | 0/1 | Not started | - |
@@ -321,9 +322,9 @@ Phases execute in order: 1 → 2 → 2.1 → 3 → 3.T → 4 → 4.T → 4.5 →
 | 6.T. Performance & Integration Tests | 0/1 | Not started | - |
 | 7. Testing and Bug Fixing Protocol | 0/4 | Not started | - |
 
-**Total Progress:** 23/32 plans complete
+**Total Progress:** 27/33 plans complete
 
 ---
 *Roadmap created: 2026-01-23*
-*Roadmap updated: 2026-01-27 (Phases 4.6, 4.7 inserted)*
+*Roadmap updated: 2026-01-27 (Phase 4.6 gap closure plan added)*
 *Milestone: The Sovereign Formatter (v1)*

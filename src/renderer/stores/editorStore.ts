@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { ParsedCV, QueueItem } from '../types/cv';
 
-type ViewMode = 'cv' | 'error' | null;
+type ViewMode = 'cv' | 'error' | 'jd' | null;
 
 interface EditorStore {
   viewMode: ViewMode;
@@ -19,6 +19,7 @@ interface EditorStore {
   discardChanges: () => void;
   loadCV: (id: string) => Promise<void>;
   closePanel: () => void;
+  showJDDetail: () => void;
 }
 
 export const useEditorStore = create<EditorStore>((set, get) => ({
@@ -49,6 +50,15 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
 
   closePanel: () => set({
     viewMode: null,
+    activeCVId: null,
+    activeCV: null,
+    failedItem: null,
+    isDirty: false,
+    pendingChanges: new Map(),
+  }),
+
+  showJDDetail: () => set({
+    viewMode: 'jd',
     activeCVId: null,
     activeCV: null,
     failedItem: null,

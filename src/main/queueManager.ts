@@ -100,22 +100,26 @@ export class QueueManager {
     console.log(`QueueManager: Processing CV ${id} (${file_path})`);
 
     // Mark as processing in DB and notify UI
-    // Timeout starts NOW (when processing actually begins)
     const startedAt = new Date().toISOString();
     updateCVStatus(id, 'processing', { startedAt });
     this.notifyStatus({ id, status: 'processing' });
 
-    // Set up timeout
-    const timeoutId = setTimeout(() => {
-      this.handleTimeout(id);
-    }, this.timeoutMs);
+    // Timeout will start when Python confirms processing has begun (ACK)
+    // This ensures CVs waiting in queue get their full timeout window
+    let timeoutId: NodeJS.Timeout | null = null;
 
     try {
-      // Extract CV using Python sidecar
-      const result = await extractCV(file_path) as ParsedCV;
+      // Pass callback to extractCV - timeout starts when Python ACKs
+      const result = await extractCV(file_path, () => {
+        // Python has confirmed processing started - NOW start timeout
+        console.log(`QueueManager: Python ACK received for CV ${id}, starting ${this.timeoutMs}ms timeout`);
+        timeoutId = setTimeout(() => {
+          this.handleTimeout(id);
+        }, this.timeoutMs);
+      }) as ParsedCV;
 
       // Clear timeout - processing succeeded
-      clearTimeout(timeoutId);
+      if (timeoutId) clearTimeout(timeoutId);
 
       // Save extracted data and mark completed
       completeCVProcessing(id, result);
@@ -130,8 +134,8 @@ export class QueueManager {
         parseConfidence: result.parse_confidence,
       });
     } catch (error) {
-      // Clear timeout
-      clearTimeout(timeoutId);
+      // Clear timeout if set
+      if (timeoutId) clearTimeout(timeoutId);
 
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error(`QueueManager: Failed CV ${id}:`, errorMessage);

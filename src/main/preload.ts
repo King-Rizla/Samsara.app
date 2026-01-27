@@ -115,6 +115,42 @@ interface GetQueuedCVsResult {
   error?: string;
 }
 
+// Usage tracking and pinning types (Phase 4.7)
+interface UsageStats {
+  totalTokens: number;
+  requestCount: number;
+}
+
+interface ProjectUsageStats {
+  global: UsageStats;
+  byProject: Record<string, UsageStats>;
+}
+
+interface UsageStatsResult {
+  success: boolean;
+  data?: ProjectUsageStats;
+  error?: string;
+}
+
+interface AppSettingsData {
+  llmMode: 'local' | 'cloud';
+  hasApiKey: boolean;
+  globalTokenLimit?: number;
+  warningThreshold: number;
+}
+
+interface AppSettingsResult {
+  success: boolean;
+  data?: AppSettingsData;
+  error?: string;
+}
+
+interface PinnedProjectsResult {
+  success: boolean;
+  data?: ProjectSummary[];
+  error?: string;
+}
+
 /**
  * Expose protected methods to the renderer process.
  * This maintains security by using contextBridge instead of nodeIntegration.
@@ -313,6 +349,50 @@ contextBridge.exposeInMainWorld('api', {
   removeQueueStatusListener: (): void => {
     ipcRenderer.removeAllListeners('queue-status-update');
   },
+
+  // Usage tracking (Phase 4.7)
+
+  /**
+   * Get usage statistics for current month.
+   * Returns global and per-project token counts.
+   */
+  getUsageStats: (): Promise<UsageStatsResult> =>
+    ipcRenderer.invoke('get-usage-stats'),
+
+  // Project pinning operations (Phase 4.7)
+
+  /**
+   * Pin or unpin a project for quick sidebar access.
+   */
+  setPinnedProject: (projectId: string, isPinned: boolean): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke('set-pinned-project', projectId, isPinned),
+
+  /**
+   * Get all pinned projects in order.
+   */
+  getPinnedProjects: (): Promise<PinnedProjectsResult> =>
+    ipcRenderer.invoke('get-pinned-projects'),
+
+  /**
+   * Reorder pinned projects after drag-drop.
+   * @param projectIds - Array of project IDs in new order
+   */
+  reorderPinnedProjects: (projectIds: string[]): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke('reorder-pinned-projects', projectIds),
+
+  // App Settings (extended) (Phase 4.7)
+
+  /**
+   * Get all app settings including usage limits.
+   */
+  getAppSettings: (): Promise<AppSettingsResult> =>
+    ipcRenderer.invoke('get-app-settings'),
+
+  /**
+   * Update app settings (excluding API key - use setLLMSettings for that).
+   */
+  updateAppSettings: (updates: { globalTokenLimit?: number; warningThreshold?: number }): Promise<AppSettingsResult> =>
+    ipcRenderer.invoke('update-app-settings', updates),
 });
 
 /**

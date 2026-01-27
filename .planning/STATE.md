@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 4.5 of 7 (Project Homepage & Organization) - IN PROGRESS
-Plan: 1 of 4 in current phase - COMPLETE
+Plan: 2 of 4 in current phase - COMPLETE
 Status: In progress
-Last activity: 2026-01-27 - Completed 04.5-01-PLAN.md (Database Schema Migration)
+Last activity: 2026-01-27 - Completed 04.5-02-PLAN.md (Project IPC Handlers)
 
-Progress: [################] 87% (20/23 plans)
+Progress: [################] 91% (21/23 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 20
-- Average duration: 14 min
-- Total execution time: 2.82 hours
+- Total plans completed: 21
+- Average duration: 13 min
+- Total execution time: 2.88 hours
 
 **By Phase:**
 
@@ -34,15 +34,15 @@ Progress: [################] 87% (20/23 plans)
 | 3.T. E2E Test Foundation | 1/1 | 45 min | 45 min |
 | 4. JD Matching | 3/3 | ~45 min | 15 min |
 | 4.T. JD Matching Tests | 1/1 | ~30 min | 30 min |
-| 4.5. Project Homepage | 1/4 | 8 min | 8 min |
+| 4.5. Project Homepage | 2/4 | 12 min | 6 min |
 | 5. Anonymization & Branding | 0/3 | - | - |
 | 5.T. Export & Branding Tests | 0/1 | - | - |
 | 6. Bulk Processing & OS Integration | 0/3 | - | - |
 | 6.T. Performance & Integration Tests | 0/1 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 6 min, 8 min, 45 min, 30 min, 8 min
-- Trend: Database/migration plans fast (~8 min)
+- Last 5 plans: 8 min, 45 min, 30 min, 8 min, 4 min
+- Trend: IPC/API plans very fast (~4 min)
 
 *Updated after each plan completion*
 
@@ -101,6 +101,7 @@ Recent decisions affecting current work:
 - [04.5-01]: Schema versioning via PRAGMA user_version (simple integer increment)
 - [04.5-01]: Idempotent migration with column existence checks before ALTER TABLE
 - [04.5-01]: Default Project (id='default-project') created for orphaned CVs/JDs
+- [04.5-02]: IPC handlers return { success: boolean, data?: T, error?: string } for uniform response
 
 ### Pending Todos
 
@@ -123,21 +124,20 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 04.5-01-PLAN.md (Database Schema Migration)
+Stopped at: Completed 04.5-02-PLAN.md (Project IPC Handlers)
 Resume file: None
 
 ## Next Steps
 
-**Phase 4.5: Project Homepage & Organization** - IN PROGRESS (1/4 plans)
+**Phase 4.5: Project Homepage & Organization** - IN PROGRESS (2/4 plans)
 - [x] Plan 04.5-01: Database schema migration (projects table, project_id columns)
-- [ ] Plan 04.5-02: IPC handlers and project store
+- [x] Plan 04.5-02: IPC handlers and preload API
 - [ ] Plan 04.5-03: Project homepage UI
 - [ ] Plan 04.5-04: Project context in existing views
 
-**Database Ready:**
-- Projects table created with all columns
-- CVs and JDs have project_id column
-- Default Project exists for backward compatibility
-- CRUD functions ready for IPC exposure
+**IPC Layer Ready:**
+- 6 project IPC handlers registered (create, getAll, get, update, delete, getAggregateStats)
+- Preload exposes type-safe project API to renderer
+- getAllCVs and getAllJDs accept projectId filter parameter
 
-**Next:** Run `/gsd:execute-phase 04.5-02` for IPC handlers and project store.
+**Next:** Run `/gsd:execute-phase 04.5-03` for Project Homepage UI.

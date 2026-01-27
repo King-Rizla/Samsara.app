@@ -87,6 +87,38 @@ export interface CVSummary {
   created_at: string;
 }
 
+// ============================================================================
+// Project Types and CRUD
+// ============================================================================
+
+export interface ProjectRecord {
+  id: string;
+  name: string;
+  client_name: string | null;
+  description: string | null;
+  is_archived: number;  // SQLite stores as 0/1
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectSummary {
+  id: string;
+  name: string;
+  client_name: string | null;
+  description: string | null;
+  is_archived: boolean;
+  created_at: string;
+  updated_at: string;
+  cv_count: number;
+  jd_count: number;
+}
+
+export interface CreateProjectInput {
+  name: string;
+  client_name?: string;
+  description?: string;
+}
+
 export function initDatabase(): Database.Database {
   if (db) return db;
 
@@ -325,15 +357,26 @@ export function getCV(id: string): CVRecord | null {
 /**
  * Get all CVs with summary information.
  * Returns id, file_name, contact_json, parse_confidence, created_at.
+ * Optionally filter by projectId.
  */
-export function getAllCVs(): CVSummary[] {
+export function getAllCVs(projectId?: string): CVSummary[] {
   const database = getDatabase();
-  const stmt = database.prepare(`
+
+  let query = `
     SELECT id, file_name, contact_json, parse_confidence, created_at
     FROM cvs
-    ORDER BY created_at DESC
-  `);
-  return stmt.all() as CVSummary[];
+  `;
+
+  const params: unknown[] = [];
+  if (projectId) {
+    query += ' WHERE project_id = ?';
+    params.push(projectId);
+  }
+
+  query += ' ORDER BY created_at DESC';
+
+  const stmt = database.prepare(query);
+  return params.length ? stmt.all(...params) as CVSummary[] : stmt.all() as CVSummary[];
 }
 
 /**
@@ -576,14 +619,26 @@ export function getJD(id: string): FullJD | null {
 /**
  * Get all JDs with summary information.
  * Returns id, title, company, created_at, and skill counts.
+ * Optionally filter by projectId.
  */
-export function getAllJDs(): JDSummary[] {
+export function getAllJDs(projectId?: string): JDSummary[] {
   const database = getDatabase();
-  const rows = database.prepare(`
+
+  let query = `
     SELECT id, title, company, raw_text, required_skills_json, preferred_skills_json, created_at
     FROM job_descriptions
-    ORDER BY created_at DESC
-  `).all() as (JDRecord & { required_skills_json: string | null; preferred_skills_json: string | null })[];
+  `;
+
+  const params: unknown[] = [];
+  if (projectId) {
+    query += ' WHERE project_id = ?';
+    params.push(projectId);
+  }
+
+  query += ' ORDER BY created_at DESC';
+
+  const stmt = database.prepare(query);
+  const rows = (params.length ? stmt.all(...params) : stmt.all()) as (JDRecord & { required_skills_json: string | null; preferred_skills_json: string | null })[];
 
   return rows.map(row => {
     const requiredSkills = JSON.parse(row.required_skills_json || '[]');
@@ -694,4 +749,154 @@ export function getMatchResult(cvId: string, jdId: string): MatchResultRecord | 
     WHERE cv_id = ? AND jd_id = ?
   `);
   return (stmt.get(cvId, jdId) as MatchResultRecord) || null;
+}
+
+// ============================================================================
+// Project CRUD Functions
+// ============================================================================
+
+/**
+ * Create a new project.
+ * Returns the created project record.
+ */
+export function createProject(input: CreateProjectInput): ProjectRecord {
+  const database = getDatabase();
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  const stmt = database.prepare(`
+    INSERT INTO projects (id, name, client_name, description, is_archived, created_at, updated_at)
+    VALUES (?, ?, ?, ?, 0, ?, ?)
+  `);
+  stmt.run(id, input.name, input.client_name || null, input.description || null, now, now);
+
+  console.log(`Created project with ID: ${id}`);
+  return {
+    id,
+    name: input.name,
+    client_name: input.client_name || null,
+    description: input.description || null,
+    is_archived: 0,
+    created_at: now,
+    updated_at: now,
+  };
+}
+
+/**
+ * Get all projects with CV/JD counts.
+ * Excludes archived projects by default.
+ */
+export function getAllProjects(includeArchived = false): ProjectSummary[] {
+  const database = getDatabase();
+
+  const whereClause = includeArchived ? '' : 'WHERE p.is_archived = 0';
+
+  const stmt = database.prepare(`
+    SELECT
+      p.id, p.name, p.client_name, p.description, p.is_archived, p.created_at, p.updated_at,
+      (SELECT COUNT(*) FROM cvs WHERE project_id = p.id) as cv_count,
+      (SELECT COUNT(*) FROM job_descriptions WHERE project_id = p.id) as jd_count
+    FROM projects p
+    ${whereClause}
+    ORDER BY p.updated_at DESC
+  `);
+
+  const rows = stmt.all() as (ProjectRecord & { cv_count: number; jd_count: number })[];
+
+  return rows.map(row => ({
+    ...row,
+    is_archived: Boolean(row.is_archived),
+  }));
+}
+
+/**
+ * Get a single project by ID.
+ */
+export function getProject(id: string): ProjectSummary | null {
+  const database = getDatabase();
+
+  const row = database.prepare(`
+    SELECT
+      p.id, p.name, p.client_name, p.description, p.is_archived, p.created_at, p.updated_at,
+      (SELECT COUNT(*) FROM cvs WHERE project_id = p.id) as cv_count,
+      (SELECT COUNT(*) FROM job_descriptions WHERE project_id = p.id) as jd_count
+    FROM projects p
+    WHERE p.id = ?
+  `).get(id) as (ProjectRecord & { cv_count: number; jd_count: number }) | undefined;
+
+  if (!row) return null;
+
+  return {
+    ...row,
+    is_archived: Boolean(row.is_archived),
+  };
+}
+
+/**
+ * Update a project.
+ */
+export function updateProject(id: string, updates: Partial<CreateProjectInput & { is_archived: boolean }>): boolean {
+  const database = getDatabase();
+  const now = new Date().toISOString();
+
+  const fields: string[] = ['updated_at = ?'];
+  const values: unknown[] = [now];
+
+  if (updates.name !== undefined) {
+    fields.push('name = ?');
+    values.push(updates.name);
+  }
+  if (updates.client_name !== undefined) {
+    fields.push('client_name = ?');
+    values.push(updates.client_name);
+  }
+  if (updates.description !== undefined) {
+    fields.push('description = ?');
+    values.push(updates.description);
+  }
+  if (updates.is_archived !== undefined) {
+    fields.push('is_archived = ?');
+    values.push(updates.is_archived ? 1 : 0);
+  }
+
+  values.push(id);
+
+  const stmt = database.prepare(`UPDATE projects SET ${fields.join(', ')} WHERE id = ?`);
+  const result = stmt.run(...values);
+
+  return result.changes > 0;
+}
+
+/**
+ * Delete a project and all its CVs, JDs, and match results.
+ * Returns true if deleted.
+ */
+export function deleteProject(id: string): boolean {
+  const database = getDatabase();
+
+  // First delete all CVs (cascades to cv_jd_matches)
+  database.prepare('DELETE FROM cvs WHERE project_id = ?').run(id);
+
+  // Delete all JDs (cascades to cv_jd_matches)
+  database.prepare('DELETE FROM job_descriptions WHERE project_id = ?').run(id);
+
+  // Delete the project
+  const result = database.prepare('DELETE FROM projects WHERE id = ?').run(id);
+
+  return result.changes > 0;
+}
+
+/**
+ * Get aggregate stats across all projects.
+ */
+export function getAggregateStats(): { total_cvs: number; total_jds: number } {
+  const database = getDatabase();
+
+  const cvCount = database.prepare('SELECT COUNT(*) as count FROM cvs').get() as { count: number };
+  const jdCount = database.prepare('SELECT COUNT(*) as count FROM job_descriptions').get() as { count: number };
+
+  return {
+    total_cvs: cvCount.count,
+    total_jds: jdCount.count,
+  };
 }

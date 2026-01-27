@@ -47,6 +47,8 @@ class OpenAIClient:
         self.timeout = timeout
         self._client = None
         self._available: Optional[bool] = None
+        self._last_token_usage: dict | None = None
+        self._model_name: str = model
 
     def is_available(self) -> bool:
         """
@@ -110,6 +112,14 @@ class OpenAIClient:
                 response_format=schema,
             )
 
+            # Capture token usage from response
+            self._last_token_usage = {
+                'prompt_tokens': response.usage.prompt_tokens,
+                'completion_tokens': response.usage.completion_tokens,
+                'total_tokens': response.usage.total_tokens,
+                'model': self._model_name,
+            }
+
             # The parsed response is already validated
             return response.choices[0].message.parsed
 
@@ -118,7 +128,23 @@ class OpenAIClient:
             import traceback
             print(f"OpenAI extraction error: {e}", flush=True)
             print(traceback.format_exc(), flush=True)
+            # Set token usage to zeros for consistent tracking
+            self._last_token_usage = {
+                'prompt_tokens': 0,
+                'completion_tokens': 0,
+                'total_tokens': 0,
+                'model': self._model_name,
+            }
             return None
+
+    def get_last_token_usage(self) -> dict:
+        """Return token usage from the last extraction call."""
+        return self._last_token_usage or {
+            'prompt_tokens': 0,
+            'completion_tokens': 0,
+            'total_tokens': 0,
+            'model': self._model_name,
+        }
 
     def reset_availability(self) -> None:
         """Reset the cached availability status."""

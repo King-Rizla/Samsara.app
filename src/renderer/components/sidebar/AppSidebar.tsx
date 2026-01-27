@@ -165,7 +165,11 @@ export function AppSidebar({ pinnedProjects = [], onUnpin }: AppSidebarProps) {
       <SidebarFooter className="p-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Settings">
+            <SidebarMenuButton
+              onClick={() => navigate('/settings')}
+              isActive={location.pathname === '/settings'}
+              tooltip="Settings"
+            >
               <Settings />
               <span>Settings</span>
             </SidebarMenuButton>

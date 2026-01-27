@@ -12,10 +12,12 @@ import {
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 import { FolderOpen } from 'lucide-react';
+import { Toaster } from 'sonner';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from './components/ui/sidebar';
 import { AppSidebar } from './components/sidebar/AppSidebar';
 import { Dashboard } from './routes/Dashboard';
 import { ProjectView } from './routes/ProjectView';
+import { Settings } from './routes/Settings';
 import { TooltipProvider } from './components/ui/tooltip';
 import { useQueueStore } from './stores/queueStore';
 import './styles/globals.css';
@@ -156,6 +158,7 @@ export function App() {
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/project/:id" element={<ProjectView />} />
+                  <Route path="/settings" element={<Settings />} />
                 </Routes>
               </SidebarInset>
             </div>
@@ -174,6 +177,15 @@ export function App() {
           </div>
         ) : null}
       </DragOverlay>
+
+      {/* Toast notifications for usage warnings (per CONTEXT.md: toast stays until dismissed) */}
+      <Toaster
+        position="bottom-right"
+        toastOptions={{
+          className: 'bg-card border-border text-foreground',
+          duration: Infinity,
+        }}
+      />
     </DndContext>
   );
 }

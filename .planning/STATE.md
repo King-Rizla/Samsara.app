@@ -112,6 +112,10 @@ Recent decisions affecting current work:
 - [04.6-01]: Four status values (queued/processing/completed/failed) for CV lifecycle
 - [04.6-01]: DEFAULT 'completed' for backward compatibility with existing CVs
 - [04.6-01]: Separate processing_started_at column for timeout calculation from actual processing start
+- [04.6-02]: QueueManager initialized after database init, before window creation
+- [04.6-02]: Singleton pattern with createQueueManager/getQueueManager for global access
+- [04.6-02]: 120 second timeout per CV (matches Python extractCV timeout)
+- [04.6-02]: Stuck 'processing' CVs reset to 'queued' on startup for crash recovery
 - [04.6-03]: Keep 'submitted' in QueueStatus for backward compatibility
 - [04.6-03]: Use removeAllListeners for cleanup (single listener pattern)
 

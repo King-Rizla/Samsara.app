@@ -193,10 +193,14 @@ Plans:
   4. Dashboard stats strip shows total token/API usage across all projects
   5. User can set usage limits per project or globally in Settings
   6. Warning displayed when approaching usage limit
-**Plans**: 0 plans (to be planned)
+**Plans**: 5 plans in 3 waves
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 4.7 to break down)
+- [ ] 04.7-01-PLAN.md — Database schema for usage tracking and quick-access pinning
+- [ ] 04.7-02-PLAN.md — Python LLM clients return token usage in responses
+- [ ] 04.7-03-PLAN.md — IPC handlers for usage tracking and settings extension
+- [ ] 04.7-04-PLAN.md — @dnd-kit drag-drop for pinning projects to sidebar
+- [ ] 04.7-05-PLAN.md — UI integration: usage display, warnings, and settings
 
 ### Phase 5: Anonymization & Branding
 **Goal**: Generate blind profiles and branded client-ready PDFs
@@ -310,14 +314,14 @@ Phases execute in order: 1 → 2 → 2.1 → 3 → 3.T → 4 → 4.T → 4.5 →
 | 4.T. JD Matching Tests | 1/1 | Complete | 2026-01-27 |
 | 4.5. Project Homepage & Organization | 4/4 | Complete | 2026-01-27 |
 | 4.6. Queue Infrastructure & Persistence | 0/4 | Not started | - |
-| 4.7. Dashboard Enhancements | 0/? | Not started | - |
+| 4.7. Dashboard Enhancements | 0/5 | Not started | - |
 | 5. Anonymization & Branding | 0/3 | Not started | - |
 | 5.T. Export & Branding Tests | 0/1 | Not started | - |
 | 6. Bulk Processing & OS Integration | 0/3 | Not started | - |
 | 6.T. Performance & Integration Tests | 0/1 | Not started | - |
 | 7. Testing and Bug Fixing Protocol | 0/4 | Not started | - |
 
-**Total Progress:** 23/27+ plans complete (Phase 4.7 not yet planned)
+**Total Progress:** 23/32 plans complete
 
 ---
 *Roadmap created: 2026-01-23*

@@ -384,14 +384,18 @@ export function getCV(id: string): CVRecord | null {
 export function getAllCVs(projectId?: string): CVSummary[] {
   const database = getDatabase();
 
+  // IMPORTANT: Only return completed CVs
+  // Queued/processing CVs are returned by getQueuedCVsByProject()
+  // This separation ensures no duplicate items in the UI
   let query = `
-    SELECT id, file_name, contact_json, parse_confidence, created_at
+    SELECT id, file_name, file_path, contact_json, parse_confidence, created_at
     FROM cvs
+    WHERE status = 'completed'
   `;
 
   const params: unknown[] = [];
   if (projectId) {
-    query += ' WHERE project_id = ?';
+    query += ' AND project_id = ?';
     params.push(projectId);
   }
 
@@ -1061,7 +1065,14 @@ export function getNextQueuedCV(): QueuedCVRecord | null {
 }
 
 /**
- * Get all queued/processing CVs for UI display.
+ * Get all non-completed CVs for UI display (queued, processing, failed).
+ * These appear in the Submitted and Failed tabs.
+ * Completed CVs are returned by getAllCVs().
+ *
+ * Status lifecycle:
+ *   queued → processing → completed (success)
+ *   queued → processing → failed (error)
+ *
  * Optionally filter by projectId.
  */
 export function getQueuedCVsByProject(projectId?: string): Array<{
@@ -1074,10 +1085,12 @@ export function getQueuedCVsByProject(projectId?: string): Array<{
 }> {
   const database = getDatabase();
 
+  // Return all non-completed CVs: queued, processing, and failed
+  // This ensures Failed tab is populated on navigation
   let query = `
     SELECT id, file_name, file_path, status, error_message, created_at
     FROM cvs
-    WHERE status IN ('queued', 'processing')
+    WHERE status IN ('queued', 'processing', 'failed')
   `;
 
   const params: unknown[] = [];

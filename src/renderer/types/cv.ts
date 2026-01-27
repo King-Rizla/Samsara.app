@@ -50,6 +50,24 @@ export interface ParsedCV {
   extract_time_ms?: number;
 }
 
+/**
+ * CV Status Lifecycle (UI perspective):
+ *
+ *   [Drop CV] → 'queued' → 'submitted' → 'completed'
+ *                              ↓
+ *                          'failed'
+ *
+ * Status Mapping (DB → UI):
+ *   DB 'queued'     → UI 'queued'     (waiting in queue)
+ *   DB 'processing' → UI 'submitted'  (actively extracting)
+ *   DB 'completed'  → UI 'completed'  (extraction succeeded)
+ *   DB 'failed'     → UI 'failed'     (extraction failed)
+ *
+ * Tab Assignment:
+ *   Completed tab: status === 'completed'
+ *   Submitted tab: status === 'queued' OR status === 'submitted'
+ *   Failed tab:    status === 'failed'
+ */
 export type QueueStatus = 'queued' | 'submitted' | 'completed' | 'failed';
 export type ProcessingStage = 'Queued...' | 'Parsing...' | 'Extracting...' | 'Saving...';
 

@@ -224,21 +224,44 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
           }))
         : [];
 
-      // Load queued/processing CVs
+      // Load non-completed CVs (queued, processing, failed)
+      // Status mapping: DB 'processing' → UI 'submitted'
       const queuedResult = await window.api.getQueuedCVs(projectId || undefined);
       const queuedItems: QueueItem[] = queuedResult.success && queuedResult.data
-        ? queuedResult.data.map((cv) => ({
-            id: cv.id,
-            fileName: cv.file_name,
-            fileType: cv.file_name.split('.').pop()?.toLowerCase() || 'unknown',
-            filePath: cv.file_path,
-            status: cv.status === 'queued' ? 'queued' as QueueStatus :
-                    cv.status === 'processing' ? 'submitted' as QueueStatus :
-                    cv.status as QueueStatus,
-            stage: cv.status === 'processing' ? 'Extracting...' as ProcessingStage : undefined,
-            error: cv.error_message || undefined,
-            createdAt: cv.created_at,
-          }))
+        ? queuedResult.data.map((cv) => {
+            // Map DB status to UI status
+            let uiStatus: QueueStatus;
+            let stage: ProcessingStage | undefined;
+
+            switch (cv.status) {
+              case 'queued':
+                uiStatus = 'queued';
+                stage = 'Queued...';
+                break;
+              case 'processing':
+                uiStatus = 'submitted';
+                stage = 'Extracting...';
+                break;
+              case 'failed':
+                uiStatus = 'failed';
+                stage = undefined;
+                break;
+              default:
+                uiStatus = cv.status as QueueStatus;
+                stage = undefined;
+            }
+
+            return {
+              id: cv.id,
+              fileName: cv.file_name,
+              fileType: cv.file_name.split('.').pop()?.toLowerCase() || 'unknown',
+              filePath: cv.file_path,
+              status: uiStatus,
+              stage,
+              error: cv.error_message || undefined,
+              createdAt: cv.created_at,
+            };
+          })
         : [];
 
       // Combine and sort by createdAt (newest first)

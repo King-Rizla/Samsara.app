@@ -6,9 +6,11 @@ import {
   initDatabase, closeDatabase,
   insertCV, getAllCVs, getCVFull, updateCVField, deleteCV, ParsedCV,
   insertJD, getJD, getAllJDs, deleteJD, ParsedJD,
-  insertMatchResult, getMatchResultsForJD
+  insertMatchResult, getMatchResultsForJD,
+  createProject, getAllProjects, getProject, updateProject, deleteProject, getAggregateStats,
 } from './database';
-import { startPython, stopPython, extractCV, sendToPython } from './pythonManager';
+import { startPython, stopPython, extractCV, sendToPython, restartWithMode, getLLMMode } from './pythonManager';
+import { loadSettings, saveSettings, getSetting } from './settings';
 
 // Vite global variables for dev server and renderer name
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
@@ -55,9 +57,11 @@ app.whenReady().then(async () => {
     console.error('Database initialization failed:', error);
   }
 
-  // Start Python sidecar
+  // Load settings and start Python sidecar with configured mode
   try {
-    await startPython();
+    const settings = loadSettings();
+    console.log('Loaded settings:', { llmMode: settings.llmMode, hasApiKey: !!settings.openaiApiKey });
+    await startPython(settings.llmMode, settings.openaiApiKey);
   } catch (error) {
     console.error('Failed to start Python sidecar:', error);
     // Continue app startup even if Python fails (for debugging)
@@ -150,10 +154,11 @@ ipcMain.handle('extract-cv', async (_event, filePath: string) => {
 
 /**
  * Get all stored CVs (summary info only).
+ * Optionally filter by projectId.
  */
-ipcMain.handle('get-all-cvs', async () => {
+ipcMain.handle('get-all-cvs', async (_event, projectId?: string) => {
   try {
-    const cvs = getAllCVs();
+    const cvs = getAllCVs(projectId);
     return { success: true, data: cvs };
   } catch (error) {
     console.error('Failed to get CVs:', error);
@@ -364,10 +369,11 @@ ipcMain.handle('extract-jd', async (_event, text: string) => {
 
 /**
  * Get all stored JDs (summary info only).
+ * Optionally filter by projectId.
  */
-ipcMain.handle('get-all-jds', async () => {
+ipcMain.handle('get-all-jds', async (_event, projectId?: string) => {
   try {
-    const jds = getAllJDs();
+    const jds = getAllJDs(projectId);
     return { success: true, data: jds };
   } catch (error) {
     console.error('Failed to get JDs:', error);
@@ -531,13 +537,22 @@ ipcMain.handle('match-cvs-to-jd', async (_event, jdId: string, cvIds: string[]) 
 
       // Store in database
       insertMatchResult(matchResult);
-      results.push(matchResult);
     }
 
-    // Sort by score descending
-    results.sort((a, b) => b.match_score - a.match_score);
+    // Return ALL match results for this JD (not just newly calculated ones)
+    // This ensures previously matched CVs are preserved in the results
+    const allResults = getMatchResultsForJD(jdId);
+    const parsedResults = allResults.map(r => ({
+      cv_id: r.cv_id,
+      jd_id: r.jd_id,
+      match_score: r.match_score,
+      matched_skills: JSON.parse(r.matched_skills_json || '[]'),
+      missing_required: JSON.parse(r.missing_required_json || '[]'),
+      missing_preferred: JSON.parse(r.missing_preferred_json || '[]'),
+      calculated_at: r.calculated_at,
+    }));
 
-    return { success: true, results };
+    return { success: true, results: parsedResults };
   } catch (error) {
     console.error('match-cvs-to-jd error:', error);
     return {
@@ -574,5 +589,170 @@ ipcMain.handle('get-match-results', async (_event, jdId: string) => {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to get match results'
     };
+  }
+});
+
+// ============================================================================
+// Settings IPC Handlers
+// ============================================================================
+
+/**
+ * Get current LLM settings.
+ * Returns { llmMode: 'local' | 'cloud', hasApiKey: boolean }
+ */
+ipcMain.handle('get-llm-settings', async () => {
+  try {
+    const settings = loadSettings();
+    return {
+      success: true,
+      data: {
+        llmMode: settings.llmMode,
+        hasApiKey: !!settings.openaiApiKey,
+      }
+    };
+  } catch (error) {
+    console.error('get-llm-settings error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get settings'
+    };
+  }
+});
+
+/**
+ * Set LLM mode and optionally API key.
+ * Will restart Python sidecar with new settings.
+ */
+ipcMain.handle('set-llm-settings', async (_event, mode: 'local' | 'cloud', apiKey?: string) => {
+  console.log('set-llm-settings called:', { mode, hasApiKey: !!apiKey, apiKeyLength: apiKey?.length });
+  try {
+    // Save settings
+    const updates: { llmMode: 'local' | 'cloud'; openaiApiKey?: string } = { llmMode: mode };
+    if (apiKey !== undefined) {
+      updates.openaiApiKey = apiKey;
+    }
+    console.log('Saving settings with updates:', { ...updates, openaiApiKey: updates.openaiApiKey ? '[REDACTED]' : undefined });
+    const settings = saveSettings(updates);
+    console.log('Settings saved:', { llmMode: settings.llmMode, hasApiKey: !!settings.openaiApiKey });
+
+    // Restart Python with new mode
+    await restartWithMode(mode, settings.openaiApiKey);
+
+    return {
+      success: true,
+      data: {
+        llmMode: settings.llmMode,
+        hasApiKey: !!settings.openaiApiKey,
+      }
+    };
+  } catch (error) {
+    console.error('set-llm-settings error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to save settings'
+    };
+  }
+});
+
+// ============================================================================
+// Project IPC Handlers
+// ============================================================================
+
+/**
+ * Create a new project.
+ * Returns { success: true, data: ProjectSummary } on success
+ * Returns { success: false, error: string } on failure
+ */
+ipcMain.handle('create-project', async (_event, input: { name: string; client_name?: string; description?: string }) => {
+  try {
+    const project = createProject(input);
+    return { success: true, data: project };
+  } catch (error) {
+    console.error('Failed to create project:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to create project' };
+  }
+});
+
+/**
+ * Get all projects with CV/JD counts.
+ * Returns { success: true, data: ProjectSummary[] } on success
+ * Returns { success: false, error: string } on failure
+ */
+ipcMain.handle('get-all-projects', async (_event, includeArchived?: boolean) => {
+  try {
+    const projects = getAllProjects(includeArchived);
+    return { success: true, data: projects };
+  } catch (error) {
+    console.error('Failed to get projects:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to get projects' };
+  }
+});
+
+/**
+ * Get a single project by ID.
+ * Returns { success: true, data: ProjectSummary } on success
+ * Returns { success: false, error: string } on failure
+ */
+ipcMain.handle('get-project', async (_event, id: string) => {
+  try {
+    const project = getProject(id);
+    if (!project) {
+      return { success: false, error: 'Project not found' };
+    }
+    return { success: true, data: project };
+  } catch (error) {
+    console.error('Failed to get project:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to get project' };
+  }
+});
+
+/**
+ * Update a project.
+ * Returns { success: true } on success
+ * Returns { success: false, error: string } on failure
+ */
+ipcMain.handle('update-project', async (_event, id: string, updates: { name?: string; client_name?: string; description?: string; is_archived?: boolean }) => {
+  try {
+    const success = updateProject(id, updates);
+    if (!success) {
+      return { success: false, error: 'Project not found' };
+    }
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to update project:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to update project' };
+  }
+});
+
+/**
+ * Delete a project and all its data.
+ * Returns { success: true } on success
+ * Returns { success: false, error: string } on failure
+ */
+ipcMain.handle('delete-project', async (_event, id: string) => {
+  try {
+    const success = deleteProject(id);
+    if (!success) {
+      return { success: false, error: 'Project not found' };
+    }
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to delete project:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to delete project' };
+  }
+});
+
+/**
+ * Get aggregate stats across all projects.
+ * Returns { success: true, data: { total_cvs, total_jds } } on success
+ * Returns { success: false, error: string } on failure
+ */
+ipcMain.handle('get-aggregate-stats', async () => {
+  try {
+    const stats = getAggregateStats();
+    return { success: true, data: stats };
+  } catch (error) {
+    console.error('Failed to get aggregate stats:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to get aggregate stats' };
   }
 });

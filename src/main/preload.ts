@@ -86,6 +86,35 @@ interface AggregateStatsResult {
   error?: string;
 }
 
+interface EnqueueResult {
+  success: boolean;
+  id?: string;
+  error?: string;
+}
+
+interface QueueStatusUpdate {
+  id: string;
+  status: 'queued' | 'processing' | 'completed' | 'failed';
+  data?: unknown;  // ParsedCV
+  error?: string;
+  parseConfidence?: number;
+}
+
+interface QueuedCV {
+  id: string;
+  file_name: string;
+  file_path: string;
+  status: string;
+  error_message: string | null;
+  created_at: string;
+}
+
+interface GetQueuedCVsResult {
+  success: boolean;
+  data?: QueuedCV[];
+  error?: string;
+}
+
 /**
  * Expose protected methods to the renderer process.
  * This maintains security by using contextBridge instead of nodeIntegration.
@@ -93,10 +122,11 @@ interface AggregateStatsResult {
 contextBridge.exposeInMainWorld('api', {
   /**
    * Extract CV from a file path.
+   * Optionally associate with a project.
    * Returns { success: boolean, data?: ParsedCV, id?: string, error?: string }
    */
-  extractCV: (filePath: string): Promise<ExtractResult> =>
-    ipcRenderer.invoke('extract-cv', filePath),
+  extractCV: (filePath: string, projectId?: string): Promise<ExtractResult> =>
+    ipcRenderer.invoke('extract-cv', filePath, projectId),
 
   /**
    * Get all stored CVs (summary info).
@@ -137,19 +167,21 @@ contextBridge.exposeInMainWorld('api', {
 
   /**
    * Reprocess a CV (retry extraction).
+   * Optionally associate with a project.
    * Returns { success: boolean, data?: ParsedCV, error?: string }
    */
-  reprocessCV: (filePath: string): Promise<ExtractResult> =>
-    ipcRenderer.invoke('reprocess-cv', filePath),
+  reprocessCV: (filePath: string, projectId?: string): Promise<ExtractResult> =>
+    ipcRenderer.invoke('reprocess-cv', filePath, projectId),
 
   // JD (Job Description) operations
 
   /**
    * Extract JD from text and persist to database.
+   * Optionally associate with a project.
    * Returns { success: boolean, data?: JobDescription, error?: string }
    */
-  extractJD: (text: string): Promise<{ success: boolean; data?: unknown; error?: string }> =>
-    ipcRenderer.invoke('extract-jd', text),
+  extractJD: (text: string, projectId?: string): Promise<{ success: boolean; data?: unknown; error?: string }> =>
+    ipcRenderer.invoke('extract-jd', text, projectId),
 
   /**
    * Get all stored JDs (summary info).
@@ -248,6 +280,39 @@ contextBridge.exposeInMainWorld('api', {
    */
   getAggregateStats: (): Promise<AggregateStatsResult> =>
     ipcRenderer.invoke('get-aggregate-stats'),
+
+  // Queue operations
+
+  /**
+   * Enqueue a CV for processing.
+   * Immediately persists to database with status='queued'.
+   * Returns { success: boolean, id?: string, error?: string }
+   */
+  enqueueCV: (fileName: string, filePath: string, projectId?: string): Promise<EnqueueResult> =>
+    ipcRenderer.invoke('enqueue-cv', fileName, filePath, projectId),
+
+  /**
+   * Get all queued/processing CVs for a project.
+   * Returns { success: boolean, data?: QueuedCV[], error?: string }
+   */
+  getQueuedCVs: (projectId?: string): Promise<GetQueuedCVsResult> =>
+    ipcRenderer.invoke('get-queued-cvs', projectId),
+
+  /**
+   * Subscribe to queue status updates from main process.
+   * Called when CV status changes (queued -> processing -> completed/failed).
+   */
+  onQueueStatusUpdate: (callback: (update: QueueStatusUpdate) => void): void => {
+    ipcRenderer.on('queue-status-update', (_event, update) => callback(update));
+  },
+
+  /**
+   * Unsubscribe from queue status updates.
+   * Call in cleanup/useEffect return to prevent memory leaks.
+   */
+  removeQueueStatusListener: (): void => {
+    ipcRenderer.removeAllListeners('queue-status-update');
+  },
 });
 
 /**

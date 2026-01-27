@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 4.7 of 7 (Dashboard Enhancements) - IN PROGRESS
-Plan: 3 of 5 in current phase
-Status: Plan 04.7-03 complete
-Last activity: 2026-01-27 - Completed IPC handlers for usage tracking
+Plan: 4 of 5 in current phase
+Status: Plan 04.7-04 complete
+Last activity: 2026-01-27 - Completed @dnd-kit drag-drop infrastructure
 
-Progress: [##################--] 97% (31/32 plans through Phase 4.7-03)
+Progress: [##################--] 97% (32/33 plans through Phase 4.7-04)
 
 ## Performance Metrics
 
@@ -130,6 +130,9 @@ Recent decisions affecting current work:
 - [04.7-03]: Usage recorded with 'default-project' if no projectId provided
 - [04.7-03]: Token usage captured from Python response's token_usage field
 - [04.7-03]: warningThreshold defaults to 80 (warn at 80% of limit)
+- [04.7-04]: 8px activation distance prevents accidental drags
+- [04.7-04]: DragOverlay renders ghost preview outside DOM hierarchy for z-index
+- [04.7-04]: Two unpin methods: X button on hover AND drag project out of sidebar
 
 ### Pending Todos
 
@@ -154,7 +157,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 04.7-03-PLAN.md (IPC handlers for usage tracking)
+Stopped at: Completed 04.7-04-PLAN.md (@dnd-kit drag-drop infrastructure)
 Resume file: None
 
 ## Next Steps
@@ -171,7 +174,7 @@ Resume file: None
 - [x] Plan 04.7-01: Database schema for usage tracking and pinning (migration v3)
 - [x] Plan 04.7-02: Python token capture
 - [x] Plan 04.7-03: IPC handlers for usage tracking and settings
-- [ ] Plan 04.7-04: Usage display in UI
+- [x] Plan 04.7-04: @dnd-kit drag-drop infrastructure for project pinning
 - [ ] Plan 04.7-05: Usage limits and warnings
 
 **Phase 5: Anonymization & Branding** - NOT STARTED

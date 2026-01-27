@@ -255,6 +255,27 @@ export function initDatabase(): Database.Database {
       console.log('Database migrated to version 1');
     }
 
+    if (version < 2) {
+      console.log('Migrating database to version 2 (queue status)...');
+
+      // Check if columns exist before adding
+      const cvColumns = db.prepare("PRAGMA table_info(cvs)").all() as { name: string }[];
+
+      if (!cvColumns.some(col => col.name === 'status')) {
+        db.exec(`ALTER TABLE cvs ADD COLUMN status TEXT NOT NULL DEFAULT 'completed'`);
+      }
+      if (!cvColumns.some(col => col.name === 'error_message')) {
+        db.exec(`ALTER TABLE cvs ADD COLUMN error_message TEXT`);
+      }
+      if (!cvColumns.some(col => col.name === 'processing_started_at')) {
+        db.exec(`ALTER TABLE cvs ADD COLUMN processing_started_at TEXT`);
+      }
+
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_cvs_status ON cvs(status)`);
+      db.pragma('user_version = 2');
+      console.log('Database migrated to version 2');
+    }
+
     // Store init timestamp
     const stmt = db.prepare('INSERT OR REPLACE INTO app_meta (key, value) VALUES (?, ?)');
     stmt.run('initialized_at', new Date().toISOString());
@@ -300,7 +321,7 @@ function calculateContactConfidence(contact: ContactInfo): number {
  * Insert or replace a CV record in the database.
  * Returns the generated ID.
  */
-export function insertCV(cv: ParsedCV, filePath: string): string {
+export function insertCV(cv: ParsedCV, filePath: string, projectId?: string): string {
   const database = getDatabase();
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
@@ -314,8 +335,8 @@ export function insertCV(cv: ParsedCV, filePath: string): string {
       work_history_json, education_json, skills_json,
       certifications_json, languages_json, other_sections_json,
       raw_text, section_order_json, parse_confidence,
-      warnings_json, parse_time_ms
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      warnings_json, parse_time_ms, project_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   stmt.run(
@@ -336,7 +357,8 @@ export function insertCV(cv: ParsedCV, filePath: string): string {
     cv.section_order ? JSON.stringify(cv.section_order) : null,
     cv.parse_confidence,
     cv.warnings ? JSON.stringify(cv.warnings) : null,
-    cv.extract_time_ms || null
+    cv.extract_time_ms || null,
+    projectId || null
   );
 
   console.log(`Inserted CV with ID: ${id}`);
@@ -556,7 +578,7 @@ export interface FullJD extends ParsedJD {
  * Insert a new JD into the database.
  * Returns the generated ID.
  */
-export function insertJD(jd: ParsedJD): string {
+export function insertJD(jd: ParsedJD, projectId?: string): string {
   const database = getDatabase();
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
@@ -567,8 +589,8 @@ export function insertJD(jd: ParsedJD): string {
       required_skills_json, preferred_skills_json,
       experience_min, experience_max,
       education_level, certifications_json,
-      created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      created_at, updated_at, project_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   stmt.run(
@@ -583,7 +605,8 @@ export function insertJD(jd: ParsedJD): string {
     jd.education_level || null,
     jd.certifications ? JSON.stringify(jd.certifications) : null,
     now,
-    now
+    now,
+    projectId || null
   );
 
   console.log(`Inserted JD with ID: ${id}`);

@@ -12,7 +12,13 @@ export function QueueList({ status }: QueueListProps) {
   // This avoids React 19's infinite loop detection with useSyncExternalStore
   const allItems = useQueueStore((state) => state.items);
   const items = useMemo(
-    () => allItems.filter((item) => item.status === status),
+    () => allItems.filter((item) => {
+      // Submitted tab shows both 'queued' and 'submitted' items (all in-progress CVs)
+      if (status === 'submitted') {
+        return item.status === 'submitted' || item.status === 'queued';
+      }
+      return item.status === status;
+    }),
     [allItems, status]
   );
 

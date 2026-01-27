@@ -230,7 +230,8 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
         break;
 
       case 'processing':
-        // Find item and update to submitted/extracting
+        // Update status to 'submitted' (UI status) and stage to 'Extracting...'
+        updateStatus(update.id, 'submitted');
         updateStage(update.id, 'Extracting...');
         break;
 

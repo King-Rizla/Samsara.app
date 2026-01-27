@@ -10,9 +10,10 @@ export function QueueTabs() {
   const clearSelection = useQueueStore((state) => state.clearSelection);
 
   // Memoize counts to avoid recalculating on every render
+  // Submitted tab shows both 'queued' and 'submitted' items (all in-progress CVs)
   const counts = useMemo(() => ({
     completed: items.filter((i) => i.status === 'completed').length,
-    submitted: items.filter((i) => i.status === 'submitted').length,
+    submitted: items.filter((i) => i.status === 'submitted' || i.status === 'queued').length,
     failed: items.filter((i) => i.status === 'failed').length,
   }), [items]);
 

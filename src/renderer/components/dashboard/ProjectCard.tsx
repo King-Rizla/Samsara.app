@@ -1,4 +1,6 @@
 import { useNavigate } from 'react-router-dom';
+import { useDraggable } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Button } from '../ui/button';
 import { MoreHorizontal, Archive, Trash2 } from 'lucide-react';
@@ -19,6 +21,17 @@ interface ProjectCardProps {
 export function ProjectCard({ project, onArchive, onDelete }: ProjectCardProps) {
   const navigate = useNavigate();
 
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `project-${project.id}`,
+    data: { type: 'project', project },
+  });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Translate.toString(transform),
+    opacity: isDragging ? 0.5 : 1,
+    cursor: isDragging ? 'grabbing' : 'grab',
+  };
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-GB', {
@@ -28,21 +41,40 @@ export function ProjectCard({ project, onArchive, onDelete }: ProjectCardProps) 
     });
   };
 
+  const handleCardClick = () => {
+    // Only navigate if not dragging
+    if (!isDragging) {
+      navigate(`/project/${project.id}`);
+    }
+  };
+
   return (
     <Card
-      className="bg-card border-border hover:border-primary cursor-pointer transition-colors"
-      onClick={() => navigate(`/project/${project.id}`)}
+      ref={setNodeRef}
+      style={style}
+      className="bg-card border-border hover:border-primary transition-colors"
+      {...attributes}
     >
-      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-        <div className="space-y-1">
+      <CardHeader
+        className="flex flex-row items-start justify-between space-y-0 pb-2 cursor-grab"
+        {...listeners}
+      >
+        <div
+          className="space-y-1 flex-1 cursor-pointer"
+          onClick={handleCardClick}
+        >
           <CardTitle className="text-lg font-medium">{project.name}</CardTitle>
           {project.client_name && (
             <CardDescription className="text-sm">{project.client_name}</CardDescription>
           )}
         </div>
         <DropdownMenu>
-          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+          <DropdownMenuTrigger
+            asChild
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer">
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -61,7 +93,10 @@ export function ProjectCard({ project, onArchive, onDelete }: ProjectCardProps) 
           </DropdownMenuContent>
         </DropdownMenu>
       </CardHeader>
-      <CardContent>
+      <CardContent
+        className="cursor-pointer"
+        onClick={handleCardClick}
+      >
         <div className="flex gap-4 text-sm text-muted-foreground">
           <span>{project.cv_count} CVs</span>
           <span>{project.jd_count} JDs</span>

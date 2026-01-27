@@ -20,7 +20,7 @@ Samsara v1 delivers a local-first CV formatter and JD matching tool that replace
 - [x] **Phase 3.T: E2E Test Foundation** - Playwright infrastructure, fixtures, and core test coverage
 - [x] **Phase 4: JD Matching** - Score and rank CVs against job descriptions
 - [x] **Phase 4.T: JD Matching Tests** - E2E coverage for JD parsing, scoring, and ranking
-- [ ] **Phase 4.5: Project Homepage & Organization** - Homepage with project-scoped CVs, JDs, and matches for multi-role workflow
+- [x] **Phase 4.5: Project Homepage & Organization** - Homepage with project-scoped CVs, JDs, and matches for multi-role workflow
 - [ ] **Phase 5: Anonymization & Branding** - Redaction, blind profiles, and themed PDF output
 - [ ] **Phase 5.T: Export & Branding Tests** - E2E coverage for PDF generation and anonymization
 - [ ] **Phase 6: Bulk Processing & OS Integration** - 100+ file queue with context menu integration
@@ -157,10 +157,10 @@ Plans:
 **Plans**: 4 plans in 3 waves
 
 Plans:
-- [ ] 04.5-01-PLAN.md — Database schema migration (projects table, project_id on CVs/JDs)
-- [ ] 04.5-02-PLAN.md — Project IPC handlers and preload API
-- [ ] 04.5-03-PLAN.md — React Router, project store, and routing structure
-- [ ] 04.5-04-PLAN.md — Dashboard UI with sidebar, stats strip, and project cards
+- [x] 04.5-01-PLAN.md — Database schema migration (projects table, project_id on CVs/JDs)
+- [x] 04.5-02-PLAN.md — Project IPC handlers and preload API
+- [x] 04.5-03-PLAN.md — React Router, project store, and routing structure
+- [x] 04.5-04-PLAN.md — Dashboard UI with sidebar, stats strip, and project cards
 
 ### Phase 5: Anonymization & Branding
 **Goal**: Generate blind profiles and branded client-ready PDFs
@@ -270,18 +270,18 @@ Phases execute in order: 1 → 2 → 2.1 → 3 → 3.T → 4 → 4.T → 4.5 →
 | 2.1. LLM Extraction | 2/2 | Complete | 2026-01-25 |
 | 3. Visual Editor | 5/5 | Complete | 2026-01-25 |
 | 3.T. E2E Test Foundation | 1/1 | Complete | 2026-01-25 |
-| 4. JD Matching | 1/3 | In progress | - |
-| 4.T. JD Matching Tests | 0/1 | Not started | - |
-| 4.5. Project Homepage & Organization | 0/? | Not started | - |
+| 4. JD Matching | 3/3 | Complete | 2026-01-27 |
+| 4.T. JD Matching Tests | 1/1 | Complete | 2026-01-27 |
+| 4.5. Project Homepage & Organization | 4/4 | Complete | 2026-01-27 |
 | 5. Anonymization & Branding | 0/3 | Not started | - |
 | 5.T. Export & Branding Tests | 0/1 | Not started | - |
 | 6. Bulk Processing & OS Integration | 0/3 | Not started | - |
 | 6.T. Performance & Integration Tests | 0/1 | Not started | - |
 | 7. Testing and Bug Fixing Protocol | 0/4 | Not started | - |
 
-**Total Progress:** 15/26 plans complete (58%)
+**Total Progress:** 23/30 plans complete (77%)
 
 ---
 *Roadmap created: 2026-01-23*
-*Roadmap updated: 2026-01-25 (added testing phases)*
+*Roadmap updated: 2026-01-27 (Phase 4.5 complete)*
 *Milestone: The Sovereign Formatter (v1)*

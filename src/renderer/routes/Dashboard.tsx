@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 import { useProjectStore } from '../stores/projectStore';
+import { useUsageStore } from '../stores/usageStore';
 import { StatsStrip, ProjectCard, CreateProjectDialog } from '../components/dashboard';
 import { Card, CardContent } from '../components/ui/card';
 
@@ -11,15 +13,86 @@ export function Dashboard() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [stats, setStats] = useState({ total_cvs: 0, total_jds: 0 });
 
+  // Usage tracking
+  const {
+    globalUsage,
+    globalTokenLimit,
+    llmMode,
+    loadUsage,
+    loadSettings,
+    isNearLimit,
+    isOverLimit,
+    getProjectUsage,
+  } = useUsageStore();
+
+  // Track which toasts have been shown to avoid duplicates
+  const toastShownRef = useRef<{ warning: boolean; limit: boolean }>({ warning: false, limit: false });
+
   useEffect(() => {
     loadProjects();
+    loadUsage();
+    loadSettings();
     // Load aggregate stats
     window.api.getAggregateStats().then((result) => {
       if (result.success && result.data) {
         setStats(result.data);
       }
     });
-  }, [loadProjects]);
+  }, [loadProjects, loadUsage, loadSettings]);
+
+  // Toast warnings for usage limits (per CONTEXT.md: toast stays until dismissed)
+  useEffect(() => {
+    if (isOverLimit() && !toastShownRef.current.limit) {
+      toastShownRef.current.limit = true;
+      toast.error(
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2 font-medium">
+            <AlertTriangle className="h-4 w-4" />
+            Usage Limit Reached
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Processing is paused.{' '}
+            <button
+              onClick={() => {
+                toast.dismiss();
+                navigate('/settings');
+              }}
+              className="text-primary underline"
+            >
+              Increase limit in Settings
+            </button>
+          </p>
+        </div>,
+        { duration: Infinity }
+      );
+    } else if (isNearLimit() && !toastShownRef.current.warning) {
+      toastShownRef.current.warning = true;
+      const percentage = globalTokenLimit
+        ? Math.round((globalUsage.totalTokens / globalTokenLimit) * 100)
+        : 0;
+      toast.warning(
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2 font-medium">
+            <AlertTriangle className="h-4 w-4" />
+            Approaching Usage Limit
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {percentage}% of monthly limit used.{' '}
+            <button
+              onClick={() => {
+                toast.dismiss();
+                navigate('/settings');
+              }}
+              className="text-primary underline"
+            >
+              Manage in Settings
+            </button>
+          </p>
+        </div>,
+        { duration: Infinity }
+      );
+    }
+  }, [isNearLimit, isOverLimit, globalUsage.totalTokens, globalTokenLimit, navigate]);
 
   const handleCreateProject = async (data: { name: string; client_name?: string; description?: string }) => {
     const id = await createProject(data);
@@ -57,6 +130,8 @@ export function Dashboard() {
         totalCVs={stats.total_cvs}
         totalJDs={stats.total_jds}
         timeSaved={timeSavedFormatted}
+        totalTokens={globalUsage.totalTokens}
+        llmMode={llmMode}
       />
 
       {/* Projects Grid */}
@@ -79,6 +154,8 @@ export function Dashboard() {
             <ProjectCard
               key={project.id}
               project={project}
+              tokenUsage={getProjectUsage(project.id).totalTokens}
+              llmMode={llmMode}
               onArchive={handleArchive}
               onDelete={handleDelete}
             />

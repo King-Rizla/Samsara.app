@@ -101,3 +101,13 @@
 .loading-dot:nth-child(3) {
   animation-delay: 0.4s;
 }
+
+/* Global hidden scrollbars - scrollable but no visible scrollbar */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}

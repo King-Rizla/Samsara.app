@@ -18,8 +18,9 @@ Samsara v1 delivers a local-first CV formatter and JD matching tool that replace
 - [x] **Phase 2.1: LLM Extraction** - Local LLM enhancement for work history, education, and skills extraction
 - [x] **Phase 3: Visual Editor** - Queue management with human-in-the-loop corrections
 - [x] **Phase 3.T: E2E Test Foundation** - Playwright infrastructure, fixtures, and core test coverage
-- [ ] **Phase 4: JD Matching** - Score and rank CVs against job descriptions
-- [ ] **Phase 4.T: JD Matching Tests** - E2E coverage for JD parsing, scoring, and ranking
+- [x] **Phase 4: JD Matching** - Score and rank CVs against job descriptions
+- [x] **Phase 4.T: JD Matching Tests** - E2E coverage for JD parsing, scoring, and ranking
+- [ ] **Phase 4.5: Project Homepage & Organization** - Homepage with project-scoped CVs, JDs, and matches for multi-role workflow
 - [ ] **Phase 5: Anonymization & Branding** - Redaction, blind profiles, and themed PDF output
 - [ ] **Phase 5.T: Export & Branding Tests** - E2E coverage for PDF generation and anonymization
 - [ ] **Phase 6: Bulk Processing & OS Integration** - 100+ file queue with context menu integration
@@ -125,8 +126,8 @@ Plans:
 
 Plans:
 - [x] 04-01-PLAN.md — JD input UI and parsing (skills/requirements extraction via LLM)
-- [ ] 04-02-PLAN.md — Matching algorithm and scoring engine
-- [ ] 04-03-PLAN.md — Ranked results view with highlighted matches
+- [x] 04-02-PLAN.md — Matching algorithm and scoring engine
+- [x] 04-03-PLAN.md — Ranked results view with highlighted matches
 
 ### Phase 4.T: JD Matching Tests
 **Goal**: E2E test coverage for JD matching functionality
@@ -141,11 +142,29 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 04.T-01-PLAN.md — JD matching E2E tests with mock JD fixtures
+- [x] 04.T-01-PLAN.md — JD matching E2E tests with mock JD fixtures
+
+### Phase 4.5: Project Homepage & Organization (INSERTED)
+**Goal**: Enable multi-project workflow where recruiters can separate work by job role/client
+**Depends on**: Phase 4.T
+**Requirements**: None (architectural enhancement)
+**Success Criteria** (what must be TRUE):
+  1. User sees a homepage listing all projects on app launch
+  2. User can create a new project with a name and optional description
+  3. Each project contains its own CVs, JDs, and match results (fully isolated)
+  4. User can switch between projects without losing context
+  5. Current queue/editor UI works within the selected project scope
+**Plans**: 4 plans in 3 waves
+
+Plans:
+- [ ] 04.5-01-PLAN.md — Database schema migration (projects table, project_id on CVs/JDs)
+- [ ] 04.5-02-PLAN.md — Project IPC handlers and preload API
+- [ ] 04.5-03-PLAN.md — React Router, project store, and routing structure
+- [ ] 04.5-04-PLAN.md — Dashboard UI with sidebar, stats strip, and project cards
 
 ### Phase 5: Anonymization & Branding
 **Goal**: Generate blind profiles and branded client-ready PDFs
-**Depends on**: Phase 4.T
+**Depends on**: Phase 4.5
 **Requirements**: F-02b, F-02c, F-03c
 **Success Criteria** (what must be TRUE):
   1. User can apply "Blackout" redaction that visually removes contact details from PDF layer
@@ -242,7 +261,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in order: 1 → 2 → 2.1 → 3 → 3.T → 4 → 4.T → 5 → 5.T → 6 → 6.T → 7
+Phases execute in order: 1 → 2 → 2.1 → 3 → 3.T → 4 → 4.T → 4.5 → 5 → 5.T → 6 → 6.T → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -253,6 +272,7 @@ Phases execute in order: 1 → 2 → 2.1 → 3 → 3.T → 4 → 4.T → 5 → 5
 | 3.T. E2E Test Foundation | 1/1 | Complete | 2026-01-25 |
 | 4. JD Matching | 1/3 | In progress | - |
 | 4.T. JD Matching Tests | 0/1 | Not started | - |
+| 4.5. Project Homepage & Organization | 0/? | Not started | - |
 | 5. Anonymization & Branding | 0/3 | Not started | - |
 | 5.T. Export & Branding Tests | 0/1 | Not started | - |
 | 6. Bulk Processing & OS Integration | 0/3 | Not started | - |

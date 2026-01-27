@@ -9,10 +9,14 @@ import * as path from 'path';
 export interface AppSettings {
   llmMode: 'local' | 'cloud';
   openaiApiKey?: string;
+  // Usage limit fields (global only for v1 per CONTEXT.md)
+  globalTokenLimit?: number;        // Monthly token limit (null/undefined = unlimited)
+  warningThreshold?: number;        // Percent (e.g., 80 means warn at 80%), default 80
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
   llmMode: 'local',
+  warningThreshold: 80,  // Default to 80% warning threshold (CONTEXT.md decision)
 };
 
 let cachedSettings: AppSettings | null = null;

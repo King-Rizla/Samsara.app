@@ -50,6 +50,42 @@ interface DeleteResult {
   error?: string;
 }
 
+interface ProjectSummary {
+  id: string;
+  name: string;
+  client_name: string | null;
+  description: string | null;
+  is_archived: boolean;
+  created_at: string;
+  updated_at: string;
+  cv_count: number;
+  jd_count: number;
+}
+
+interface CreateProjectInput {
+  name: string;
+  client_name?: string;
+  description?: string;
+}
+
+interface ProjectResult {
+  success: boolean;
+  data?: ProjectSummary;
+  error?: string;
+}
+
+interface ProjectsResult {
+  success: boolean;
+  data?: ProjectSummary[];
+  error?: string;
+}
+
+interface AggregateStatsResult {
+  success: boolean;
+  data?: { total_cvs: number; total_jds: number };
+  error?: string;
+}
+
 /**
  * Expose protected methods to the renderer process.
  * This maintains security by using contextBridge instead of nodeIntegration.
@@ -64,10 +100,11 @@ contextBridge.exposeInMainWorld('api', {
 
   /**
    * Get all stored CVs (summary info).
+   * Optionally filter by projectId.
    * Returns { success: boolean, data?: CVSummary[], error?: string }
    */
-  getAllCVs: (): Promise<GetAllCVsResult> =>
-    ipcRenderer.invoke('get-all-cvs'),
+  getAllCVs: (projectId?: string): Promise<GetAllCVsResult> =>
+    ipcRenderer.invoke('get-all-cvs', projectId),
 
   /**
    * Open native file dialog to select a CV file.
@@ -116,10 +153,11 @@ contextBridge.exposeInMainWorld('api', {
 
   /**
    * Get all stored JDs (summary info).
+   * Optionally filter by projectId.
    * Returns { success: boolean, data?: JDSummary[], error?: string }
    */
-  getAllJDs: (): Promise<{ success: boolean; data?: unknown[]; error?: string }> =>
-    ipcRenderer.invoke('get-all-jds'),
+  getAllJDs: (projectId?: string): Promise<{ success: boolean; data?: unknown[]; error?: string }> =>
+    ipcRenderer.invoke('get-all-jds', projectId),
 
   /**
    * Get full JD data by ID.
@@ -150,6 +188,66 @@ contextBridge.exposeInMainWorld('api', {
    */
   getMatchResults: (jdId: string): Promise<{ success: boolean; data?: unknown[]; error?: string }> =>
     ipcRenderer.invoke('get-match-results', jdId),
+
+  // Settings API
+
+  /**
+   * Get current LLM settings.
+   * Returns { success: boolean, data?: { llmMode: string, hasApiKey: boolean }, error?: string }
+   */
+  getLLMSettings: (): Promise<{ success: boolean; data?: { llmMode: string; hasApiKey: boolean }; error?: string }> =>
+    ipcRenderer.invoke('get-llm-settings'),
+
+  /**
+   * Set LLM mode and optionally API key. Restarts Python sidecar.
+   * Returns { success: boolean, data?: { llmMode: string, hasApiKey: boolean }, error?: string }
+   */
+  setLLMSettings: (mode: 'local' | 'cloud', apiKey?: string): Promise<{ success: boolean; data?: { llmMode: string; hasApiKey: boolean }; error?: string }> =>
+    ipcRenderer.invoke('set-llm-settings', mode, apiKey),
+
+  // Project operations
+
+  /**
+   * Create a new project.
+   * Returns { success: boolean, data?: ProjectSummary, error?: string }
+   */
+  createProject: (input: CreateProjectInput): Promise<ProjectResult> =>
+    ipcRenderer.invoke('create-project', input),
+
+  /**
+   * Get all projects with CV/JD counts.
+   * Returns { success: boolean, data?: ProjectSummary[], error?: string }
+   */
+  getAllProjects: (includeArchived?: boolean): Promise<ProjectsResult> =>
+    ipcRenderer.invoke('get-all-projects', includeArchived),
+
+  /**
+   * Get a single project by ID.
+   * Returns { success: boolean, data?: ProjectSummary, error?: string }
+   */
+  getProject: (id: string): Promise<ProjectResult> =>
+    ipcRenderer.invoke('get-project', id),
+
+  /**
+   * Update a project.
+   * Returns { success: boolean, error?: string }
+   */
+  updateProject: (id: string, updates: { name?: string; client_name?: string; description?: string; is_archived?: boolean }): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke('update-project', id, updates),
+
+  /**
+   * Delete a project and all its data.
+   * Returns { success: boolean, error?: string }
+   */
+  deleteProject: (id: string): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke('delete-project', id),
+
+  /**
+   * Get aggregate stats across all projects.
+   * Returns { success: boolean, data?: { total_cvs, total_jds }, error?: string }
+   */
+  getAggregateStats: (): Promise<AggregateStatsResult> =>
+    ipcRenderer.invoke('get-aggregate-stats'),
 });
 
 /**

@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Architecture as the Advantage - Zero Latency, Zero Egress, Zero Per-Seat Tax
-**Current focus:** Phase 5 - Anonymization & Branding (next)
+**Current focus:** Phase 4.6 - Queue Infrastructure & Persistence
 
 ## Current Position
 
-Phase: 4.5 of 7 (Project Homepage & Organization) - COMPLETE
-Plan: 4 of 4 in current phase - COMPLETE
-Status: Phase complete
-Last activity: 2026-01-27 - Completed 04.5-04-PLAN.md (Dashboard UI)
+Phase: 4.6 of 7 (Queue Infrastructure & Persistence)
+Plan: 1 of 4 in current phase
+Status: In progress
+Last activity: 2026-01-27 - Completed 04.6-01-PLAN.md (Database Schema)
 
-Progress: [##################] 100% (23/23 plans through Phase 4.5)
+Progress: [##################--] 96% (24/25 plans through Phase 4.6-01)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 23
+- Total plans completed: 24
 - Average duration: 12 min
-- Total execution time: 3.2 hours
+- Total execution time: 3.3 hours
 
 **By Phase:**
 
@@ -35,14 +35,15 @@ Progress: [##################] 100% (23/23 plans through Phase 4.5)
 | 4. JD Matching | 3/3 | ~45 min | 15 min |
 | 4.T. JD Matching Tests | 1/1 | ~30 min | 30 min |
 | 4.5. Project Homepage | 4/4 | 29 min | 7 min |
+| 4.6. Queue Infrastructure | 1/4 | 6 min | 6 min |
 | 5. Anonymization & Branding | 0/3 | - | - |
 | 5.T. Export & Branding Tests | 0/1 | - | - |
 | 6. Bulk Processing & OS Integration | 0/3 | - | - |
 | 6.T. Performance & Integration Tests | 0/1 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 30 min, 8 min, 4 min, 8 min, 9 min
-- Trend: Phase 4.5 plans consistently fast (4-9 min)
+- Last 5 plans: 4 min, 8 min, 9 min, 6 min
+- Trend: Database/schema plans consistently fast
 
 *Updated after each plan completion*
 
@@ -108,6 +109,9 @@ Recent decisions affecting current work:
 - [04.5-04]: shadcn component imports fixed from @/ alias to relative paths (project doesn't use TS path aliases)
 - [04.5-04]: SidebarProvider + SidebarInset layout pattern for all routes
 - [04.5-04]: Time saved calculation: 4.97 min per CV (5 min manual - 2s automated)
+- [04.6-01]: Four status values (queued/processing/completed/failed) for CV lifecycle
+- [04.6-01]: DEFAULT 'completed' for backward compatibility with existing CVs
+- [04.6-01]: Separate processing_started_at column for timeout calculation from actual processing start
 
 ### Pending Todos
 
@@ -126,26 +130,29 @@ Recent decisions affecting current work:
 
 - Phase 7 added: Testing and Bug Fixing Protocol (2026-01-26)
 - Phase 4.5 inserted after Phase 4.T: Project Homepage & Organization (2026-01-26) - Enables multi-project workflow for recruiters working on multiple job roles simultaneously
+- Phase 4.6 inserted: Queue Infrastructure & Persistence (2026-01-27) - Fix timeout bug, status column, queue manager, real-time updates
+- Phase 4.7 inserted: Dashboard Enhancements (2026-01-27) - Project drag-drop to sidebar, token/API tracking, usage limits
 
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 04.5-04-PLAN.md (Dashboard UI)
+Stopped at: Completed 04.6-01-PLAN.md (Database Schema)
 Resume file: None
 
 ## Next Steps
 
-**Phase 4.5: Project Homepage & Organization** - COMPLETE
-- [x] Plan 04.5-01: Database schema migration (projects table, project_id columns)
-- [x] Plan 04.5-02: IPC handlers and preload API
-- [x] Plan 04.5-03: React Router and Project Store
-- [x] Plan 04.5-04: Dashboard UI with sidebar, stats strip, project cards
+**Phase 4.6: Queue Infrastructure & Persistence** - IN PROGRESS
+- [x] Plan 04.6-01: Database schema migration (status column, queue functions)
+- [ ] Plan 04.6-02: Queue manager with serial processing
+- [ ] Plan 04.6-03: IPC handlers for queue operations
+- [ ] Plan 04.6-04: UI integration with real-time updates
 
-**Dashboard UI Delivered:**
-- Collapsible sidebar navigation with icon mode
-- Stats strip showing CVs Processed, Job Descriptions, Time Saved
-- 3-column project grid with "+" create card
-- Project cards with archive/delete dropdown actions
-- Create project dialog with name/client/description form
+**Phase 4.7: Dashboard Enhancements** - NOT STARTED
+- Goal: Project quick-access and usage tracking
+- Success Criteria:
+  1. Drag projects onto sidebar for quick access
+  2. Token/API usage tracked per project
+  3. Usage limits (per project or global)
 
-**Next:** Start Phase 5 - Anonymization & Branding
+**Next:** Execute Plan 04.6-02
+Run `/gsd:execute-plan 04.6-02` to continue

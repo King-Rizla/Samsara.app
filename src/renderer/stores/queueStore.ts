@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { QueueItem, QueueStatus, ProcessingStage } from '../types/cv';
+import { useProjectStore } from './projectStore';
 
 interface QueueStore {
   items: QueueItem[];
@@ -12,6 +13,7 @@ interface QueueStore {
   updateStage: (id: string, stage: ProcessingStage) => void;
   removeItem: (id: string) => void;
   removeItems: (ids: string[]) => void;
+  updateItemId: (oldId: string, newId: string) => void;
 
   // Selection
   toggleSelect: (id: string) => void;
@@ -74,6 +76,16 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
       selectedIds: new Set([...state.selectedIds].filter((sid) => !idSet.has(sid))),
     }));
   },
+
+  updateItemId: (oldId, newId) => set((state) => ({
+    items: state.items.map((item) =>
+      item.id === oldId ? { ...item, id: newId } : item
+    ),
+    selectedIds: new Set([...state.selectedIds].map((sid) =>
+      sid === oldId ? newId : sid
+    )),
+    lastSelectedId: state.lastSelectedId === oldId ? newId : state.lastSelectedId,
+  })),
 
   toggleSelect: (id) => set((state) => {
     const newSelected = new Set(state.selectedIds);
@@ -161,7 +173,8 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
 
   loadFromDatabase: async () => {
     try {
-      const result = await window.api.getAllCVs();
+      const projectId = useProjectStore.getState().activeProjectId;
+      const result = await window.api.getAllCVs(projectId || undefined);
       if (result.success && result.data) {
         const items: QueueItem[] = result.data.map((cv) => ({
           id: cv.id,

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { JobDescription, JDSummary, MatchResult } from '../types/jd';
+import { useProjectStore } from './projectStore';
 
 interface JDStore {
   // State
@@ -10,6 +11,10 @@ interface JDStore {
   isExtracting: boolean;
   isMatching: boolean;
 
+  // Input state (persisted across tab switches)
+  inputText: string;
+  inputError: string | null;
+
   // Actions
   loadJDs: () => Promise<void>;
   extractJD: (text: string) => Promise<{ success: boolean; error?: string }>;
@@ -19,6 +24,9 @@ interface JDStore {
   clearActiveJD: () => void;
   matchCVs: (cvIds: string[]) => Promise<{ success: boolean; error?: string }>;
   loadMatchResults: () => Promise<void>;
+  setInputText: (text: string) => void;
+  setInputError: (error: string | null) => void;
+  clearInput: () => void;
 }
 
 export const useJDStore = create<JDStore>((set, get) => ({
@@ -28,10 +36,13 @@ export const useJDStore = create<JDStore>((set, get) => ({
   matchResults: [],
   isExtracting: false,
   isMatching: false,
+  inputText: '',
+  inputError: null,
 
   loadJDs: async () => {
     try {
-      const result = await window.api.getAllJDs();
+      const projectId = useProjectStore.getState().activeProjectId;
+      const result = await window.api.getAllJDs(projectId || undefined);
       if (result.success && result.data) {
         set({ jds: result.data as JDSummary[] });
       }
@@ -41,20 +52,22 @@ export const useJDStore = create<JDStore>((set, get) => ({
   },
 
   extractJD: async (text) => {
-    set({ isExtracting: true });
+    set({ isExtracting: true, inputError: null });
     try {
       const result = await window.api.extractJD(text);
       if (result.success && result.data) {
-        // Reload JD list to include new JD
+        // Reload JD list to include new JD and clear input
         await get().loadJDs();
+        set({ inputText: '', inputError: null });
         return { success: true };
       }
-      return { success: false, error: result.error || 'Extraction failed' };
+      const error = result.error || 'Extraction failed';
+      set({ inputError: error });
+      return { success: false, error };
     } catch (err) {
-      return {
-        success: false,
-        error: err instanceof Error ? err.message : 'Extraction failed'
-      };
+      const error = err instanceof Error ? err.message : 'Extraction failed';
+      set({ inputError: error });
+      return { success: false, error };
     } finally {
       set({ isExtracting: false });
     }
@@ -138,6 +151,10 @@ export const useJDStore = create<JDStore>((set, get) => ({
       console.error('Failed to load match results:', err);
     }
   },
+
+  setInputText: (text) => set({ inputText: text, inputError: null }),
+  setInputError: (error) => set({ inputError: error }),
+  clearInput: () => set({ inputText: '', inputError: null }),
 }));
 
 // Expose store for E2E testing

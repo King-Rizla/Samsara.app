@@ -58,6 +58,14 @@ export function QueueItem({ item }: QueueItemProps) {
   );
 
   const getStatusBadge = () => {
+    if (item.status === 'queued') {
+      return (
+        <Badge className="bg-status-submitted/20 text-status-submitted border border-status-submitted whitespace-nowrap">
+          Queued<AnimatedEllipsis />
+        </Badge>
+      );
+    }
+
     if (item.status === 'submitted') {
       const stageText = item.stage?.replace('...', '') || 'Processing';
       return (

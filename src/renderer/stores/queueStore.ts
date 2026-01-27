@@ -38,21 +38,51 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
   lastSelectedId: null,
 
   addItem: (itemData) => {
-    const item: QueueItem = {
-      id: itemData.id || crypto.randomUUID(),
-      fileName: itemData.fileName,
-      fileType: itemData.fileType,
-      filePath: itemData.filePath,
-      status: itemData.status,
-      stage: itemData.stage,
-      error: itemData.error,
-      data: itemData.data,
-      parseConfidence: itemData.parseConfidence,
-      createdAt: new Date().toISOString(),
-    };
-    set((state) => ({
-      items: [item, ...state.items],  // New items at top
-    }));
+    const id = itemData.id || crypto.randomUUID();
+
+    set((state) => {
+      // Check if item already exists (upsert behavior)
+      const existingIndex = state.items.findIndex((item) => item.id === id);
+
+      if (existingIndex !== -1) {
+        // Update existing item - merge new data, prefer non-placeholder values
+        const existing = state.items[existingIndex];
+        const updated: QueueItem = {
+          ...existing,
+          // Prefer real values over placeholders
+          fileName: itemData.fileName !== 'Processing...' && itemData.fileName !== 'Failed CV' && itemData.fileName !== 'Completed CV'
+            ? itemData.fileName
+            : existing.fileName !== 'Processing...' && existing.fileName !== 'Failed CV' && existing.fileName !== 'Completed CV'
+              ? existing.fileName
+              : itemData.fileName,
+          fileType: itemData.fileType !== 'unknown' ? itemData.fileType : existing.fileType,
+          filePath: itemData.filePath || existing.filePath,
+          status: itemData.status,
+          stage: itemData.stage ?? existing.stage,
+          error: itemData.error ?? existing.error,
+          data: itemData.data ?? existing.data,
+          parseConfidence: itemData.parseConfidence ?? existing.parseConfidence,
+        };
+        const newItems = [...state.items];
+        newItems[existingIndex] = updated;
+        return { items: newItems };
+      }
+
+      // New item - add at top
+      const item: QueueItem = {
+        id,
+        fileName: itemData.fileName,
+        fileType: itemData.fileType,
+        filePath: itemData.filePath,
+        status: itemData.status,
+        stage: itemData.stage,
+        error: itemData.error,
+        data: itemData.data,
+        parseConfidence: itemData.parseConfidence,
+        createdAt: new Date().toISOString(),
+      };
+      return { items: [item, ...state.items] };
+    });
   },
 
   updateStatus: (id, status, data) => set((state) => ({
@@ -222,28 +252,79 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
   },
 
   handleQueueStatusUpdate: (update: QueueStatusUpdate) => {
-    const { updateStatus, updateStage } = get();
+    const { items, addItem, updateStatus, updateStage } = get();
+
+    // Check if item exists in store
+    const itemExists = items.some((item) => item.id === update.id);
 
     switch (update.status) {
       case 'queued':
-        // Item already added via addItem, nothing to do
+        // If item doesn't exist yet (race condition), add it
+        // DropZone will also try to add it, but we'll just update if it exists
+        if (!itemExists) {
+          addItem({
+            id: update.id,
+            fileName: 'Processing...', // Placeholder - will be updated
+            fileType: 'unknown',
+            filePath: '',
+            status: 'queued',
+            stage: 'Queued...',
+          });
+        }
         break;
 
       case 'processing':
-        // Update status to 'submitted' (UI status) and stage to 'Extracting...'
-        updateStatus(update.id, 'submitted');
-        updateStage(update.id, 'Extracting...');
+        if (!itemExists) {
+          // Item doesn't exist yet - add it directly as submitted
+          addItem({
+            id: update.id,
+            fileName: 'Processing...',
+            fileType: 'unknown',
+            filePath: '',
+            status: 'submitted',
+            stage: 'Extracting...',
+          });
+        } else {
+          // Item exists - update status to 'submitted' and stage to 'Extracting...'
+          updateStatus(update.id, 'submitted');
+          updateStage(update.id, 'Extracting...');
+        }
         break;
 
       case 'completed':
-        updateStatus(update.id, 'completed', {
-          data: update.data,
-          parseConfidence: update.parseConfidence,
-        });
+        if (!itemExists) {
+          // Item doesn't exist - add it as completed with data
+          addItem({
+            id: update.id,
+            fileName: update.data?.contact?.name || 'Completed CV',
+            fileType: 'unknown',
+            filePath: '',
+            status: 'completed',
+            data: update.data,
+            parseConfidence: update.parseConfidence,
+          });
+        } else {
+          updateStatus(update.id, 'completed', {
+            data: update.data,
+            parseConfidence: update.parseConfidence,
+          });
+        }
         break;
 
       case 'failed':
-        updateStatus(update.id, 'failed', { error: update.error });
+        if (!itemExists) {
+          // Item doesn't exist - add it as failed
+          addItem({
+            id: update.id,
+            fileName: 'Failed CV',
+            fileType: 'unknown',
+            filePath: '',
+            status: 'failed',
+            error: update.error,
+          });
+        } else {
+          updateStatus(update.id, 'failed', { error: update.error });
+        }
         break;
     }
   },

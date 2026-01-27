@@ -1,18 +1,30 @@
 import { Card, CardContent } from '../ui/card';
-import { FileText, Briefcase, Clock } from 'lucide-react';
+import { FileText, Briefcase, Clock, Gauge } from 'lucide-react';
+import { formatTokensWithCost } from '../../stores/usageStore';
 
 interface StatsStripProps {
   totalCVs: number;
   totalJDs: number;
   timeSaved: string;
+  totalTokens?: number;
+  llmMode?: 'local' | 'cloud';
 }
 
-export function StatsStrip({ totalCVs, totalJDs, timeSaved }: StatsStripProps) {
-  const stats = [
-    { label: 'CVs Processed', value: totalCVs, icon: FileText },
-    { label: 'Job Descriptions', value: totalJDs, icon: Briefcase },
+export function StatsStrip({ totalCVs, totalJDs, timeSaved, totalTokens, llmMode = 'local' }: StatsStripProps) {
+  const stats: { label: string; value: string; icon: React.ComponentType<{ className?: string }> }[] = [
+    { label: 'CVs Processed', value: totalCVs.toString(), icon: FileText },
+    { label: 'Job Descriptions', value: totalJDs.toString(), icon: Briefcase },
     { label: 'Time Saved', value: timeSaved, icon: Clock },
   ];
+
+  // Add tokens stat if provided (per CONTEXT.md: use gauge/meter icon)
+  if (totalTokens !== undefined) {
+    stats.push({
+      label: 'Tokens Used',
+      value: formatTokensWithCost(totalTokens, llmMode),
+      icon: Gauge,
+    });
+  }
 
   return (
     <div className="flex gap-4 p-4 border-b border-border">

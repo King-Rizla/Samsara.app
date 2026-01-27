@@ -21,6 +21,8 @@ Samsara v1 delivers a local-first CV formatter and JD matching tool that replace
 - [x] **Phase 4: JD Matching** - Score and rank CVs against job descriptions
 - [x] **Phase 4.T: JD Matching Tests** - E2E coverage for JD parsing, scoring, and ranking
 - [x] **Phase 4.5: Project Homepage & Organization** - Homepage with project-scoped CVs, JDs, and matches for multi-role workflow
+- [ ] **Phase 4.6: Queue Infrastructure & Persistence** - Fix timeout bug, DB status column, queue manager, real-time updates
+- [ ] **Phase 4.7: Dashboard Enhancements** - Project drag-drop to sidebar, token/API tracking, usage limits
 - [ ] **Phase 5: Anonymization & Branding** - Redaction, blind profiles, and themed PDF output
 - [ ] **Phase 5.T: Export & Branding Tests** - E2E coverage for PDF generation and anonymization
 - [ ] **Phase 6: Bulk Processing & OS Integration** - 100+ file queue with context menu integration
@@ -162,9 +164,43 @@ Plans:
 - [x] 04.5-03-PLAN.md — React Router, project store, and routing structure
 - [x] 04.5-04-PLAN.md — Dashboard UI with sidebar, stats strip, and project cards
 
+### Phase 4.6: Queue Infrastructure & Persistence (INSERTED)
+**Goal**: Fix timeout-on-submission bug and establish queue infrastructure for bulk processing
+**Depends on**: Phase 4.5
+**Requirements**: None (infrastructure/bug fix phase)
+**Success Criteria** (what must be TRUE):
+  1. Timeout starts when Python begins processing, not when request is submitted
+  2. CVs persist to database immediately on drop with status column (queued → processing → completed/failed)
+  3. Submitted tab shows queue items that survive navigation between projects
+  4. Queue manager in main process sends one request at a time to Python sidecar
+  5. UI receives real-time status updates as items move through queue
+**Plans**: 4 plans in 3 waves
+
+Plans:
+- [ ] 04.6-01-PLAN.md — Database schema migration (status column on cvs, queue functions)
+- [ ] 04.6-02-PLAN.md — QueueManager in main process (serialization, timeout handling, push updates)
+- [ ] 04.6-03-PLAN.md — Preload API for queue operations (enqueueCV, status listeners)
+- [ ] 04.6-04-PLAN.md — Renderer integration (DropZone, queueStore, App subscription)
+
+### Phase 4.7: Dashboard Enhancements (INSERTED)
+**Goal**: Enhance dashboard with project quick-access and usage tracking for cost visibility
+**Depends on**: Phase 4.6
+**Requirements**: None (enhancement phase)
+**Success Criteria** (what must be TRUE):
+  1. User can drag projects onto sidebar for quick access when managing multiple projects
+  2. Token usage tracked per project and displayed in project cards
+  3. API usage (LLM calls) tracked per project with timestamps
+  4. Dashboard stats strip shows total token/API usage across all projects
+  5. User can set usage limits per project or globally in Settings
+  6. Warning displayed when approaching usage limit
+**Plans**: 0 plans (to be planned)
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 4.7 to break down)
+
 ### Phase 5: Anonymization & Branding
 **Goal**: Generate blind profiles and branded client-ready PDFs
-**Depends on**: Phase 4.5
+**Depends on**: Phase 4.7
 **Requirements**: F-02b, F-02c, F-03c
 **Success Criteria** (what must be TRUE):
   1. User can apply "Blackout" redaction that visually removes contact details from PDF layer
@@ -261,7 +297,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in order: 1 → 2 → 2.1 → 3 → 3.T → 4 → 4.T → 4.5 → 5 → 5.T → 6 → 6.T → 7
+Phases execute in order: 1 → 2 → 2.1 → 3 → 3.T → 4 → 4.T → 4.5 → 4.6 → 4.7 → 5 → 5.T → 6 → 6.T → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -273,15 +309,17 @@ Phases execute in order: 1 → 2 → 2.1 → 3 → 3.T → 4 → 4.T → 4.5 →
 | 4. JD Matching | 3/3 | Complete | 2026-01-27 |
 | 4.T. JD Matching Tests | 1/1 | Complete | 2026-01-27 |
 | 4.5. Project Homepage & Organization | 4/4 | Complete | 2026-01-27 |
+| 4.6. Queue Infrastructure & Persistence | 0/4 | Not started | - |
+| 4.7. Dashboard Enhancements | 0/? | Not started | - |
 | 5. Anonymization & Branding | 0/3 | Not started | - |
 | 5.T. Export & Branding Tests | 0/1 | Not started | - |
 | 6. Bulk Processing & OS Integration | 0/3 | Not started | - |
 | 6.T. Performance & Integration Tests | 0/1 | Not started | - |
 | 7. Testing and Bug Fixing Protocol | 0/4 | Not started | - |
 
-**Total Progress:** 23/30 plans complete (77%)
+**Total Progress:** 23/27+ plans complete (Phase 4.7 not yet planned)
 
 ---
 *Roadmap created: 2026-01-23*
-*Roadmap updated: 2026-01-27 (Phase 4.5 complete)*
+*Roadmap updated: 2026-01-27 (Phases 4.6, 4.7 inserted)*
 *Milestone: The Sovereign Formatter (v1)*

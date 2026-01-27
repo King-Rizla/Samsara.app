@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-23)
 
 **Core value:** Architecture as the Advantage - Zero Latency, Zero Egress, Zero Per-Seat Tax
-**Current focus:** Phase 4.5 - Project Homepage & Organization
+**Current focus:** Phase 5 - Anonymization & Branding (next)
 
 ## Current Position
 
-Phase: 4.5 of 7 (Project Homepage & Organization) - IN PROGRESS
-Plan: 3 of 4 in current phase - COMPLETE
-Status: In progress
-Last activity: 2026-01-27 - Completed 04.5-03-PLAN.md (React Router and Project Store)
+Phase: 4.5 of 7 (Project Homepage & Organization) - COMPLETE
+Plan: 4 of 4 in current phase - COMPLETE
+Status: Phase complete
+Last activity: 2026-01-27 - Completed 04.5-04-PLAN.md (Dashboard UI)
 
-Progress: [#################] 96% (22/23 plans)
+Progress: [##################] 100% (23/23 plans through Phase 4.5)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 22
-- Average duration: 13 min
-- Total execution time: 3.0 hours
+- Total plans completed: 23
+- Average duration: 12 min
+- Total execution time: 3.2 hours
 
 **By Phase:**
 
@@ -34,15 +34,15 @@ Progress: [#################] 96% (22/23 plans)
 | 3.T. E2E Test Foundation | 1/1 | 45 min | 45 min |
 | 4. JD Matching | 3/3 | ~45 min | 15 min |
 | 4.T. JD Matching Tests | 1/1 | ~30 min | 30 min |
-| 4.5. Project Homepage | 3/4 | 20 min | 7 min |
+| 4.5. Project Homepage | 4/4 | 29 min | 7 min |
 | 5. Anonymization & Branding | 0/3 | - | - |
 | 5.T. Export & Branding Tests | 0/1 | - | - |
 | 6. Bulk Processing & OS Integration | 0/3 | - | - |
 | 6.T. Performance & Integration Tests | 0/1 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 45 min, 30 min, 8 min, 4 min, 8 min
-- Trend: Phase 4.5 plans consistently fast (4-8 min)
+- Last 5 plans: 30 min, 8 min, 4 min, 8 min, 9 min
+- Trend: Phase 4.5 plans consistently fast (4-9 min)
 
 *Updated after each plan completion*
 
@@ -105,6 +105,9 @@ Recent decisions affecting current work:
 - [04.5-03]: MemoryRouter for Electron navigation (no URL bar manipulation)
 - [04.5-03]: Cross-store state access via useProjectStore.getState() in queueStore/jdStore
 - [04.5-03]: useEffect-based data reload on project change in ProjectView
+- [04.5-04]: shadcn component imports fixed from @/ alias to relative paths (project doesn't use TS path aliases)
+- [04.5-04]: SidebarProvider + SidebarInset layout pattern for all routes
+- [04.5-04]: Time saved calculation: 4.97 min per CV (5 min manual - 2s automated)
 
 ### Pending Todos
 
@@ -127,21 +130,22 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 04.5-03-PLAN.md (React Router and Project Store)
+Stopped at: Completed 04.5-04-PLAN.md (Dashboard UI)
 Resume file: None
 
 ## Next Steps
 
-**Phase 4.5: Project Homepage & Organization** - IN PROGRESS (3/4 plans)
+**Phase 4.5: Project Homepage & Organization** - COMPLETE
 - [x] Plan 04.5-01: Database schema migration (projects table, project_id columns)
 - [x] Plan 04.5-02: IPC handlers and preload API
 - [x] Plan 04.5-03: React Router and Project Store
-- [ ] Plan 04.5-04: Enhanced Dashboard UI
+- [x] Plan 04.5-04: Dashboard UI with sidebar, stats strip, project cards
 
-**Routing Layer Ready:**
-- MemoryRouter with Dashboard (/) and ProjectView (/project/:id) routes
-- projectStore manages project list and activeProjectId selection
-- queueStore and jdStore filter by activeProjectId
-- ProjectView reloads data when project changes via useEffect
+**Dashboard UI Delivered:**
+- Collapsible sidebar navigation with icon mode
+- Stats strip showing CVs Processed, Job Descriptions, Time Saved
+- 3-column project grid with "+" create card
+- Project cards with archive/delete dropdown actions
+- Create project dialog with name/client/description form
 
-**Next:** Run `/gsd:execute-phase 04.5-04` for Enhanced Dashboard UI.
+**Next:** Start Phase 5 - Anonymization & Branding

@@ -3,7 +3,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Button } from '../ui/button';
-import { MoreHorizontal, Archive, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Archive, Trash2, Gauge } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,14 +11,17 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 import type { Project } from '../../types/project';
+import { formatTokensWithCost } from '../../stores/usageStore';
 
 interface ProjectCardProps {
   project: Project;
+  tokenUsage?: number;
+  llmMode?: 'local' | 'cloud';
   onArchive: (id: string) => void;
   onDelete: (id: string) => void;
 }
 
-export function ProjectCard({ project, onArchive, onDelete }: ProjectCardProps) {
+export function ProjectCard({ project, tokenUsage, llmMode = 'local', onArchive, onDelete }: ProjectCardProps) {
   const navigate = useNavigate();
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -97,9 +100,19 @@ export function ProjectCard({ project, onArchive, onDelete }: ProjectCardProps) 
         className="cursor-pointer"
         onClick={handleCardClick}
       >
-        <div className="flex gap-4 text-sm text-muted-foreground">
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
           <span>{project.cv_count} CVs</span>
+          <span className="text-muted-foreground/50">·</span>
           <span>{project.jd_count} JDs</span>
+          {tokenUsage !== undefined && tokenUsage > 0 && (
+            <>
+              <span className="text-muted-foreground/50">·</span>
+              <span className="flex items-center gap-1">
+                <Gauge className="h-3 w-3" />
+                {formatTokensWithCost(tokenUsage, llmMode)}
+              </span>
+            </>
+          )}
         </div>
         <p className="text-xs text-muted-foreground mt-2">
           Last activity: {formatDate(project.updated_at)}

@@ -923,3 +923,202 @@ export function getAggregateStats(): { total_cvs: number; total_jds: number } {
     total_jds: jdCount.count,
   };
 }
+
+// ============================================================================
+// Queue-Specific Functions (Phase 4.6)
+// ============================================================================
+
+export interface QueuedCVInput {
+  filePath: string;
+  fileName: string;
+  projectId?: string;
+}
+
+/**
+ * Insert a CV in 'queued' status (before processing).
+ * Returns the generated ID.
+ */
+export function insertQueuedCV(input: QueuedCVInput): string {
+  const database = getDatabase();
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  const stmt = database.prepare(`
+    INSERT INTO cvs (
+      id, file_path, file_name, created_at, updated_at,
+      contact_json, contact_confidence, parse_confidence,
+      status, project_id
+    ) VALUES (?, ?, ?, ?, ?, '{}', 0, 0, 'queued', ?)
+  `);
+
+  stmt.run(id, input.filePath, input.fileName, now, now, input.projectId || null);
+  console.log(`Inserted queued CV with ID: ${id}`);
+  return id;
+}
+
+/**
+ * Update CV status and optionally set error or started timestamp.
+ */
+export function updateCVStatus(
+  id: string,
+  status: 'queued' | 'processing' | 'completed' | 'failed',
+  options?: { error?: string; startedAt?: string }
+): boolean {
+  const database = getDatabase();
+  const now = new Date().toISOString();
+
+  let query = 'UPDATE cvs SET status = ?, updated_at = ?';
+  const params: unknown[] = [status, now];
+
+  if (options?.error !== undefined) {
+    query += ', error_message = ?';
+    params.push(options.error);
+  }
+  if (options?.startedAt !== undefined) {
+    query += ', processing_started_at = ?';
+    params.push(options.startedAt);
+  }
+
+  query += ' WHERE id = ?';
+  params.push(id);
+
+  const result = database.prepare(query).run(...params);
+  return result.changes > 0;
+}
+
+/**
+ * Update CV with extracted data and mark as completed.
+ */
+export function completeCVProcessing(id: string, cv: ParsedCV): boolean {
+  const database = getDatabase();
+  const now = new Date().toISOString();
+  const contactConfidence = calculateContactConfidence(cv.contact);
+
+  const stmt = database.prepare(`
+    UPDATE cvs SET
+      status = 'completed',
+      updated_at = ?,
+      contact_json = ?,
+      contact_confidence = ?,
+      work_history_json = ?,
+      education_json = ?,
+      skills_json = ?,
+      certifications_json = ?,
+      languages_json = ?,
+      other_sections_json = ?,
+      raw_text = ?,
+      section_order_json = ?,
+      parse_confidence = ?,
+      warnings_json = ?,
+      parse_time_ms = ?,
+      error_message = NULL,
+      processing_started_at = NULL
+    WHERE id = ?
+  `);
+
+  const result = stmt.run(
+    now,
+    JSON.stringify(cv.contact),
+    contactConfidence,
+    cv.work_history ? JSON.stringify(cv.work_history) : null,
+    cv.education ? JSON.stringify(cv.education) : null,
+    cv.skills ? JSON.stringify(cv.skills) : null,
+    cv.certifications ? JSON.stringify(cv.certifications) : null,
+    cv.languages ? JSON.stringify(cv.languages) : null,
+    cv.other_sections ? JSON.stringify(cv.other_sections) : null,
+    cv.raw_text || null,
+    cv.section_order ? JSON.stringify(cv.section_order) : null,
+    cv.parse_confidence,
+    cv.warnings ? JSON.stringify(cv.warnings) : null,
+    cv.extract_time_ms || null,
+    id
+  );
+
+  return result.changes > 0;
+}
+
+export interface QueuedCVRecord {
+  id: string;
+  file_path: string;
+  file_name: string;
+  project_id: string | null;
+  created_at: string;
+}
+
+/**
+ * Get next pending CV for processing (FIFO order).
+ */
+export function getNextQueuedCV(): QueuedCVRecord | null {
+  const database = getDatabase();
+  const stmt = database.prepare(`
+    SELECT id, file_path, file_name, project_id, created_at
+    FROM cvs
+    WHERE status = 'queued'
+    ORDER BY created_at ASC
+    LIMIT 1
+  `);
+  return (stmt.get() as QueuedCVRecord) || null;
+}
+
+/**
+ * Get all queued/processing CVs for UI display.
+ * Optionally filter by projectId.
+ */
+export function getQueuedCVsByProject(projectId?: string): Array<{
+  id: string;
+  file_name: string;
+  file_path: string;
+  status: string;
+  error_message: string | null;
+  created_at: string;
+}> {
+  const database = getDatabase();
+
+  let query = `
+    SELECT id, file_name, file_path, status, error_message, created_at
+    FROM cvs
+    WHERE status IN ('queued', 'processing')
+  `;
+
+  const params: unknown[] = [];
+  if (projectId) {
+    query += ' AND project_id = ?';
+    params.push(projectId);
+  }
+
+  query += ' ORDER BY created_at ASC';
+
+  const stmt = database.prepare(query);
+  return params.length ? stmt.all(...params) as Array<{
+    id: string;
+    file_name: string;
+    file_path: string;
+    status: string;
+    error_message: string | null;
+    created_at: string;
+  }> : stmt.all() as Array<{
+    id: string;
+    file_name: string;
+    file_path: string;
+    status: string;
+    error_message: string | null;
+    created_at: string;
+  }>;
+}
+
+/**
+ * Reset any stuck 'processing' CVs to 'queued' state.
+ * Called on app startup to recover from crashes.
+ */
+export function resetProcessingCVs(): number {
+  const database = getDatabase();
+  const result = database.prepare(`
+    UPDATE cvs SET status = 'queued', processing_started_at = NULL
+    WHERE status = 'processing'
+  `).run();
+
+  if (result.changes > 0) {
+    console.log(`Reset ${result.changes} processing CVs to queued state`);
+  }
+  return result.changes;
+}

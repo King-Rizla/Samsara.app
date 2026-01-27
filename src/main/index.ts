@@ -8,9 +8,11 @@ import {
   insertJD, getJD, getAllJDs, deleteJD, ParsedJD,
   insertMatchResult, getMatchResultsForJD,
   createProject, getAllProjects, getProject, updateProject, deleteProject, getAggregateStats,
+  getQueuedCVsByProject,
 } from './database';
-import { startPython, stopPython, extractCV, sendToPython, restartWithMode, getLLMMode } from './pythonManager';
-import { loadSettings, saveSettings, getSetting } from './settings';
+import { startPython, stopPython, extractCV, sendToPython, restartWithMode } from './pythonManager';
+import { loadSettings, saveSettings } from './settings';
+import { createQueueManager, getQueueManager } from './queueManager';
 
 // Vite global variables for dev server and renderer name
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
@@ -21,7 +23,7 @@ if (started) {
   app.quit();
 }
 
-const createWindow = () => {
+const createWindow = (): BrowserWindow => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 800,
@@ -42,6 +44,8 @@ const createWindow = () => {
 
   // Open the DevTools.
   mainWindow.webContents.openDevTools();
+
+  return mainWindow;
 };
 
 // This method will be called when Electron has finished
@@ -57,6 +61,10 @@ app.whenReady().then(async () => {
     console.error('Database initialization failed:', error);
   }
 
+  // Initialize queue manager after database (resets stuck 'processing' CVs)
+  const queueManager = createQueueManager();
+  console.log('QueueManager initialized');
+
   // Load settings and start Python sidecar with configured mode
   try {
     const settings = loadSettings();
@@ -67,7 +75,9 @@ app.whenReady().then(async () => {
     // Continue app startup even if Python fails (for debugging)
   }
 
-  createWindow();
+  // Create window and connect to queue manager for push notifications
+  const mainWindow = createWindow();
+  queueManager.setMainWindow(mainWindow);
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -104,7 +114,7 @@ app.on('before-quit', () => {
  * Returns { success: true, data: ParsedCV, id: string } on success
  * Returns { success: false, error: string } on failure
  */
-ipcMain.handle('extract-cv', async (_event, filePath: string) => {
+ipcMain.handle('extract-cv', async (_event, filePath: string, projectId?: string) => {
   const startTime = Date.now();
 
   // Validate file path
@@ -131,8 +141,8 @@ ipcMain.handle('extract-cv', async (_event, filePath: string) => {
     // Extract CV using Python sidecar
     const cvData = await extractCV(filePath) as ParsedCV;
 
-    // Persist to database
-    const id = insertCV(cvData, filePath);
+    // Persist to database with project association
+    const id = insertCV(cvData, filePath, projectId);
 
     const totalTime = Date.now() - startTime;
     console.log(`CV extraction and persistence completed in ${totalTime}ms`);
@@ -260,7 +270,7 @@ ipcMain.handle('delete-cv', async (_event, cvId: string) => {
  * Returns { success: true, data: ParsedCV, id: string } on success
  * Returns { success: false, error: string } on failure
  */
-ipcMain.handle('reprocess-cv', async (_event, filePath: string) => {
+ipcMain.handle('reprocess-cv', async (_event, filePath: string, projectId?: string) => {
   const startTime = Date.now();
 
   // Validate file path
@@ -287,8 +297,8 @@ ipcMain.handle('reprocess-cv', async (_event, filePath: string) => {
     // Extract CV using Python sidecar (same as extract-cv)
     const cvData = await extractCV(filePath) as ParsedCV;
 
-    // Persist to database (creates new entry)
-    const id = insertCV(cvData, filePath);
+    // Persist to database with project association (creates new entry)
+    const id = insertCV(cvData, filePath, projectId);
 
     const totalTime = Date.now() - startTime;
     console.log(`CV reprocess completed in ${totalTime}ms`);
@@ -317,7 +327,7 @@ ipcMain.handle('reprocess-cv', async (_event, filePath: string) => {
  * Returns { success: true, data: JobDescription } on success
  * Returns { success: false, error: string } on failure
  */
-ipcMain.handle('extract-jd', async (_event, text: string) => {
+ipcMain.handle('extract-jd', async (_event, text: string, projectId?: string) => {
   // Validate text
   if (!text || typeof text !== 'string' || text.trim().length === 0) {
     return { success: false, error: 'Invalid or empty JD text' };
@@ -340,7 +350,7 @@ ipcMain.handle('extract-jd', async (_event, text: string) => {
       extract_time_ms: number;
     };
 
-    // Store in database
+    // Store in database with project association
     const jdData: ParsedJD = {
       title: result.title,
       company: result.company,
@@ -353,7 +363,7 @@ ipcMain.handle('extract-jd', async (_event, text: string) => {
       certifications: result.certifications || [],
     };
 
-    const id = insertJD(jdData);
+    const id = insertJD(jdData, projectId);
 
     // Return full JD with ID
     const jd = getJD(id);
@@ -754,5 +764,67 @@ ipcMain.handle('get-aggregate-stats', async () => {
   } catch (error) {
     console.error('Failed to get aggregate stats:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Failed to get aggregate stats' };
+  }
+});
+
+// ============================================================================
+// Queue IPC Handlers (Phase 4.6)
+// ============================================================================
+
+/**
+ * Enqueue a CV for processing.
+ * Immediately persists to database with status='queued'.
+ * Returns { success: true, id: string } on success
+ * Returns { success: false, error: string } on failure
+ */
+ipcMain.handle('enqueue-cv', async (_event, fileName: string, filePath: string, projectId?: string) => {
+  try {
+    // Validate file path
+    if (!filePath || typeof filePath !== 'string') {
+      return { success: false, error: 'Invalid file path' };
+    }
+
+    // Check file exists
+    if (!fs.existsSync(filePath)) {
+      return { success: false, error: `File not found: ${filePath}` };
+    }
+
+    // Check file extension
+    const ext = path.extname(filePath).toLowerCase();
+    const validExtensions = ['.pdf', '.docx', '.doc'];
+    if (!validExtensions.includes(ext)) {
+      return {
+        success: false,
+        error: `Unsupported file type: ${ext}. Supported formats: PDF, DOCX, DOC`
+      };
+    }
+
+    // Enqueue via queue manager
+    const id = getQueueManager().enqueue({ fileName, filePath, projectId });
+
+    return { success: true, id };
+  } catch (error) {
+    console.error('Failed to enqueue CV:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to enqueue CV'
+    };
+  }
+});
+
+/**
+ * Get all queued/processing CVs for a project.
+ * Returns { success: true, data: QueuedCV[] } on success
+ */
+ipcMain.handle('get-queued-cvs', async (_event, projectId?: string) => {
+  try {
+    const cvs = getQueuedCVsByProject(projectId);
+    return { success: true, data: cvs };
+  } catch (error) {
+    console.error('Failed to get queued CVs:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get queued CVs'
+    };
   }
 });

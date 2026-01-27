@@ -21,7 +21,7 @@ Samsara v1 delivers a local-first CV formatter and JD matching tool that replace
 - [x] **Phase 4: JD Matching** - Score and rank CVs against job descriptions
 - [x] **Phase 4.T: JD Matching Tests** - E2E coverage for JD parsing, scoring, and ranking
 - [x] **Phase 4.5: Project Homepage & Organization** - Homepage with project-scoped CVs, JDs, and matches for multi-role workflow
-- [ ] **Phase 4.6: Queue Infrastructure & Persistence** - Fix timeout bug, DB status column, queue manager, real-time updates
+- [x] **Phase 4.6: Queue Infrastructure & Persistence** - Fix timeout bug, DB status column, queue manager, real-time updates
 - [ ] **Phase 4.7: Dashboard Enhancements** - Project drag-drop to sidebar, token/API tracking, usage limits
 - [ ] **Phase 5: Anonymization & Branding** - Redaction, blind profiles, and themed PDF output
 - [ ] **Phase 5.T: Export & Branding Tests** - E2E coverage for PDF generation and anonymization
@@ -181,7 +181,7 @@ Plans:
 - [x] 04.6-02-PLAN.md — QueueManager in main process (serialization, timeout handling, push updates)
 - [x] 04.6-03-PLAN.md — Preload API for queue operations (enqueueCV, status listeners)
 - [x] 04.6-04-PLAN.md — Renderer integration (DropZone, queueStore, App subscription)
-- [ ] 04.6-05-PLAN.md — Gap closure: Python ACK + timeout coordination (fix timeout bug)
+- [x] 04.6-05-PLAN.md — Gap closure: Python ACK + timeout coordination (fix timeout bug)
 
 ### Phase 4.7: Dashboard Enhancements (INSERTED)
 **Goal**: Enhance dashboard with project quick-access and usage tracking for cost visibility
@@ -189,19 +189,20 @@ Plans:
 **Requirements**: None (enhancement phase)
 **Success Criteria** (what must be TRUE):
   1. User can drag projects onto sidebar for quick access when managing multiple projects
-  2. Token usage tracked per project and displayed in project cards
-  3. API usage (LLM calls) tracked per project with timestamps
-  4. Dashboard stats strip shows total token/API usage across all projects
-  5. User can set usage limits per project or globally in Settings
-  6. Warning displayed when approaching usage limit
+  2. Pinned projects reorderable via drag-and-drop, unpin via X button or drag-back
+  3. Token usage tracked per project with cost estimates (cloud mode)
+  4. Dashboard stats strip shows total token/API usage with cost estimates
+  5. User can set global usage limits in unified Settings page
+  6. Toast notification when approaching (80%) or at (100%) usage limit
+  7. Hidden scrollbars throughout the app (scrollable but no visible scrollbar)
 **Plans**: 5 plans in 3 waves
 
 Plans:
-- [ ] 04.7-01-PLAN.md — Database schema for usage tracking and quick-access pinning
-- [ ] 04.7-02-PLAN.md — Python LLM clients return token usage in responses
-- [ ] 04.7-03-PLAN.md — IPC handlers for usage tracking and settings extension
-- [ ] 04.7-04-PLAN.md — @dnd-kit drag-drop for pinning projects to sidebar
-- [ ] 04.7-05-PLAN.md — UI integration: usage display, warnings, and settings
+- [ ] 04.7-01-PLAN.md — Database schema for usage tracking, pinning, and reorder
+- [ ] 04.7-02-PLAN.md — Python LLM clients return token usage with model name
+- [ ] 04.7-03-PLAN.md — IPC handlers for usage, pinning, reorder, and settings
+- [ ] 04.7-04-PLAN.md — @dnd-kit drag-drop: pin, reorder, unpin via X/drag-back
+- [ ] 04.7-05-PLAN.md — UI: usage display, toast warnings, unified Settings, hidden scrollbars
 
 ### Phase 5: Anonymization & Branding
 **Goal**: Generate blind profiles and branded client-ready PDFs
@@ -314,7 +315,7 @@ Phases execute in order: 1 → 2 → 2.1 → 3 → 3.T → 4 → 4.T → 4.5 →
 | 4. JD Matching | 3/3 | Complete | 2026-01-27 |
 | 4.T. JD Matching Tests | 1/1 | Complete | 2026-01-27 |
 | 4.5. Project Homepage & Organization | 4/4 | Complete | 2026-01-27 |
-| 4.6. Queue Infrastructure & Persistence | 4/5 | Gap closure | - |
+| 4.6. Queue Infrastructure & Persistence | 5/5 | Complete | 2026-01-27 |
 | 4.7. Dashboard Enhancements | 0/5 | Not started | - |
 | 5. Anonymization & Branding | 0/3 | Not started | - |
 | 5.T. Export & Branding Tests | 0/1 | Not started | - |
@@ -322,9 +323,9 @@ Phases execute in order: 1 → 2 → 2.1 → 3 → 3.T → 4 → 4.T → 4.5 →
 | 6.T. Performance & Integration Tests | 0/1 | Not started | - |
 | 7. Testing and Bug Fixing Protocol | 0/4 | Not started | - |
 
-**Total Progress:** 27/33 plans complete
+**Total Progress:** 28/33 plans complete
 
 ---
 *Roadmap created: 2026-01-23*
-*Roadmap updated: 2026-01-27 (Phase 4.6 gap closure plan added)*
+*Roadmap updated: 2026-01-27 (Phase 4.6 complete)*
 *Milestone: The Sovereign Formatter (v1)*

@@ -99,6 +99,9 @@ export function initDatabase(): Database.Database {
     db.pragma('journal_mode = WAL');
     db.pragma('synchronous = NORMAL');
 
+    // Enable foreign keys (must be set per connection)
+    db.pragma('foreign_keys = ON');
+
     // Initialize schema
     db.exec(`
       CREATE TABLE IF NOT EXISTS app_meta (
@@ -167,6 +170,58 @@ export function initDatabase(): Database.Database {
       CREATE INDEX IF NOT EXISTS idx_matches_jd ON cv_jd_matches(jd_id);
       CREATE INDEX IF NOT EXISTS idx_matches_score ON cv_jd_matches(jd_id, match_score DESC);
     `);
+
+    // Schema versioning and migrations
+    const version = db.pragma('user_version', { simple: true }) as number;
+
+    if (version < 1) {
+      console.log('Migrating database to version 1 (projects)...');
+
+      // Projects table
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS projects (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          client_name TEXT,
+          description TEXT,
+          is_archived INTEGER DEFAULT 0,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+      `);
+
+      // Add project_id to cvs (nullable for existing data migration)
+      // SQLite doesn't support adding FK constraints via ALTER TABLE, so we add nullable column
+      // Check if column exists first to avoid error on re-run
+      const cvColumns = db.prepare("PRAGMA table_info(cvs)").all() as { name: string }[];
+      if (!cvColumns.some(col => col.name === 'project_id')) {
+        db.exec(`ALTER TABLE cvs ADD COLUMN project_id TEXT`);
+      }
+
+      const jdColumns = db.prepare("PRAGMA table_info(job_descriptions)").all() as { name: string }[];
+      if (!jdColumns.some(col => col.name === 'project_id')) {
+        db.exec(`ALTER TABLE job_descriptions ADD COLUMN project_id TEXT`);
+      }
+
+      // Create indexes for project filtering
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_cvs_project ON cvs(project_id)`);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_jds_project ON job_descriptions(project_id)`);
+
+      // Create Default Project for orphaned data
+      const defaultProjectId = 'default-project';
+      const now = new Date().toISOString();
+      db.prepare(`
+        INSERT OR IGNORE INTO projects (id, name, client_name, description, is_archived, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(defaultProjectId, 'Default Project', null, 'Auto-created for existing CVs and JDs', 0, now, now);
+
+      // Migrate existing CVs/JDs to Default Project
+      db.exec(`UPDATE cvs SET project_id = 'default-project' WHERE project_id IS NULL`);
+      db.exec(`UPDATE job_descriptions SET project_id = 'default-project' WHERE project_id IS NULL`);
+
+      db.pragma('user_version = 1');
+      console.log('Database migrated to version 1');
+    }
 
     // Store init timestamp
     const stmt = db.prepare('INSERT OR REPLACE INTO app_meta (key, value) VALUES (?, ?)');

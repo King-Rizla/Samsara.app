@@ -119,6 +119,30 @@ export interface CreateProjectInput {
   description?: string;
 }
 
+// ============================================================================
+// Usage Tracking Types
+// ============================================================================
+
+export interface UsageEventInput {
+  projectId: string;
+  eventType: 'cv_extraction' | 'jd_extraction';
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  llmMode: 'local' | 'cloud';
+  model?: string;
+}
+
+export interface UsageStats {
+  totalTokens: number;
+  requestCount: number;
+}
+
+export interface ProjectUsageStats {
+  global: UsageStats;
+  byProject: Record<string, UsageStats>;
+}
+
 export function initDatabase(): Database.Database {
   if (db) return db;
 
@@ -1197,4 +1221,193 @@ export function resetProcessingCVs(): number {
     console.log(`Reset ${result.changes} processing CVs to queued state`);
   }
   return result.changes;
+}
+
+// ============================================================================
+// Usage Tracking Functions (Phase 4.7)
+// ============================================================================
+
+/**
+ * Record a usage event (LLM API call).
+ * The SQLite trigger will auto-aggregate into usage_daily table.
+ */
+export function recordUsageEvent(input: UsageEventInput): void {
+  const database = getDatabase();
+  const now = new Date().toISOString();
+
+  const stmt = database.prepare(`
+    INSERT INTO usage_events (
+      project_id, event_type, prompt_tokens, completion_tokens, total_tokens,
+      llm_mode, model, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  stmt.run(
+    input.projectId,
+    input.eventType,
+    input.promptTokens,
+    input.completionTokens,
+    input.totalTokens,
+    input.llmMode,
+    input.model || null,
+    now
+  );
+
+  console.log('[DB] Recorded usage event:', {
+    projectId: input.projectId,
+    eventType: input.eventType,
+    totalTokens: input.totalTokens,
+    llmMode: input.llmMode,
+  });
+}
+
+/**
+ * Get usage stats for a specific project (current month).
+ */
+export function getUsageStatsByProject(projectId: string): UsageStats {
+  const database = getDatabase();
+
+  const result = database.prepare(`
+    SELECT
+      COALESCE(SUM(total_tokens), 0) as totalTokens,
+      COALESCE(SUM(request_count), 0) as requestCount
+    FROM usage_daily
+    WHERE project_id = ? AND date >= strftime('%Y-%m-01', 'now')
+  `).get(projectId) as { totalTokens: number; requestCount: number } | undefined;
+
+  return {
+    totalTokens: result?.totalTokens ?? 0,
+    requestCount: result?.requestCount ?? 0,
+  };
+}
+
+/**
+ * Get global usage stats across all projects (current month).
+ */
+export function getGlobalUsageStats(): UsageStats {
+  const database = getDatabase();
+
+  const result = database.prepare(`
+    SELECT
+      COALESCE(SUM(total_tokens), 0) as totalTokens,
+      COALESCE(SUM(request_count), 0) as requestCount
+    FROM usage_daily
+    WHERE date >= strftime('%Y-%m-01', 'now')
+  `).get() as { totalTokens: number; requestCount: number } | undefined;
+
+  return {
+    totalTokens: result?.totalTokens ?? 0,
+    requestCount: result?.requestCount ?? 0,
+  };
+}
+
+/**
+ * Get usage stats for all projects and global totals (current month).
+ */
+export function getAllUsageStats(): ProjectUsageStats {
+  const database = getDatabase();
+
+  const global = getGlobalUsageStats();
+
+  const projectRows = database.prepare(`
+    SELECT
+      project_id as projectId,
+      COALESCE(SUM(total_tokens), 0) as totalTokens,
+      COALESCE(SUM(request_count), 0) as requestCount
+    FROM usage_daily
+    WHERE date >= strftime('%Y-%m-01', 'now')
+    GROUP BY project_id
+  `).all() as Array<{ projectId: string; totalTokens: number; requestCount: number }>;
+
+  const byProject: Record<string, UsageStats> = {};
+  for (const row of projectRows) {
+    byProject[row.projectId] = {
+      totalTokens: row.totalTokens,
+      requestCount: row.requestCount,
+    };
+  }
+
+  return { global, byProject };
+}
+
+// ============================================================================
+// Project Pinning Functions (Phase 4.7)
+// ============================================================================
+
+/**
+ * Pin or unpin a project.
+ * When pinning, assigns the next available pin_order.
+ * When unpinning, resets is_pinned and pin_order to 0.
+ */
+export function updateProjectPinned(projectId: string, isPinned: boolean): boolean {
+  const database = getDatabase();
+  const now = new Date().toISOString();
+
+  if (isPinned) {
+    // Get max pin_order from currently pinned projects
+    const maxOrder = database.prepare(`
+      SELECT COALESCE(MAX(pin_order), 0) as maxOrder
+      FROM projects WHERE is_pinned = 1
+    `).get() as { maxOrder: number };
+
+    const newOrder = maxOrder.maxOrder + 1;
+
+    const result = database.prepare(`
+      UPDATE projects SET is_pinned = 1, pin_order = ?, updated_at = ? WHERE id = ?
+    `).run(newOrder, now, projectId);
+
+    return result.changes > 0;
+  } else {
+    const result = database.prepare(`
+      UPDATE projects SET is_pinned = 0, pin_order = 0, updated_at = ? WHERE id = ?
+    `).run(now, projectId);
+
+    return result.changes > 0;
+  }
+}
+
+/**
+ * Get all pinned projects, sorted by pin_order.
+ */
+export function getPinnedProjects(): ProjectSummary[] {
+  const database = getDatabase();
+
+  const stmt = database.prepare(`
+    SELECT
+      p.id, p.name, p.client_name, p.description, p.is_archived, p.created_at, p.updated_at,
+      (SELECT COUNT(*) FROM cvs WHERE project_id = p.id) as cv_count,
+      (SELECT COUNT(*) FROM job_descriptions WHERE project_id = p.id) as jd_count
+    FROM projects p
+    WHERE p.is_pinned = 1
+    ORDER BY p.pin_order ASC
+  `);
+
+  const rows = stmt.all() as (ProjectRecord & { cv_count: number; jd_count: number })[];
+
+  return rows.map(row => ({
+    ...row,
+    is_archived: Boolean(row.is_archived),
+  }));
+}
+
+/**
+ * Reorder pinned projects by setting pin_order based on array position.
+ * Uses a transaction for atomicity.
+ */
+export function reorderPinnedProjects(projectIds: string[]): void {
+  const database = getDatabase();
+  const now = new Date().toISOString();
+
+  const updateStmt = database.prepare(`
+    UPDATE projects SET pin_order = ?, updated_at = ? WHERE id = ?
+  `);
+
+  const reorder = database.transaction(() => {
+    for (let i = 0; i < projectIds.length; i++) {
+      updateStmt.run(i + 1, now, projectIds[i]);
+    }
+  });
+
+  reorder();
+  console.log('[DB] Reordered pinned projects:', projectIds);
 }

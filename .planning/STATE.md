@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 ## Current Position
 
-Phase: 4.7 of 7 (Dashboard Enhancements) - IN PROGRESS
-Plan: 4 of 5 in current phase
-Status: Plan 04.7-04 complete
-Last activity: 2026-01-27 - Completed @dnd-kit drag-drop infrastructure
+Phase: 4.7 of 7 (Dashboard Enhancements) - COMPLETE
+Plan: 5 of 5 in current phase
+Status: Phase 04.7 complete
+Last activity: 2026-01-27 - Completed usage display, toast warnings, Settings page
 
-Progress: [##################--] 97% (32/33 plans through Phase 4.7-04)
+Progress: [####################] 100% (33/33 plans through Phase 4.7-05)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 28
-- Average duration: 12 min
-- Total execution time: 3.5 hours
+- Total plans completed: 33
+- Average duration: 11 min
+- Total execution time: ~6 hours
 
 **By Phase:**
 
@@ -36,14 +36,15 @@ Progress: [##################--] 97% (32/33 plans through Phase 4.7-04)
 | 4.T. JD Matching Tests | 1/1 | ~30 min | 30 min |
 | 4.5. Project Homepage | 4/4 | 29 min | 7 min |
 | 4.6. Queue Infrastructure | 5/5 | 18 min | 4 min |
+| 4.7. Dashboard Enhancements | 5/5 | 32 min | 6 min |
 | 5. Anonymization & Branding | 0/3 | - | - |
 | 5.T. Export & Branding Tests | 0/1 | - | - |
 | 6. Bulk Processing & OS Integration | 0/3 | - | - |
 | 6.T. Performance & Integration Tests | 0/1 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 6 min, 3 min, 3 min, 4 min, 5 min
-- Trend: IPC/preload/UI integration plans very fast
+- Last 5 plans: 6 min, 7 min, 6 min, 5 min, 6 min
+- Trend: UI integration plans consistently fast
 
 *Updated after each plan completion*
 
@@ -133,6 +134,10 @@ Recent decisions affecting current work:
 - [04.7-04]: 8px activation distance prevents accidental drags
 - [04.7-04]: DragOverlay renders ghost preview outside DOM hierarchy for z-index
 - [04.7-04]: Two unpin methods: X button on hover AND drag project out of sidebar
+- [04.7-05]: Token format abbreviated (1.2K, 45.3K, 1.1M) with cost for cloud mode
+- [04.7-05]: GPT-4o-mini blended rate ~$0.30 per 1M tokens for cost estimation
+- [04.7-05]: Toast duration: Infinity (stays until user dismisses)
+- [04.7-05]: Settings aggregated into single unified page (LLM + usage limits)
 
 ### Pending Todos
 
@@ -157,7 +162,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 04.7-04-PLAN.md (@dnd-kit drag-drop infrastructure)
+Stopped at: Completed 04.7-05-PLAN.md (usage display, toast warnings, Settings page)
 Resume file: None
 
 ## Next Steps
@@ -169,16 +174,16 @@ Resume file: None
 - [x] Plan 04.6-04: UI integration with real-time updates
 - [x] Plan 04.6-05: Timeout-on-ACK fix (gap closure)
 
-**Phase 4.7: Dashboard Enhancements** - IN PROGRESS
+**Phase 4.7: Dashboard Enhancements** - COMPLETE
 - Goal: Project quick-access and usage tracking
 - [x] Plan 04.7-01: Database schema for usage tracking and pinning (migration v3)
 - [x] Plan 04.7-02: Python token capture
 - [x] Plan 04.7-03: IPC handlers for usage tracking and settings
 - [x] Plan 04.7-04: @dnd-kit drag-drop infrastructure for project pinning
-- [ ] Plan 04.7-05: Usage limits and warnings
+- [x] Plan 04.7-05: Usage display, toast warnings, Settings page
 
 **Phase 5: Anonymization & Branding** - NOT STARTED
 - Goal: Export CVs with company branding, anonymization options
 - Plans: 05-01, 05-02, 05-03
 
-**Next:** Execute Phase 5 or Phase 4.7 based on priority
+**Next:** Execute Phase 5 (Anonymization & Branding)

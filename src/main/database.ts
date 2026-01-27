@@ -276,6 +276,69 @@ export function initDatabase(): Database.Database {
       console.log('Database migrated to version 2');
     }
 
+    if (version < 3) {
+      console.log('Migrating database to version 3 (usage tracking + pinning)...');
+
+      // Create usage_events table for raw token usage per LLM call
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS usage_events (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          project_id TEXT NOT NULL,
+          event_type TEXT NOT NULL,
+          prompt_tokens INTEGER NOT NULL DEFAULT 0,
+          completion_tokens INTEGER NOT NULL DEFAULT 0,
+          total_tokens INTEGER NOT NULL DEFAULT 0,
+          llm_mode TEXT NOT NULL,
+          model TEXT,
+          created_at TEXT NOT NULL,
+          FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+        );
+      `);
+
+      // Create usage_daily aggregation table
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS usage_daily (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          project_id TEXT NOT NULL,
+          date TEXT NOT NULL,
+          total_tokens INTEGER DEFAULT 0,
+          request_count INTEGER DEFAULT 0,
+          UNIQUE(project_id, date),
+          FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+        );
+      `);
+
+      // Create trigger for auto-aggregation on insert
+      db.exec(`
+        CREATE TRIGGER IF NOT EXISTS update_daily_usage
+        AFTER INSERT ON usage_events
+        BEGIN
+          INSERT INTO usage_daily (project_id, date, total_tokens, request_count)
+          VALUES (NEW.project_id, DATE(NEW.created_at), NEW.total_tokens, 1)
+          ON CONFLICT(project_id, date) DO UPDATE SET
+            total_tokens = total_tokens + NEW.total_tokens,
+            request_count = request_count + 1;
+        END;
+      `);
+
+      // Create indexes for performance
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_usage_events_project ON usage_events(project_id)`);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_usage_daily_project_date ON usage_daily(project_id, date)`);
+
+      // Add pinning columns to projects table
+      const projectColumns = db.prepare("PRAGMA table_info(projects)").all() as { name: string }[];
+
+      if (!projectColumns.some(col => col.name === 'is_pinned')) {
+        db.exec(`ALTER TABLE projects ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0`);
+      }
+      if (!projectColumns.some(col => col.name === 'pin_order')) {
+        db.exec(`ALTER TABLE projects ADD COLUMN pin_order INTEGER NOT NULL DEFAULT 0`);
+      }
+
+      db.pragma('user_version = 3');
+      console.log('Database migrated to version 3');
+    }
+
     // Store init timestamp
     const stmt = db.prepare('INSERT OR REPLACE INTO app_meta (key, value) VALUES (?, ?)');
     stmt.run('initialized_at', new Date().toISOString());

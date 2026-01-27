@@ -9,7 +9,13 @@ import {
   insertMatchResult, getMatchResultsForJD,
   createProject, getAllProjects, getProject, updateProject, deleteProject, getAggregateStats,
   getQueuedCVsByProject,
+  recordUsageEvent,
+  getAllUsageStats,
+  updateProjectPinned,
+  getPinnedProjects,
+  reorderPinnedProjects,
 } from './database';
+import type { AppSettings } from './settings';
 import { startPython, stopPython, extractCV, sendToPython, restartWithMode } from './pythonManager';
 import { loadSettings, saveSettings } from './settings';
 import { createQueueManager, getQueueManager } from './queueManager';
@@ -139,17 +145,41 @@ ipcMain.handle('extract-cv', async (_event, filePath: string, projectId?: string
 
   try {
     // Extract CV using Python sidecar
-    const cvData = await extractCV(filePath) as ParsedCV;
+    // Response includes token_usage from Python LLM clients
+    const result = await extractCV(filePath) as ParsedCV & {
+      token_usage?: {
+        prompt_tokens: number;
+        completion_tokens: number;
+        total_tokens: number;
+        model?: string;
+      };
+    };
 
     // Persist to database with project association
-    const id = insertCV(cvData, filePath, projectId);
+    const id = insertCV(result, filePath, projectId);
+
+    // Record usage for ALL extractions that consumed tokens
+    // Use 'default-project' if no projectId provided
+    const tokenUsage = result.token_usage;
+    if (tokenUsage) {
+      const settings = loadSettings();
+      recordUsageEvent({
+        projectId: projectId || 'default-project',
+        eventType: 'cv_extraction',
+        promptTokens: tokenUsage.prompt_tokens || 0,
+        completionTokens: tokenUsage.completion_tokens || 0,
+        totalTokens: tokenUsage.total_tokens || 0,
+        llmMode: settings.llmMode,
+        model: tokenUsage.model,
+      });
+    }
 
     const totalTime = Date.now() - startTime;
     console.log(`CV extraction and persistence completed in ${totalTime}ms`);
 
     return {
       success: true,
-      data: cvData,
+      data: result,
       id,
       totalTime
     };
@@ -335,6 +365,7 @@ ipcMain.handle('extract-jd', async (_event, text: string, projectId?: string) =>
 
   try {
     // Send to Python sidecar for LLM extraction
+    // Response includes token_usage from Python LLM clients
     const result = await sendToPython({
       action: 'extract_jd',
       text,
@@ -348,6 +379,12 @@ ipcMain.handle('extract-jd', async (_event, text: string, projectId?: string) =>
       education_level?: string;
       certifications: string[];
       extract_time_ms: number;
+      token_usage?: {
+        prompt_tokens: number;
+        completion_tokens: number;
+        total_tokens: number;
+        model?: string;
+      };
     };
 
     // Store in database with project association
@@ -364,6 +401,22 @@ ipcMain.handle('extract-jd', async (_event, text: string, projectId?: string) =>
     };
 
     const id = insertJD(jdData, projectId);
+
+    // Record usage for JD extraction that consumed tokens
+    // Use 'default-project' if no projectId provided
+    const tokenUsage = result.token_usage;
+    if (tokenUsage) {
+      const settings = loadSettings();
+      recordUsageEvent({
+        projectId: projectId || 'default-project',
+        eventType: 'jd_extraction',
+        promptTokens: tokenUsage.prompt_tokens || 0,
+        completionTokens: tokenUsage.completion_tokens || 0,
+        totalTokens: tokenUsage.total_tokens || 0,
+        llmMode: settings.llmMode,
+        model: tokenUsage.model,
+      });
+    }
 
     // Return full JD with ID
     const jd = getJD(id);
@@ -826,5 +879,106 @@ ipcMain.handle('get-queued-cvs', async (_event, projectId?: string) => {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to get queued CVs'
     };
+  }
+});
+
+// ============================================================================
+// Usage Tracking & Pinning IPC Handlers (Phase 4.7)
+// ============================================================================
+
+/**
+ * Get usage stats for current month.
+ * Returns global and per-project token counts.
+ */
+ipcMain.handle('get-usage-stats', async () => {
+  try {
+    const stats = getAllUsageStats();
+    return { success: true, data: stats };
+  } catch (error) {
+    console.error('get-usage-stats error:', error);
+    return { success: false, error: String(error) };
+  }
+});
+
+/**
+ * Pin or unpin a project for quick sidebar access.
+ */
+ipcMain.handle('set-pinned-project', async (_event, projectId: string, isPinned: boolean) => {
+  try {
+    const success = updateProjectPinned(projectId, isPinned);
+    return { success };
+  } catch (error) {
+    console.error('set-pinned-project error:', error);
+    return { success: false, error: String(error) };
+  }
+});
+
+/**
+ * Get all pinned projects in order.
+ */
+ipcMain.handle('get-pinned-projects', async () => {
+  try {
+    const projects = getPinnedProjects();
+    return { success: true, data: projects };
+  } catch (error) {
+    console.error('get-pinned-projects error:', error);
+    return { success: false, error: String(error) };
+  }
+});
+
+/**
+ * Reorder pinned projects after drag-drop.
+ * @param projectIds - Array of project IDs in new order
+ */
+ipcMain.handle('reorder-pinned-projects', async (_event, projectIds: string[]) => {
+  try {
+    reorderPinnedProjects(projectIds);
+    return { success: true };
+  } catch (error) {
+    console.error('reorder-pinned-projects error:', error);
+    return { success: false, error: String(error) };
+  }
+});
+
+/**
+ * Get all app settings including usage limits.
+ */
+ipcMain.handle('get-app-settings', async () => {
+  try {
+    const settings = loadSettings();
+    // Don't expose API key directly, just whether it exists
+    return {
+      success: true,
+      data: {
+        llmMode: settings.llmMode,
+        hasApiKey: Boolean(settings.openaiApiKey),
+        globalTokenLimit: settings.globalTokenLimit,
+        warningThreshold: settings.warningThreshold ?? 80,
+      },
+    };
+  } catch (error) {
+    console.error('get-app-settings error:', error);
+    return { success: false, error: String(error) };
+  }
+});
+
+/**
+ * Update app settings (excluding API key - use setLLMSettings for that).
+ */
+ipcMain.handle('update-app-settings', async (_event, updates: Partial<Omit<AppSettings, 'openaiApiKey'>>) => {
+  try {
+    const updated = saveSettings(updates);
+    return {
+      success: true,
+      data: {
+        llmMode: updated.llmMode,
+        hasApiKey: Boolean(updated.openaiApiKey),
+        globalTokenLimit: updated.globalTokenLimit,
+        warningThreshold: updated.warningThreshold ?? 80,
+      },
+    };
+  } catch (error) {
+    console.error('update-app-settings error:', error);
+    return { success: false, error: String(error) };
   }
 });

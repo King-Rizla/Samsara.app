@@ -1,69 +1,97 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Plus } from 'lucide-react';
 import { useProjectStore } from '../stores/projectStore';
-import { Button } from '../components/ui/button';
+import { StatsStrip, ProjectCard, CreateProjectDialog } from '../components/dashboard';
+import { Card, CardContent } from '../components/ui/card';
 
 export function Dashboard() {
   const navigate = useNavigate();
-  const { projects, isLoading, loadProjects, createProject } = useProjectStore();
+  const { projects, isLoading, loadProjects, createProject, archiveProject, deleteProject } = useProjectStore();
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [stats, setStats] = useState({ total_cvs: 0, total_jds: 0 });
 
   useEffect(() => {
     loadProjects();
+    // Load aggregate stats
+    window.api.getAggregateStats().then((result) => {
+      if (result.success && result.data) {
+        setStats(result.data);
+      }
+    });
   }, [loadProjects]);
 
-  const handleCreateProject = async () => {
-    try {
-      const id = await createProject({ name: 'New Project' });
-      navigate(`/project/${id}`);
-    } catch (error) {
-      console.error('Failed to create project:', error);
-    }
-  };
-
-  const handleOpenProject = (id: string) => {
+  const handleCreateProject = async (data: { name: string; client_name?: string; description?: string }) => {
+    const id = await createProject(data);
     navigate(`/project/${id}`);
   };
 
+  const handleArchive = async (id: string) => {
+    await archiveProject(id);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Delete this project and all its data? This cannot be undone.')) {
+      await deleteProject(id);
+    }
+  };
+
+  // Calculate time saved (estimate: 5 min manual vs 2s automated per CV)
+  const timeSavedMinutes = Math.round(stats.total_cvs * 4.97); // 5 min - 2s = ~4.97 min saved per CV
+  const timeSavedFormatted = timeSavedMinutes >= 60
+    ? `${Math.floor(timeSavedMinutes / 60)}h ${timeSavedMinutes % 60}m`
+    : `${timeSavedMinutes}m`;
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex-1 flex items-center justify-center">
         <p className="text-muted-foreground">Loading projects...</p>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Projects</h1>
-        <Button onClick={handleCreateProject}>New Project</Button>
-      </div>
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Stats Strip */}
+      <StatsStrip
+        totalCVs={stats.total_cvs}
+        totalJDs={stats.total_jds}
+        timeSaved={timeSavedFormatted}
+      />
 
-      {projects.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground mb-4">No projects yet</p>
-          <Button onClick={handleCreateProject}>Create your first project</Button>
-        </div>
-      ) : (
+      {/* Projects Grid */}
+      <div className="flex-1 overflow-auto p-6">
+        <h2 className="text-lg font-semibold mb-4">Projects</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Create New Project Card */}
+          <Card
+            className="bg-card border-border border-dashed hover:border-primary cursor-pointer transition-colors min-h-[140px] flex items-center justify-center"
+            onClick={() => setShowCreateDialog(true)}
+          >
+            <CardContent className="flex flex-col items-center gap-2 p-6">
+              <Plus className="h-8 w-8 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">New Project</span>
+            </CardContent>
+          </Card>
+
+          {/* Project Cards */}
           {projects.map((project) => (
-            <div
+            <ProjectCard
               key={project.id}
-              className="p-4 border border-border rounded-lg cursor-pointer hover:border-primary transition-colors"
-              onClick={() => handleOpenProject(project.id)}
-            >
-              <h3 className="font-medium">{project.name}</h3>
-              {project.client_name && (
-                <p className="text-sm text-muted-foreground">{project.client_name}</p>
-              )}
-              <div className="flex gap-4 mt-2 text-sm text-muted-foreground">
-                <span>{project.cv_count} CVs</span>
-                <span>{project.jd_count} JDs</span>
-              </div>
-            </div>
+              project={project}
+              onArchive={handleArchive}
+              onDelete={handleDelete}
+            />
           ))}
         </div>
-      )}
+      </div>
+
+      {/* Create Project Dialog */}
+      <CreateProjectDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onCreate={handleCreateProject}
+      />
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { useQueueStore } from '../stores/queueStore';
 import { useEditorStore } from '../stores/editorStore';
 import { useJDStore } from '../stores/jdStore';
 import { useProjectStore } from '../stores/projectStore';
+import { ArrowLeft, Settings } from 'lucide-react';
 
 export function ProjectView() {
   const { id: projectId } = useParams<{ id: string }>();
@@ -23,17 +24,14 @@ export function ProjectView() {
 
   const [showSettings, setShowSettings] = useState(false);
 
-  // Get current project info
   const currentProject = projects.find((p) => p.id === projectId);
 
-  // Set active project and reload data when project changes
   useEffect(() => {
     if (projectId) {
       selectProject(projectId);
     }
   }, [projectId, selectProject]);
 
-  // Reload CVs and JDs when project is selected
   useEffect(() => {
     if (projectId) {
       loadFromDatabase();
@@ -44,10 +42,10 @@ export function ProjectView() {
   const isPanelOpen = viewMode !== null || showSettings;
 
   return (
-    <div className="h-screen flex flex-col bg-background">
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-2 border-b border-border">
-        <div className="flex items-center gap-4">
+    <>
+      {/* Project-specific header bar */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-background">
+        <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="sm"
@@ -56,39 +54,36 @@ export function ProjectView() {
               navigate('/');
             }}
           >
-            ← Dashboard
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Dashboard
           </Button>
+          <div className="h-4 w-px bg-border" />
           <div>
-            <h1 className="text-lg font-bold text-primary">
-              {currentProject?.name || 'Project'}
-            </h1>
+            <span className="font-medium">{currentProject?.name || 'Project'}</span>
             {currentProject?.client_name && (
-              <p className="text-xs text-muted-foreground">{currentProject.client_name}</p>
+              <span className="text-muted-foreground ml-2">- {currentProject.client_name}</span>
             )}
           </div>
         </div>
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           onClick={() => setShowSettings(!showSettings)}
         >
-          {showSettings ? 'Close Settings' : 'Settings'}
+          <Settings className="h-4 w-4" />
         </Button>
-      </header>
+      </div>
 
-      {/* Main content - three column layout (unchanged from current App.tsx) */}
+      {/* Main content */}
       <main className="flex-1 overflow-hidden flex">
-        {/* Queue panel - left side */}
         <div data-testid="queue-panel" className={`border-r border-border ${isPanelOpen ? 'w-1/3' : 'w-1/2'}`}>
           <QueueTabs />
         </div>
 
-        {/* JD panel - middle */}
         <div data-testid="jd-panel" className={`border-r border-border ${isPanelOpen ? 'w-1/3' : 'w-1/2'}`}>
           <JDPanel />
         </div>
 
-        {/* Detail panel - right side (CV editor, error details, or settings) */}
         {showSettings && (
           <div className="w-1/3 border-l border-border">
             <div className="p-4 border-b border-border">
@@ -113,6 +108,6 @@ export function ProjectView() {
           </div>
         )}
       </main>
-    </div>
+    </>
   );
 }

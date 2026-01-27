@@ -165,6 +165,14 @@ def handle_request(request: dict) -> dict:
                 'error': 'Missing required parameter: file_path'
             }
 
+        # Send ACK immediately - tells caller we are NOW starting processing
+        # This allows QueueManager to start timeout from this moment, not submission time
+        print(json.dumps({
+            "type": "ack",
+            "event": "processing_started",
+            "id": request_id
+        }), flush=True)
+
         try:
             start_time = time.perf_counter()
 

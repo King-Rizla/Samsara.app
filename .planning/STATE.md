@@ -124,6 +124,9 @@ Recent decisions affecting current work:
 - [04.6-05]: ACK pattern for timeout coordination: Python sends processing_started ACK
 - [04.6-05]: Timeout starts on ACK, not submission - queue fairness guaranteed
 - [04.6-05]: Single timeout boundary (QueueManager only, not pythonManager)
+- [04.7-01]: SQLite trigger update_daily_usage auto-aggregates tokens into usage_daily on INSERT
+- [04.7-01]: Current month filtering via strftime('%Y-%m-01', 'now') for usage stats
+- [04.7-01]: Pin order uses simple incrementing integers, transactions for reorder
 
 ### Pending Todos
 
@@ -162,7 +165,7 @@ Resume file: None
 
 **Phase 4.7: Dashboard Enhancements** - IN PROGRESS
 - Goal: Project quick-access and usage tracking
-- [x] Plan 04.7-01: Quick Access drag-drop sidebar
+- [x] Plan 04.7-01: Database schema for usage tracking and pinning (migration v3)
 - [x] Plan 04.7-02: Python token capture
 - [ ] Plan 04.7-03: TypeScript token handling
 - [ ] Plan 04.7-04: Usage display in UI

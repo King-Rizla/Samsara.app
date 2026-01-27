@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 ## Current Position
 
-Phase: 4.6 of 7 (Queue Infrastructure & Persistence) - COMPLETE (UAT passed: 6/7)
-Plan: 5 of 5 in current phase (04.6-05 gap closure plan added and completed)
-Status: Phase complete with UAT verification
-Last activity: 2026-01-27 - UAT complete (6 passed, 1 skipped)
+Phase: 4.7 of 7 (Dashboard Enhancements) - IN PROGRESS
+Plan: 2 of 5 in current phase
+Status: Plan 04.7-02 complete
+Last activity: 2026-01-27 - Completed Python token capture
 
-Progress: [##################--] 100% (28/29 plans through Phase 4.6)
+Progress: [##################--] 97% (30/31 plans through Phase 4.7-02)
 
 ## Performance Metrics
 
@@ -148,7 +148,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed Phase 4.6 UAT (6/7 tests passed, 1 skipped)
+Stopped at: Completed 04.7-02-PLAN.md (Python token capture)
 Resume file: None
 
 ## Next Steps
@@ -160,12 +160,13 @@ Resume file: None
 - [x] Plan 04.6-04: UI integration with real-time updates
 - [x] Plan 04.6-05: Timeout-on-ACK fix (gap closure)
 
-**Phase 4.7: Dashboard Enhancements** - NOT STARTED
+**Phase 4.7: Dashboard Enhancements** - IN PROGRESS
 - Goal: Project quick-access and usage tracking
-- Success Criteria:
-  1. Drag projects onto sidebar for quick access
-  2. Token/API usage tracked per project
-  3. Usage limits (per project or global)
+- [x] Plan 04.7-01: Quick Access drag-drop sidebar
+- [x] Plan 04.7-02: Python token capture
+- [ ] Plan 04.7-03: TypeScript token handling
+- [ ] Plan 04.7-04: Usage display in UI
+- [ ] Plan 04.7-05: Usage limits and warnings
 
 **Phase 5: Anonymization & Branding** - NOT STARTED
 - Goal: Export CVs with company branding, anonymization options

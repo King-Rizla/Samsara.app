@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 4.7 of 7 (Dashboard Enhancements) - IN PROGRESS
-Plan: 2 of 5 in current phase
-Status: Plan 04.7-02 complete
-Last activity: 2026-01-27 - Completed Python token capture
+Plan: 3 of 5 in current phase
+Status: Plan 04.7-03 complete
+Last activity: 2026-01-27 - Completed IPC handlers for usage tracking
 
-Progress: [##################--] 97% (30/31 plans through Phase 4.7-02)
+Progress: [##################--] 97% (31/32 plans through Phase 4.7-03)
 
 ## Performance Metrics
 
@@ -127,6 +127,9 @@ Recent decisions affecting current work:
 - [04.7-01]: SQLite trigger update_daily_usage auto-aggregates tokens into usage_daily on INSERT
 - [04.7-01]: Current month filtering via strftime('%Y-%m-01', 'now') for usage stats
 - [04.7-01]: Pin order uses simple incrementing integers, transactions for reorder
+- [04.7-03]: Usage recorded with 'default-project' if no projectId provided
+- [04.7-03]: Token usage captured from Python response's token_usage field
+- [04.7-03]: warningThreshold defaults to 80 (warn at 80% of limit)
 
 ### Pending Todos
 
@@ -151,7 +154,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-27
-Stopped at: Completed 04.7-02-PLAN.md (Python token capture)
+Stopped at: Completed 04.7-03-PLAN.md (IPC handlers for usage tracking)
 Resume file: None
 
 ## Next Steps
@@ -167,7 +170,7 @@ Resume file: None
 - Goal: Project quick-access and usage tracking
 - [x] Plan 04.7-01: Database schema for usage tracking and pinning (migration v3)
 - [x] Plan 04.7-02: Python token capture
-- [ ] Plan 04.7-03: TypeScript token handling
+- [x] Plan 04.7-03: IPC handlers for usage tracking and settings
 - [ ] Plan 04.7-04: Usage display in UI
 - [ ] Plan 04.7-05: Usage limits and warnings
 

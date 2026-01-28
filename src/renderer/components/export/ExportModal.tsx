@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Download, FolderOpen, AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -44,6 +45,7 @@ export function ExportModal({ isOpen, onClose, cvId, cvIds, cvName }: ExportModa
   const [error, setError] = useState<string | null>(null);
   const [outputDir, setOutputDir] = useState<string | null>(null);
 
+  const navigate = useNavigate();
   const { recruiter, loadRecruiterSettings } = useSettingsStore();
 
   // Determine if this is bulk export
@@ -77,6 +79,7 @@ export function ExportModal({ isOpen, onClose, cvId, cvIds, cvName }: ExportModa
       const idsToExport = isBulk ? cvIds : [cvId];
       let successCount = 0;
       let lastOutputPath: string | undefined;
+      let lastError: string | undefined;
 
       for (const id of idsToExport) {
         const result = await window.api.exportCV(id, mode, outputDir ?? undefined, includeBlindProfile);
@@ -84,6 +87,7 @@ export function ExportModal({ isOpen, onClose, cvId, cvIds, cvName }: ExportModa
           successCount++;
           lastOutputPath = result.outputPath;
         } else {
+          lastError = result.error;
           console.error(`Export failed for CV ${id}:`, result.error);
         }
       }
@@ -99,7 +103,7 @@ export function ExportModal({ isOpen, onClose, cvId, cvIds, cvName }: ExportModa
         toast.warning(`Exported ${successCount}/${idsToExport.length} CVs`);
         onClose();
       } else {
-        setError('Export failed. Please try again.');
+        setError(lastError || 'Export failed. Please try again.');
       }
     } catch (err) {
       console.error('Export error:', err);
@@ -181,7 +185,7 @@ export function ExportModal({ isOpen, onClose, cvId, cvIds, cvName }: ExportModa
                     <a href="/settings" className="text-primary hover:underline" onClick={(e) => {
                       e.preventDefault();
                       onClose();
-                      // Navigate to settings - let the parent handle this
+                      navigate('/settings');
                     }}>
                       Settings
                     </a>{' '}

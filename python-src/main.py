@@ -501,8 +501,9 @@ def handle_request(request: dict) -> dict:
         try:
             import re
             import pymupdf
+            from parsers.pdf_parser import suppress_stdout
 
-            # Create redacted PDF
+            # Create redacted PDF (suppress_stdout handled internally)
             redacted_bytes = create_redacted_cv(source_path, contact_info, mode)
 
             # Check if we should include blind profile
@@ -515,13 +516,15 @@ def handle_request(request: dict) -> dict:
                 profile_bytes = generate_blind_profile(cv_data, theme, recruiter or {}, mode)
 
                 # Merge: profile first, then CV
-                front_doc = pymupdf.open(stream=profile_bytes, filetype="pdf")
-                cv_doc = pymupdf.open(stream=redacted_bytes, filetype="pdf")
-                front_doc.insert_pdf(cv_doc)
+                # Suppress stdout to prevent PyMuPDF debug output from corrupting JSON IPC
+                with suppress_stdout():
+                    front_doc = pymupdf.open(stream=profile_bytes, filetype="pdf")
+                    cv_doc = pymupdf.open(stream=redacted_bytes, filetype="pdf")
+                    front_doc.insert_pdf(cv_doc)
 
-                output_bytes = front_doc.tobytes()
-                front_doc.close()
-                cv_doc.close()
+                    output_bytes = front_doc.tobytes()
+                    front_doc.close()
+                    cv_doc.close()
                 has_blind_profile = True
             else:
                 output_bytes = redacted_bytes

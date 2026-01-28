@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 ## Current Position
 
 Phase: 5 of 7 (Anonymization & Branding)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-01-28 - Completed 05-01-PLAN.md (PDF Redaction Engine)
+Last activity: 2026-01-28 - Completed 05-02-PLAN.md (Blind Profile Generation)
 
-Progress: [#####################] 100% (34/34 plans through Phase 5-01)
+Progress: [######################] 100% (35/35 plans through Phase 5-02)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 34
+- Total plans completed: 35
 - Average duration: 11 min
-- Total execution time: ~6.1 hours
+- Total execution time: ~6.2 hours
 
 **By Phase:**
 
@@ -37,13 +37,13 @@ Progress: [#####################] 100% (34/34 plans through Phase 5-01)
 | 4.5. Project Homepage | 4/4 | 29 min | 7 min |
 | 4.6. Queue Infrastructure | 5/5 | 18 min | 4 min |
 | 4.7. Dashboard Enhancements | 5/5 | 32 min | 6 min |
-| 5. Anonymization & Branding | 1/3 | 8 min | 8 min |
+| 5. Anonymization & Branding | 2/3 | 14 min | 7 min |
 | 5.T. Export & Branding Tests | 0/1 | - | - |
 | 6. Bulk Processing & OS Integration | 0/3 | - | - |
 | 6.T. Performance & Integration Tests | 0/1 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 6 min, 5 min, 6 min, 6 min, 8 min
+- Last 5 plans: 5 min, 6 min, 6 min, 8 min, 6 min
 - Trend: Python sidecar + IPC plans consistent
 
 *Updated after each plan completion*
@@ -142,6 +142,10 @@ Recent decisions affecting current work:
 - [05-01]: apply_redactions() physically removes text (not just overlay) for true PDF redaction
 - [05-01]: Default export mode is 'client' (remove phone+email)
 - [05-01]: Output filename: {Name}_CV.pdf or Candidate_CV.pdf for punt mode
+- [05-02]: Purple terminal aesthetic (#6B21A8) as default theme primary color
+- [05-02]: Helvetica fonts (built-in) for cross-platform PDF compatibility
+- [05-02]: Recruiter settings stored in existing settings.json
+- [05-02]: Blind profile prepended using PyMuPDF insert_pdf for PDF merging
 
 ### Pending Todos
 
@@ -166,7 +170,7 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-01-28
-Stopped at: Completed 05-01-PLAN.md (PDF Redaction Engine)
+Stopped at: Completed 05-02-PLAN.md (Blind Profile Generation)
 Resume file: None
 
 ## Next Steps
@@ -174,7 +178,7 @@ Resume file: None
 **Phase 5: Anonymization & Branding** - IN PROGRESS
 - Goal: Export CVs with company branding, anonymization options
 - [x] Plan 05-01: PDF Redaction Engine (create_redacted_cv, export_cv action, IPC handler)
-- [ ] Plan 05-02: Blind Profile generation (ReportLab front sheet)
+- [x] Plan 05-02: Blind Profile generation (ReportLab front sheet)
 - [ ] Plan 05-03: Export UI (export dialog, mode selection)
 
-**Next:** Execute 05-02-PLAN.md (Blind Profile Generation)
+**Next:** Execute 05-03-PLAN.md (Export UI)

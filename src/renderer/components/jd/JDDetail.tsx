@@ -2,6 +2,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { useJDStore } from '../../stores/jdStore';
 import { useEditorStore } from '../../stores/editorStore';
+import { SearchTools } from './SearchTools';
 
 /**
  * JDDetail displays the full job description with skills highlighted.
@@ -115,6 +116,16 @@ export function JDDetail() {
               </Badge>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Search Tools */}
+      {activeJD.matching_metadata && (
+        <div className="border-t border-border pt-4">
+          <SearchTools
+            booleanStrings={activeJD.matching_metadata.boolean_strings}
+            searchHints={activeJD.matching_metadata.search_hints}
+          />
         </div>
       )}
 

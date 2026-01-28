@@ -363,6 +363,20 @@ export function initDatabase(): Database.Database {
       console.log('Database migrated to version 3');
     }
 
+    if (version < 4) {
+      console.log('Migrating database to version 4 (matching metadata)...');
+
+      // Check if column exists before adding (idempotent migration)
+      const jdColumns4 = db.prepare("PRAGMA table_info(job_descriptions)").all() as { name: string }[];
+
+      if (!jdColumns4.some(col => col.name === 'matching_metadata_json')) {
+        db.exec(`ALTER TABLE job_descriptions ADD COLUMN matching_metadata_json TEXT`);
+      }
+
+      db.pragma('user_version = 4');
+      console.log('Database migrated to version 4');
+    }
+
     // Store init timestamp
     const stmt = db.prepare('INSERT OR REPLACE INTO app_meta (key, value) VALUES (?, ?)');
     stmt.run('initialized_at', new Date().toISOString());

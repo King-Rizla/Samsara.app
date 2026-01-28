@@ -211,3 +211,69 @@ class LLMJDExtraction(BaseModel):
         default_factory=list,
         description="Required or preferred certifications"
     )
+
+    matching_metadata: Optional['LLMMatchingMetadata'] = Field(
+        default=None,
+        description="Enhanced matching data: skill variants, boolean strings, search hints"
+    )
+
+
+# ============================================================================
+# Matching Metadata Schemas (generated alongside JD extraction)
+# ============================================================================
+
+class LLMExpandedSkill(BaseModel):
+    """A skill with its semantic variants and related tools."""
+
+    skill: str = Field(description="Original skill name from JD")
+    variants: List[str] = Field(
+        default_factory=list,
+        description="Alternative names, abbreviations, synonyms. Limit to 5 most common."
+    )
+    related_tools: List[str] = Field(
+        default_factory=list,
+        description="Related frameworks, libraries, tools. Limit to 5 most relevant."
+    )
+
+
+class LLMBooleanStrings(BaseModel):
+    """Three-tier boolean search strings for candidate sourcing."""
+
+    wide: str = Field(
+        description="Broad search with many OR terms. Keep under 250 chars."
+    )
+    midline: str = Field(
+        description="Balanced search: core skills AND, variations OR. Keep under 250 chars."
+    )
+    narrow: str = Field(
+        description="Strict search with required terms only as AND terms. Keep under 200 chars."
+    )
+
+
+class LLMSearchHints(BaseModel):
+    """Search hints for candidate sourcing."""
+
+    suggested_titles: List[str] = Field(
+        default_factory=list,
+        description="Related job titles to search for. Limit to 5."
+    )
+    industries: List[str] = Field(
+        default_factory=list,
+        description="Relevant industries. Limit to 3."
+    )
+    negative_keywords: List[str] = Field(
+        default_factory=list,
+        description="Terms to exclude from searches. Limit to 5."
+    )
+
+
+class LLMMatchingMetadata(BaseModel):
+    """Comprehensive matching metadata generated alongside JD extraction."""
+
+    expanded_skills: List[LLMExpandedSkill] = Field(default_factory=list)
+    boolean_strings: LLMBooleanStrings
+    search_hints: LLMSearchHints = Field(default_factory=LLMSearchHints)
+
+
+# Resolve forward reference
+LLMJDExtraction.model_rebuild()

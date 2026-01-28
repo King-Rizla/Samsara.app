@@ -21,6 +21,7 @@ import { ProjectView } from './routes/ProjectView';
 import { Settings } from './routes/Settings';
 import { TooltipProvider } from './components/ui/tooltip';
 import { useQueueStore } from './stores/queueStore';
+import { useSettingsStore } from './stores/settingsStore';
 import './styles/globals.css';
 
 interface PinnedProject {
@@ -52,6 +53,11 @@ export function App() {
   useEffect(() => {
     loadPinnedProjects();
   }, [loadPinnedProjects]);
+
+  // Load recruiter settings on app start for export functionality
+  useEffect(() => {
+    useSettingsStore.getState().loadRecruiterSettings();
+  }, []);
 
   // Subscribe to queue status updates from main process
   useEffect(() => {

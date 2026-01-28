@@ -5,9 +5,10 @@ import type { QueueStatus } from '../../types/cv';
 
 interface QueueListProps {
   status: QueueStatus;
+  onExport?: (cvId: string, cvName: string) => void;
 }
 
-export function QueueList({ status }: QueueListProps) {
+export function QueueList({ status, onExport }: QueueListProps) {
   // Get stable reference to items array, then filter with useMemo
   // This avoids React 19's infinite loop detection with useSyncExternalStore
   const allItems = useQueueStore((state) => state.items);
@@ -35,10 +36,10 @@ export function QueueList({ status }: QueueListProps) {
   }
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="divide-y divide-border">
+    <div className="h-full overflow-y-auto p-2">
+      <div className="space-y-2">
         {items.map((item) => (
-          <QueueItem key={item.id} item={item} />
+          <QueueItem key={item.id} item={item} onExport={onExport} />
         ))}
       </div>
     </div>

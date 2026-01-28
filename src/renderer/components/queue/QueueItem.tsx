@@ -1,12 +1,15 @@
 import { useCallback } from 'react';
+import { Download } from 'lucide-react';
 import { useQueueStore } from '../../stores/queueStore';
 import { useEditorStore } from '../../stores/editorStore';
 import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
 import type { QueueItem as QueueItemType } from '../../types/cv';
 
 interface QueueItemProps {
   item: QueueItemType;
+  onExport?: (cvId: string, cvName: string) => void;
 }
 
 // Animated ellipsis component for processing state
@@ -20,7 +23,7 @@ function AnimatedEllipsis() {
   );
 }
 
-export function QueueItem({ item }: QueueItemProps) {
+export function QueueItem({ item, onExport }: QueueItemProps) {
   // Use boolean selector to avoid Set reference comparison issues with React 19
   const isSelected = useQueueStore((state) => state.selectedIds.has(item.id));
   const toggleSelect = useQueueStore((state) => state.toggleSelect);
@@ -55,6 +58,17 @@ export function QueueItem({ item }: QueueItemProps) {
       }
     },
     [loadCV, setFailedItem, item]
+  );
+
+  // Handle export button click
+  const handleExportClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (onExport && item.status === 'completed') {
+        onExport(item.id, item.fileName);
+      }
+    },
+    [onExport, item.id, item.fileName, item.status]
   );
 
   const getStatusBadge = () => {
@@ -106,8 +120,8 @@ export function QueueItem({ item }: QueueItemProps) {
   return (
     <div
       className={cn(
-        'flex items-center gap-3 px-4 py-3 transition-colors',
-        isSelected && 'bg-primary/10'
+        'flex items-center gap-3 px-4 py-3 rounded-md border border-border bg-card transition-colors',
+        isSelected ? 'bg-primary/10 border-primary' : 'hover:border-muted-foreground'
       )}
     >
       {/* Checkbox - shift-click here for range selection */}
@@ -143,6 +157,19 @@ export function QueueItem({ item }: QueueItemProps) {
 
       {/* Status badge */}
       {getStatusBadge()}
+
+      {/* Export button - only for completed items */}
+      {item.status === 'completed' && onExport && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleExportClick}
+          className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+          title="Export CV"
+        >
+          <Download className="h-4 w-4" />
+        </Button>
+      )}
     </div>
   );
 }

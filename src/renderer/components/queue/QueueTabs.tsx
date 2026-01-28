@@ -1,13 +1,21 @@
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { useQueueStore } from '../../stores/queueStore';
 import { QueueList } from './QueueList';
 import { QueueControls } from './QueueControls';
 import { DropZone } from './DropZone';
+import { ExportModal } from '../export/ExportModal';
 
 export function QueueTabs() {
   const items = useQueueStore((state) => state.items);
+  const selectedIds = useQueueStore((state) => state.selectedIds);
   const clearSelection = useQueueStore((state) => state.clearSelection);
+
+  // Export modal state
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exportCvId, setExportCvId] = useState<string>('');
+  const [exportCvIds, setExportCvIds] = useState<string[]>([]);
+  const [exportCvName, setExportCvName] = useState<string>('');
 
   // Memoize counts to avoid recalculating on every render
   // Submitted tab shows both 'queued' and 'submitted' items (all in-progress CVs)
@@ -22,37 +30,61 @@ export function QueueTabs() {
     clearSelection();
   }, [clearSelection]);
 
+  // Handle single export from QueueItem
+  const handleExport = useCallback((cvId: string, cvName: string) => {
+    setExportCvId(cvId);
+    setExportCvIds([]);
+    setExportCvName(cvName);
+    setExportModalOpen(true);
+  }, []);
+
+  // Handle bulk export from QueueControls
+  const handleBulkExport = useCallback((cvIds: string[]) => {
+    setExportCvId(cvIds[0]);
+    setExportCvIds(cvIds);
+    setExportCvName('');
+    setExportModalOpen(true);
+  }, []);
+
+  // Close export modal
+  const handleCloseExport = useCallback(() => {
+    setExportModalOpen(false);
+    setExportCvId('');
+    setExportCvIds([]);
+    setExportCvName('');
+  }, []);
+
   return (
     <div className="flex flex-col h-full">
       <Tabs defaultValue="completed" className="flex-1 flex flex-col" onValueChange={handleTabChange}>
         <div className="flex items-center justify-between px-4 py-2 border-b border-border">
-          <TabsList className="bg-transparent">
+          <TabsList className="bg-transparent gap-2">
             <TabsTrigger
               value="completed"
-              className="data-[state=active]:bg-status-completed/20 data-[state=active]:text-status-completed"
+              className="border border-border hover:border-primary transition-colors data-[state=active]:bg-status-completed/20 data-[state=active]:text-status-completed data-[state=active]:border-status-completed"
             >
               Completed ({counts.completed})
             </TabsTrigger>
             <TabsTrigger
               value="submitted"
-              className="data-[state=active]:bg-status-submitted/20 data-[state=active]:text-status-submitted"
+              className="border border-border hover:border-primary transition-colors data-[state=active]:bg-status-submitted/20 data-[state=active]:text-status-submitted data-[state=active]:border-status-submitted"
             >
               Submitted ({counts.submitted})
             </TabsTrigger>
             <TabsTrigger
               value="failed"
-              className="data-[state=active]:bg-status-failed/20 data-[state=active]:text-status-failed"
+              className="border border-border hover:border-primary transition-colors data-[state=active]:bg-status-failed/20 data-[state=active]:text-status-failed data-[state=active]:border-status-failed"
             >
               Failed ({counts.failed})
             </TabsTrigger>
           </TabsList>
 
-          <QueueControls />
+          <QueueControls onBulkExport={handleBulkExport} />
         </div>
 
         <div className="flex-1 overflow-hidden">
           <TabsContent value="completed" className="h-full m-0 p-0">
-            <QueueList status="completed" />
+            <QueueList status="completed" onExport={handleExport} />
           </TabsContent>
           <TabsContent value="submitted" className="h-full m-0 p-0">
             <QueueList status="submitted" />
@@ -65,6 +97,15 @@ export function QueueTabs() {
 
       {/* Drop zone at bottom */}
       <DropZone />
+
+      {/* Export modal */}
+      <ExportModal
+        isOpen={exportModalOpen}
+        onClose={handleCloseExport}
+        cvId={exportCvId}
+        cvIds={exportCvIds.length > 0 ? exportCvIds : undefined}
+        cvName={exportCvName || undefined}
+      />
     </div>
   );
 }

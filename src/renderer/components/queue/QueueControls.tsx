@@ -1,9 +1,14 @@
 import { useMemo } from 'react';
+import { Download } from 'lucide-react';
 import { useQueueStore } from '../../stores/queueStore';
 import { useEditorStore } from '../../stores/editorStore';
 import { Button } from '../ui/button';
 
-export function QueueControls() {
+interface QueueControlsProps {
+  onBulkExport?: (cvIds: string[]) => void;
+}
+
+export function QueueControls({ onBulkExport }: QueueControlsProps) {
   const selectedIds = useQueueStore((state) => state.selectedIds);
   const items = useQueueStore((state) => state.items);
   const clearSelection = useQueueStore((state) => state.clearSelection);
@@ -21,6 +26,14 @@ export function QueueControls() {
     return [...selectedIds].some((id) => {
       const item = items.find((i) => i.id === id);
       return item?.status === 'failed';
+    });
+  }, [selectedIds, items]);
+
+  // Check if any completed items are selected (for export)
+  const completedSelectedIds = useMemo(() => {
+    return [...selectedIds].filter((id) => {
+      const item = items.find((i) => i.id === id);
+      return item?.status === 'completed';
     });
   }, [selectedIds, items]);
 
@@ -45,11 +58,29 @@ export function QueueControls() {
     await deleteSelected();
   };
 
+  const handleExport = () => {
+    if (onBulkExport && completedSelectedIds.length > 0) {
+      onBulkExport(completedSelectedIds);
+    }
+  };
+
   return (
     <div className="flex items-center gap-2">
       <span className="text-sm text-muted-foreground">
         {selectedCount} selected
       </span>
+
+      {completedSelectedIds.length > 0 && onBulkExport && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExport}
+          className="btn-terminal"
+        >
+          <Download className="h-4 w-4 mr-1" />
+          Export {completedSelectedIds.length > 1 ? `(${completedSelectedIds.length})` : ''}
+        </Button>
+      )}
 
       {hasFailedSelected && (
         <Button

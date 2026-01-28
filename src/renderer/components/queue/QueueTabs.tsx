@@ -82,14 +82,14 @@ export function QueueTabs() {
           <QueueControls onBulkExport={handleBulkExport} />
         </div>
 
-        <div className="flex-1 overflow-hidden">
-          <TabsContent value="completed" className="h-full m-0 p-0">
+        <div className="flex-1 min-h-0">
+          <TabsContent value="completed" className="h-full m-0 p-0 overflow-y-auto">
             <QueueList status="completed" onExport={handleExport} />
           </TabsContent>
-          <TabsContent value="submitted" className="h-full m-0 p-0">
+          <TabsContent value="submitted" className="h-full m-0 p-0 overflow-y-auto">
             <QueueList status="submitted" />
           </TabsContent>
-          <TabsContent value="failed" className="h-full m-0 p-0">
+          <TabsContent value="failed" className="h-full m-0 p-0 overflow-y-auto">
             <QueueList status="failed" />
           </TabsContent>
         </div>

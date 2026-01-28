@@ -17,7 +17,7 @@ import {
 } from './database';
 import type { AppSettings } from './settings';
 import { startPython, stopPython, extractCV, sendToPython, restartWithMode } from './pythonManager';
-import { loadSettings, saveSettings } from './settings';
+import { loadSettings, saveSettings, getRecruiterSettings, setRecruiterSettings } from './settings';
 import { createQueueManager, getQueueManager } from './queueManager';
 
 // Vite global variables for dev server and renderer name
@@ -988,15 +988,16 @@ ipcMain.handle('update-app-settings', async (_event, updates: Partial<Omit<AppSe
 // ============================================================================
 
 /**
- * Export CV with optional redaction.
+ * Export CV with optional redaction and blind profile.
  * mode: 'full' | 'client' | 'punt'
  *   - full: No redaction
  *   - client: Remove phone and email (default)
  *   - punt: Remove phone, email, AND name
+ * includeBlindProfile: Whether to prepend one-page summary (default: true)
  * Returns { success: true, outputPath: string } on success
  * Returns { success: false, error: string } on failure
  */
-ipcMain.handle('export-cv', async (_event, cvId: string, mode: string, outputDir?: string) => {
+ipcMain.handle('export-cv', async (_event, cvId: string, mode: string, outputDir?: string, includeBlindProfile: boolean = true) => {
   try {
     // Get CV record for file_path
     const cvRecord = getCV(cvId);
@@ -1004,7 +1005,7 @@ ipcMain.handle('export-cv', async (_event, cvId: string, mode: string, outputDir
       return { success: false, error: 'CV not found' };
     }
 
-    // Get CV data for contact info
+    // Get CV data for contact info and blind profile
     const cvData = getCVFull(cvId);
     if (!cvData) {
       return { success: false, error: 'CV data not found' };
@@ -1024,6 +1025,9 @@ ipcMain.handle('export-cv', async (_event, cvId: string, mode: string, outputDir
       return { success: false, error: `Output directory does not exist: ${actualOutputDir}` };
     }
 
+    // Get recruiter settings for blind profile footer
+    const recruiter = getRecruiterSettings();
+
     // Call Python sidecar for export
     const result = await sendToPython({
       action: 'export_cv',
@@ -1031,10 +1035,13 @@ ipcMain.handle('export-cv', async (_event, cvId: string, mode: string, outputDir
       source_path: cvRecord.file_path,
       contact_info: cvData.contact || {},
       mode: mode,
-      output_dir: actualOutputDir
-    }) as { output_path: string; mode: string; redacted_fields: string[] };
+      output_dir: actualOutputDir,
+      include_blind_profile: includeBlindProfile,
+      recruiter: recruiter,
+      cv_data: cvData  // Full CV data for blind profile generation
+    }) as { output_path: string; mode: string; redacted_fields: string[]; has_blind_profile?: boolean };
 
-    console.log(`CV export completed: ${result.output_path} (mode: ${result.mode})`);
+    console.log(`CV export completed: ${result.output_path} (mode: ${result.mode}, blind_profile: ${result.has_blind_profile ?? false})`);
 
     return {
       success: true,
@@ -1046,5 +1053,37 @@ ipcMain.handle('export-cv', async (_event, cvId: string, mode: string, outputDir
       success: false,
       error: error instanceof Error ? error.message : 'Failed to export CV'
     };
+  }
+});
+
+// ============================================================================
+// Recruiter Settings IPC Handlers (Phase 5)
+// ============================================================================
+
+/**
+ * Get recruiter settings for blind profile footer.
+ * Returns { success: true, data: RecruiterSettings } on success
+ */
+ipcMain.handle('get-recruiter-settings', async () => {
+  try {
+    const settings = getRecruiterSettings();
+    return { success: true, data: settings };
+  } catch (error) {
+    console.error('get-recruiter-settings error:', error);
+    return { success: false, error: String(error) };
+  }
+});
+
+/**
+ * Set recruiter settings for blind profile footer.
+ * Returns { success: true } on success
+ */
+ipcMain.handle('set-recruiter-settings', async (_event, settings: { name?: string; phone?: string; email?: string }) => {
+  try {
+    setRecruiterSettings(settings);
+    return { success: true };
+  } catch (error) {
+    console.error('set-recruiter-settings error:', error);
+    return { success: false, error: String(error) };
   }
 });

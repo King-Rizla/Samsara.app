@@ -12,6 +12,19 @@ export interface AppSettings {
   // Usage limit fields (global only for v1 per CONTEXT.md)
   globalTokenLimit?: number;        // Monthly token limit (null/undefined = unlimited)
   warningThreshold?: number;        // Percent (e.g., 80 means warn at 80%), default 80
+  // Recruiter details for blind profile footer (Phase 5)
+  recruiterName?: string;
+  recruiterPhone?: string;
+  recruiterEmail?: string;
+}
+
+/**
+ * Recruiter settings subset for blind profile generation.
+ */
+export interface RecruiterSettings {
+  name?: string;
+  phone?: string;
+  email?: string;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -71,4 +84,27 @@ export function getSetting<K extends keyof AppSettings>(key: K): AppSettings[K] 
 
 export function setSetting<K extends keyof AppSettings>(key: K, value: AppSettings[K]): void {
   saveSettings({ [key]: value });
+}
+
+/**
+ * Get recruiter settings for blind profile footer.
+ */
+export function getRecruiterSettings(): RecruiterSettings {
+  const settings = loadSettings();
+  return {
+    name: settings.recruiterName,
+    phone: settings.recruiterPhone,
+    email: settings.recruiterEmail,
+  };
+}
+
+/**
+ * Set recruiter settings for blind profile footer.
+ */
+export function setRecruiterSettings(recruiter: RecruiterSettings): void {
+  saveSettings({
+    recruiterName: recruiter.name,
+    recruiterPhone: recruiter.phone,
+    recruiterEmail: recruiter.email,
+  });
 }

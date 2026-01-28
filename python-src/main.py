@@ -14,6 +14,8 @@ import spacy
 from parsers.base import parse_document
 from schema.cv_schema import ParsedCV, WorkEntry, EducationEntry, SkillGroup, ContactInfo
 from export.redaction import create_redacted_cv
+from export.blind_profile import generate_blind_profile
+from export.theme import load_theme
 from extractors.llm import OllamaClient, OpenAIClient
 from extractors.llm.schemas import LLMFullExtraction, LLMJDExtraction
 from extractors.llm.prompts import FULL_EXTRACTION_PROMPT, JD_EXTRACTION_PROMPT
@@ -477,6 +479,11 @@ def handle_request(request: dict) -> dict:
         mode = request.get('mode', 'client')  # Default to client mode
         output_dir = request.get('output_dir')
 
+        # Optional blind profile params
+        include_blind_profile = request.get('include_blind_profile', True)
+        recruiter = request.get('recruiter', {})
+        cv_data = request.get('cv_data', {})
+
         # Validate required params
         if not source_path:
             return {
@@ -493,9 +500,31 @@ def handle_request(request: dict) -> dict:
 
         try:
             import re
+            import pymupdf
 
             # Create redacted PDF
-            pdf_bytes = create_redacted_cv(source_path, contact_info, mode)
+            redacted_bytes = create_redacted_cv(source_path, contact_info, mode)
+
+            # Check if we should include blind profile
+            has_blind_profile = False
+            if include_blind_profile and cv_data:
+                # Load theme for styling
+                theme = load_theme()
+
+                # Generate blind profile front sheet
+                profile_bytes = generate_blind_profile(cv_data, theme, recruiter or {}, mode)
+
+                # Merge: profile first, then CV
+                front_doc = pymupdf.open(stream=profile_bytes, filetype="pdf")
+                cv_doc = pymupdf.open(stream=redacted_bytes, filetype="pdf")
+                front_doc.insert_pdf(cv_doc)
+
+                output_bytes = front_doc.tobytes()
+                front_doc.close()
+                cv_doc.close()
+                has_blind_profile = True
+            else:
+                output_bytes = redacted_bytes
 
             # Determine output filename
             # punt mode: always "Candidate_CV.pdf"
@@ -516,7 +545,7 @@ def handle_request(request: dict) -> dict:
 
             # Write PDF to output directory
             with open(output_path, 'wb') as f:
-                f.write(pdf_bytes)
+                f.write(output_bytes)
 
             return {
                 'id': request_id,
@@ -524,6 +553,7 @@ def handle_request(request: dict) -> dict:
                 'data': {
                     'output_path': output_path,
                     'mode': mode,
+                    'has_blind_profile': has_blind_profile,
                     'redacted_fields': ['phone', 'email'] if mode == 'client' else (
                         ['phone', 'email', 'name'] if mode == 'punt' else []
                     )

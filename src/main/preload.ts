@@ -158,6 +158,19 @@ interface ExportCVResult {
   error?: string;
 }
 
+// Recruiter settings type (Phase 5)
+interface RecruiterSettings {
+  name?: string;
+  phone?: string;
+  email?: string;
+}
+
+interface RecruiterSettingsResult {
+  success: boolean;
+  data?: RecruiterSettings;
+  error?: string;
+}
+
 /**
  * Expose protected methods to the renderer process.
  * This maintains security by using contextBridge instead of nodeIntegration.
@@ -404,15 +417,32 @@ contextBridge.exposeInMainWorld('api', {
   // CV Export operations (Phase 5)
 
   /**
-   * Export CV with optional redaction.
+   * Export CV with optional redaction and blind profile.
    * mode: 'full' | 'client' | 'punt'
    *   - full: No redaction
    *   - client: Remove phone and email (default)
    *   - punt: Remove phone, email, AND name
+   * includeBlindProfile: Whether to prepend one-page summary (default: true)
    * Returns { success: boolean, outputPath?: string, error?: string }
    */
-  exportCV: (cvId: string, mode: 'full' | 'client' | 'punt', outputDir?: string): Promise<ExportCVResult> =>
-    ipcRenderer.invoke('export-cv', cvId, mode, outputDir),
+  exportCV: (cvId: string, mode: 'full' | 'client' | 'punt', outputDir?: string, includeBlindProfile?: boolean): Promise<ExportCVResult> =>
+    ipcRenderer.invoke('export-cv', cvId, mode, outputDir, includeBlindProfile),
+
+  // Recruiter settings operations (Phase 5)
+
+  /**
+   * Get recruiter settings for blind profile footer.
+   * Returns { success: boolean, data?: RecruiterSettings, error?: string }
+   */
+  getRecruiterSettings: (): Promise<RecruiterSettingsResult> =>
+    ipcRenderer.invoke('get-recruiter-settings'),
+
+  /**
+   * Set recruiter settings for blind profile footer.
+   * Returns { success: boolean, error?: string }
+   */
+  setRecruiterSettings: (settings: RecruiterSettings): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke('set-recruiter-settings', settings),
 });
 
 /**

@@ -671,6 +671,7 @@ export interface ParsedJD {
   experience_max?: number;
   education_level?: string;
   certifications: string[];
+  matching_metadata?: unknown;
 }
 
 export interface FullJD extends ParsedJD {
@@ -694,8 +695,9 @@ export function insertJD(jd: ParsedJD, projectId?: string): string {
       required_skills_json, preferred_skills_json,
       experience_min, experience_max,
       education_level, certifications_json,
+      matching_metadata_json,
       created_at, updated_at, project_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   stmt.run(
@@ -709,6 +711,7 @@ export function insertJD(jd: ParsedJD, projectId?: string): string {
     jd.experience_max ?? null,
     jd.education_level || null,
     jd.certifications ? JSON.stringify(jd.certifications) : null,
+    jd.matching_metadata ? JSON.stringify(jd.matching_metadata) : null,
     now,
     now,
     projectId || null
@@ -724,7 +727,7 @@ export function insertJD(jd: ParsedJD, projectId?: string): string {
  */
 export function getJD(id: string): FullJD | null {
   const database = getDatabase();
-  const row = database.prepare('SELECT * FROM job_descriptions WHERE id = ?').get(id) as JDRecord | undefined;
+  const row = database.prepare('SELECT * FROM job_descriptions WHERE id = ?').get(id) as (JDRecord & { matching_metadata_json?: string }) | undefined;
 
   if (!row) return null;
 
@@ -739,6 +742,7 @@ export function getJD(id: string): FullJD | null {
     experience_max: row.experience_max ?? undefined,
     education_level: row.education_level || undefined,
     certifications: JSON.parse(row.certifications_json || '[]'),
+    matching_metadata: row.matching_metadata_json ? JSON.parse(row.matching_metadata_json) : undefined,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };

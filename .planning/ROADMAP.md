@@ -23,7 +23,7 @@ Samsara v1 delivers a local-first CV formatter and JD matching tool that replace
 - [x] **Phase 4.5: Project Homepage & Organization** - Homepage with project-scoped CVs, JDs, and matches for multi-role workflow
 - [x] **Phase 4.6: Queue Infrastructure & Persistence** - Fix timeout bug, DB status column, queue manager, real-time updates
 - [x] **Phase 4.7: Dashboard Enhancements** - Project drag-drop to sidebar, token/API tracking, usage limits
-- [ ] **Phase 4.8: JD Matching Enhancement** - Expanded skills with variants, boolean search generation, search hints
+- [x] **Phase 4.8: JD Matching Enhancement** - Expanded skills with variants, boolean search generation, search hints
 - [x] **Phase 5: Anonymization & Branding** - Redaction, blind profiles, and themed PDF output
 - [ ] **Phase 7: Testing and Bug Fixing Protocol** - Testing architecture upgrade, security gates, automated scanners
 - [ ] **Phase 5.T: Export & Branding Tests** - E2E coverage for PDF generation and anonymization
@@ -220,10 +220,10 @@ Plans:
 **Plans**: 4 plans in 3 waves
 
 Plans:
-- [ ] 04.8-01-PLAN.md — Database schema migration (matching_metadata JSON column)
-- [ ] 04.8-02-PLAN.md — Enhanced JD extraction prompt (skills+variants, booleans, search hints)
-- [ ] 04.8-03-PLAN.md — TypeScript types + Settings UI for boolean syntax configuration
-- [ ] 04.8-04-PLAN.md — SearchTools UI component + matching engine update
+- [x] 04.8-01-PLAN.md — Database schema migration (matching_metadata JSON column)
+- [x] 04.8-02-PLAN.md — Enhanced JD extraction prompt (skills+variants, booleans, search hints)
+- [x] 04.8-03-PLAN.md — TypeScript types + Settings UI for boolean syntax configuration
+- [x] 04.8-04-PLAN.md — SearchTools UI component + matching engine update
 
 ### Phase 5: Anonymization & Branding
 **Goal**: Generate blind profiles and branded client-ready PDFs
@@ -326,16 +326,16 @@ Phases execute in order: 1 → 2 → 2.1 → 3 → 3.T → 4 → 4.T → 4.5 →
 | 4.5. Project Homepage & Organization | 4/4 | Complete | 2026-01-27 |
 | 4.6. Queue Infrastructure & Persistence | 5/5 | Complete | 2026-01-27 |
 | 4.7. Dashboard Enhancements | 5/5 | Complete | 2026-01-27 |
-| 4.8. JD Matching Enhancement | 0/4 | Not started | - |
+| 4.8. JD Matching Enhancement | 4/4 | Complete | 2026-01-28 |
 | 5. Anonymization & Branding | 3/3 | Complete | 2026-01-28 |
 | 7. Testing and Bug Fixing Protocol | 0/4 | Not started | - |
 | 5.T. Export & Branding Tests | 0/1 | Not started | - |
 | 6. Bulk Processing & OS Integration | 0/3 | Not started | - |
 | 6.T. Performance & Integration Tests | 0/1 | Not started | - |
 
-**Total Progress:** 36/42 plans complete
+**Total Progress:** 40/42 plans complete
 
 ---
 *Roadmap created: 2026-01-23*
-*Roadmap updated: 2026-01-28 (Phase 5 complete)*
+*Roadmap updated: 2026-01-28 (Phase 4.8 complete)*
 *Milestone: The Sovereign Formatter (v1)*

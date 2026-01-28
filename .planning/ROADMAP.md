@@ -25,10 +25,10 @@ Samsara v1 delivers a local-first CV formatter and JD matching tool that replace
 - [x] **Phase 4.7: Dashboard Enhancements** - Project drag-drop to sidebar, token/API tracking, usage limits
 - [ ] **Phase 4.8: JD Matching Enhancement** - Expanded skills with variants, boolean search generation, search hints
 - [x] **Phase 5: Anonymization & Branding** - Redaction, blind profiles, and themed PDF output
+- [ ] **Phase 7: Testing and Bug Fixing Protocol** - Testing architecture upgrade, security gates, automated scanners
 - [ ] **Phase 5.T: Export & Branding Tests** - E2E coverage for PDF generation and anonymization
 - [ ] **Phase 6: Bulk Processing & OS Integration** - 100+ file queue with context menu integration
 - [ ] **Phase 6.T: Performance & Integration Tests** - Load testing, memory profiling, and OS integration tests
-- [ ] **Phase 7: Testing and Bug Fixing Protocol** - Comprehensive testing pass and bug resolution
 
 ## Phase Details
 
@@ -243,7 +243,7 @@ Plans:
 
 ### Phase 5.T: Export & Branding Tests
 **Goal**: E2E test coverage for PDF generation and anonymization
-**Depends on**: Phase 5
+**Depends on**: Phase 7 (testing infrastructure must be in place first)
 **Requirements**: None (quality assurance phase)
 **Success Criteria** (what must be TRUE):
   1. Blackout redaction removes all PII from PDF output
@@ -290,7 +290,7 @@ Plans:
 
 ### Phase 7: Testing and Bug Fixing Protocol
 **Goal**: Make Claude bug-test itself with automated security gates, self-auditing prompts, and stacked scanners
-**Depends on**: Phase 6.T
+**Depends on**: Phase 5 (pulled forward - testing infrastructure must be solid before running test phases)
 **Requirements**: None (quality assurance phase)
 **Success Criteria** (what must be TRUE):
   1. CLAUDE.md file in repo root with mandatory pre-completion checks (secrets, injection, validation, tests, types)
@@ -301,30 +301,18 @@ Plans:
   6. Security audit completed: SQL injection, auth bypasses, privilege escalation, input validation gaps
   7. Secret scan passed: no API keys in comments, passwords in configs, tokens in error messages
   8. All identified bugs fixed and verified
-**Plans**: 0 plans (estimated 3-4 plans)
-
-**The Loop:**
-```
-Claude writes code → CLAUDE.md forces self-review → Automated scanners catch the rest → Pre-commit blocks garbage → GitHub Action reviews the PR
-```
-
-**Protocol Stack:**
-- **CLAUDE.md gate**: Automatic checks every session (secrets, injection, path traversal, validation, tests, types)
-- **Self-snitching prompts**: "Write 20 tests to break this", "Find every vulnerability like a pentester", "Generate 50 edge cases"
-- **Tool integrations**: claude-code-action (PR reviews), claude-agent-sdk (batch audits)
-- **Scanner stack**: semgrep, bandit, ruff, mypy, snyk, gitleaks
-- **Pre-commit hooks**: Physical blocker preventing vulnerable commits
+**Plans**: 4 plans in 3 waves
 
 Plans:
-- [ ] 07-01-PLAN.md — CLAUDE.md setup + pre-commit hooks + scanner stack configuration
-- [ ] 07-02-PLAN.md — Self-audit test generation (unit tests, edge cases, fuzzing corpus)
-- [ ] 07-03-PLAN.md — Security audit (injection, auth, secrets scan) + bug fixes
-- [ ] 07-04-PLAN.md — Final verification pass + documentation
+- [ ] 07-01-PLAN.md — CLAUDE.md session gate + pre-commit hooks + scanner stack configuration
+- [ ] 07-02-PLAN.md — Python self-audit tests (pytest + hypothesis edge cases + fuzzing)
+- [ ] 07-03-PLAN.md — TypeScript unit tests (vitest for main process modules)
+- [ ] 07-04-PLAN.md — Security audit + secret scan + bug fixes + final verification
 
 ## Progress
 
 **Execution Order:**
-Phases execute in order: 1 → 2 → 2.1 → 3 → 3.T → 4 → 4.T → 4.5 → 4.6 → 4.7 → 4.8 → 5 → 5.T → 6 → 6.T → 7
+Phases execute in order: 1 → 2 → 2.1 → 3 → 3.T → 4 → 4.T → 4.5 → 4.6 → 4.7 → 4.8 → 5 → 7 → 5.T → 6 → 6.T
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -340,10 +328,10 @@ Phases execute in order: 1 → 2 → 2.1 → 3 → 3.T → 4 → 4.T → 4.5 →
 | 4.7. Dashboard Enhancements | 5/5 | Complete | 2026-01-27 |
 | 4.8. JD Matching Enhancement | 0/4 | Not started | - |
 | 5. Anonymization & Branding | 3/3 | Complete | 2026-01-28 |
+| 7. Testing and Bug Fixing Protocol | 0/4 | Not started | - |
 | 5.T. Export & Branding Tests | 0/1 | Not started | - |
 | 6. Bulk Processing & OS Integration | 0/3 | Not started | - |
 | 6.T. Performance & Integration Tests | 0/1 | Not started | - |
-| 7. Testing and Bug Fixing Protocol | 0/4 | Not started | - |
 
 **Total Progress:** 36/42 plans complete
 

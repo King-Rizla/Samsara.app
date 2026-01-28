@@ -385,6 +385,7 @@ ipcMain.handle('extract-jd', async (_event, text: string, projectId?: string) =>
       experience_max?: number;
       education_level?: string;
       certifications: string[];
+      matching_metadata?: unknown;
       extract_time_ms: number;
       token_usage?: {
         prompt_tokens: number;
@@ -405,6 +406,7 @@ ipcMain.handle('extract-jd', async (_event, text: string, projectId?: string) =>
       experience_max: result.experience_max,
       education_level: result.education_level,
       certifications: result.certifications || [],
+      matching_metadata: result.matching_metadata,
     };
 
     const id = insertJD(jdData, projectId);

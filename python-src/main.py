@@ -453,6 +453,7 @@ def handle_request(request: dict) -> dict:
                     'experience_max': llm_result.experience_max_years,
                     'education_level': llm_result.education_level,
                     'certifications': llm_result.certifications,
+                    'matching_metadata': llm_result.matching_metadata.model_dump() if llm_result.matching_metadata else None,
                     'extract_time_ms': elapsed_ms,
                     'token_usage': token_usage
                 }

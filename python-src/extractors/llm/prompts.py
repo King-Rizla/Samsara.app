@@ -144,9 +144,11 @@ Return as JSON only. Do not include any explanation."""
 # JD (Job Description) Extraction Prompt
 # ============================================================================
 
-JD_EXTRACTION_PROMPT = """You are a job description parser. Extract structured requirements from this job description.
+JD_EXTRACTION_PROMPT = """You are a job description parser. Extract structured requirements AND matching metadata from this job description in a single pass.
 
-## FIELDS TO EXTRACT
+## PART 1: REQUIREMENTS EXTRACTION
+
+Extract these fields:
 - title: Job title exactly as written
 - company: Company name if mentioned (null if not)
 - required_skills: Skills marked as REQUIRED/MANDATORY/MUST-HAVE/ESSENTIAL
@@ -156,8 +158,34 @@ JD_EXTRACTION_PROMPT = """You are a job description parser. Extract structured r
 - education_level: Required education (Bachelor's, Master's, PhD, etc.)
 - certifications: List of required/preferred certifications
 
-## SKILL FORMAT
-Each skill should have: skill (name), importance ("required" or "preferred"), category (if grouped, else null)
+Each skill: {"skill": name, "importance": "required" or "preferred", "category": category or null}
+
+## PART 2: MATCHING METADATA
+
+Generate matching_metadata to help find candidates:
+
+### expanded_skills
+For each key skill from the JD, generate:
+- skill: Original skill name
+- variants: Up to 5 alternative names, abbreviations, synonyms (e.g., "JavaScript" -> ["JS", "ECMAScript", "Javascript"])
+- related_tools: Up to 5 related frameworks, libraries, tools (e.g., "JavaScript" -> ["React", "Node.js", "TypeScript", "Vue", "Angular"])
+
+### boolean_strings
+Three search strings using Boolean syntax (AND, OR, NOT, quotes, parentheses):
+- wide: Broad search, many OR terms, all skill variations. Keep under 250 chars.
+- midline: Balanced - core skills as AND, variations as OR groups. Keep under 250 chars.
+- narrow: Strict - only required skills as AND terms. Keep under 200 chars.
+
+Boolean syntax rules:
+- Use AND between required groups
+- Use OR between alternatives within parentheses
+- Quote multi-word terms: "project management"
+- Example: (Python OR "Python 3") AND (React OR Angular OR Vue) AND "machine learning"
+
+### search_hints
+- suggested_titles: Up to 5 related job titles candidates might hold
+- industries: Up to 3 relevant industries
+- negative_keywords: Up to 5 terms to exclude (e.g., "intern", "junior" for senior roles)
 
 ## OUTPUT FORMAT - Return this exact JSON structure:
 {
@@ -173,11 +201,36 @@ Each skill should have: skill (name), importance ("required" or "preferred"), ca
   "experience_min_years": 5,
   "experience_max_years": null,
   "education_level": "Bachelor's",
-  "certifications": ["AWS Certified"]
+  "certifications": ["AWS Certified"],
+  "matching_metadata": {
+    "expanded_skills": [
+      {
+        "skill": "Python",
+        "variants": ["Python 3", "Python3", "Py"],
+        "related_tools": ["Django", "Flask", "FastAPI", "NumPy", "Pandas"]
+      },
+      {
+        "skill": "SQL",
+        "variants": ["Structured Query Language"],
+        "related_tools": ["PostgreSQL", "MySQL", "SQL Server", "SQLite"]
+      }
+    ],
+    "boolean_strings": {
+      "wide": "(Python OR Py OR Django OR Flask) OR (SQL OR PostgreSQL OR MySQL) OR (Kubernetes OR K8s OR Docker)",
+      "midline": "(Python OR \"Python 3\") AND (SQL OR PostgreSQL OR MySQL) AND (Kubernetes OR K8s)",
+      "narrow": "Python AND SQL AND Kubernetes"
+    },
+    "search_hints": {
+      "suggested_titles": ["Software Engineer", "Backend Developer", "Python Developer", "Full Stack Engineer"],
+      "industries": ["Technology", "Software", "SaaS"],
+      "negative_keywords": ["intern", "junior", "entry level", "graduate", "trainee"]
+    }
+  }
 }
 
 Guidelines:
-- Only extract what is EXPLICITLY stated in the JD
+- Only extract what is EXPLICITLY stated in the JD for Part 1
+- Use your knowledge of the industry for Part 2 (variants, booleans, hints)
 - Do not infer or guess requirements not mentioned
 - Use null for fields not mentioned
 - Return ONLY the JSON object, no explanation"""

@@ -84,6 +84,18 @@ a = Analysis(
         'lxml.etree',
         # charset detection for various encodings
         'charset_normalizer',
+        # ReportLab for Blind Profile PDF generation
+        'reportlab',
+        'reportlab.lib',
+        'reportlab.lib.utils',
+        'reportlab.lib.colors',
+        'reportlab.lib.pagesizes',
+        'reportlab.lib.units',
+        'reportlab.lib.styles',
+        'reportlab.platypus',
+        'reportlab.pdfbase',
+        'reportlab.pdfbase.pdfmetrics',
+        'reportlab.pdfbase._fontdata',
         # OpenAI API client
         'openai',
         'httpx',

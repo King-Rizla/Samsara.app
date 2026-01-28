@@ -546,6 +546,13 @@ def handle_request(request: dict) -> dict:
             output_filename = f"{base_name}_CV.pdf"
             output_path = os.path.join(output_dir, output_filename)
 
+            # Avoid overwriting existing files (bulk export with same name)
+            counter = 1
+            while os.path.exists(output_path):
+                output_filename = f"{base_name}_CV ({counter}).pdf"
+                output_path = os.path.join(output_dir, output_filename)
+                counter += 1
+
             # Write PDF to output directory
             with open(output_path, 'wb') as f:
                 f.write(output_bytes)

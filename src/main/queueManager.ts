@@ -22,6 +22,7 @@ export interface QueueStatusUpdate {
   data?: ParsedCV;
   error?: string;
   parseConfidence?: number;
+  projectId?: string;
 }
 
 export interface EnqueueInput {
@@ -72,7 +73,7 @@ export class QueueManager {
     console.log(`QueueManager: Enqueued CV ${id} (${input.fileName})`);
 
     // 2. Notify UI
-    this.notifyStatus({ id, status: 'queued' });
+    this.notifyStatus({ id, status: 'queued', projectId: input.projectId });
 
     // 3. Trigger processing (async, don't await)
     this.processNext();
@@ -104,7 +105,7 @@ export class QueueManager {
     // Mark as processing in DB and notify UI
     const startedAt = new Date().toISOString();
     updateCVStatus(id, 'processing', { startedAt });
-    this.notifyStatus({ id, status: 'processing' });
+    this.notifyStatus({ id, status: 'processing', projectId: project_id });
 
     // Timeout will start when Python confirms processing has begun (ACK)
     // This ensures CVs waiting in queue get their full timeout window
@@ -116,7 +117,7 @@ export class QueueManager {
         // Python has confirmed processing started - NOW start timeout
         console.log(`QueueManager: Python ACK received for CV ${id}, starting ${this.timeoutMs}ms timeout`);
         timeoutId = setTimeout(() => {
-          this.handleTimeout(id);
+          this.handleTimeout(id, project_id);
         }, this.timeoutMs);
       }) as ParsedCV & {
         token_usage?: {
@@ -156,6 +157,7 @@ export class QueueManager {
         status: 'completed',
         data: result,
         parseConfidence: result.parse_confidence,
+        projectId: project_id,
       });
     } catch (error) {
       // Clear timeout if set
@@ -172,6 +174,7 @@ export class QueueManager {
         id,
         status: 'failed',
         error: errorMessage,
+        projectId: project_id,
       });
     }
 
@@ -185,7 +188,7 @@ export class QueueManager {
    * Handle timeout for a CV.
    * Called when processing takes longer than timeoutMs.
    */
-  private handleTimeout(id: string): void {
+  private handleTimeout(id: string, projectId?: string): void {
     console.warn(`QueueManager: Timeout for CV ${id}`);
 
     const errorMessage = 'Extraction timed out. The LLM may be overloaded - try again.';
@@ -198,6 +201,7 @@ export class QueueManager {
       id,
       status: 'failed',
       error: errorMessage,
+      projectId,
     });
 
     // Note: processing flag will be cleared by the extractCV promise

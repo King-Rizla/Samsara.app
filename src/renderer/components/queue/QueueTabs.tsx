@@ -57,7 +57,7 @@ export function QueueTabs() {
   return (
     <div className="flex flex-col h-full">
       <Tabs defaultValue="completed" className="flex-1 flex flex-col" onValueChange={handleTabChange}>
-        <div className="flex items-center justify-between px-4 py-2 border-b border-border">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 border-b border-border">
           <TabsList className="bg-transparent gap-2">
             <TabsTrigger
               value="completed"
@@ -82,14 +82,14 @@ export function QueueTabs() {
           <QueueControls onBulkExport={handleBulkExport} />
         </div>
 
-        <div className="flex-1 min-h-0">
-          <TabsContent value="completed" className="h-full m-0 p-0 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-hidden relative">
+          <TabsContent value="completed" className="absolute inset-0 m-0 p-0 overflow-y-auto">
             <QueueList status="completed" onExport={handleExport} />
           </TabsContent>
-          <TabsContent value="submitted" className="h-full m-0 p-0 overflow-y-auto">
+          <TabsContent value="submitted" className="absolute inset-0 m-0 p-0 overflow-y-auto">
             <QueueList status="submitted" />
           </TabsContent>
-          <TabsContent value="failed" className="h-full m-0 p-0 overflow-y-auto">
+          <TabsContent value="failed" className="absolute inset-0 m-0 p-0 overflow-y-auto">
             <QueueList status="failed" />
           </TabsContent>
         </div>

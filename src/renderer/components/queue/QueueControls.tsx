@@ -65,9 +65,9 @@ export function QueueControls({ onBulkExport }: QueueControlsProps) {
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-sm text-muted-foreground">
-        {selectedCount} selected
+    <div className="flex items-center gap-1 flex-shrink-0">
+      <span className="text-xs text-muted-foreground whitespace-nowrap">
+        {selectedCount} sel.
       </span>
 
       {completedSelectedIds.length > 0 && onBulkExport && (
@@ -75,10 +75,10 @@ export function QueueControls({ onBulkExport }: QueueControlsProps) {
           variant="outline"
           size="sm"
           onClick={handleExport}
-          className="btn-terminal"
+          className="btn-terminal h-6 px-2 text-xs"
         >
-          <Download className="h-4 w-4 mr-1" />
-          Export {completedSelectedIds.length > 1 ? `(${completedSelectedIds.length})` : ''}
+          <Download className="h-3 w-3 mr-1" />
+          Export
         </Button>
       )}
 
@@ -87,7 +87,7 @@ export function QueueControls({ onBulkExport }: QueueControlsProps) {
           variant="outline"
           size="sm"
           onClick={handleRetry}
-          className="btn-terminal"
+          className="btn-terminal h-6 px-2 text-xs"
         >
           Retry
         </Button>
@@ -97,7 +97,7 @@ export function QueueControls({ onBulkExport }: QueueControlsProps) {
         variant="outline"
         size="sm"
         onClick={handleDelete}
-        className="text-destructive hover:text-destructive hover:bg-destructive/10 hover:border-destructive"
+        className="text-destructive hover:text-destructive hover:bg-destructive/10 hover:border-destructive h-6 px-2 text-xs"
       >
         Delete
       </Button>
@@ -106,7 +106,7 @@ export function QueueControls({ onBulkExport }: QueueControlsProps) {
         variant="ghost"
         size="sm"
         onClick={clearSelection}
-        className="text-muted-foreground"
+        className="text-muted-foreground h-6 px-2 text-xs"
       >
         Clear
       </Button>

@@ -11,22 +11,22 @@ export function JDPanel() {
     <div className="h-full flex flex-col overflow-hidden">
       <Tabs defaultValue="jds" className="flex-1 flex flex-col min-h-0">
         <div className="border-b border-border px-4 flex-shrink-0">
-          <TabsList className="bg-transparent">
+          <TabsList className="bg-transparent gap-2">
             <TabsTrigger
               value="jds"
-              className="data-[state=active]:bg-muted"
+              className="border border-border hover:border-primary transition-colors data-[state=active]:bg-muted data-[state=active]:border-primary"
             >
               Job Descriptions
             </TabsTrigger>
             <TabsTrigger
               value="add"
-              className="data-[state=active]:bg-muted"
+              className="border border-border hover:border-primary transition-colors data-[state=active]:bg-muted data-[state=active]:border-primary"
             >
               Add JD
             </TabsTrigger>
             <TabsTrigger
               value="results"
-              className="data-[state=active]:bg-muted"
+              className="border border-border hover:border-primary transition-colors data-[state=active]:bg-muted data-[state=active]:border-primary disabled:hover:border-border"
               disabled={!activeJD}
             >
               Match Results

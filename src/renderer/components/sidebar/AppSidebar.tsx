@@ -67,18 +67,20 @@ function SortablePinnedProject({
       >
         <FolderOpen className="h-4 w-4" />
         <span className="truncate flex-1">{project.name}</span>
-        {/* X button to unpin - visible on hover */}
-        <button
+        {/* X to unpin - uses div to avoid button-in-button nesting */}
+        <div
+          role="button"
+          tabIndex={-1}
           onClick={(e) => {
             e.stopPropagation();
             onUnpin?.(project.id);
           }}
           onPointerDown={(e) => e.stopPropagation()}
-          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/20 rounded transition-opacity"
+          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/20 rounded transition-opacity cursor-pointer"
           title="Unpin project"
         >
           <X className="h-3 w-3" />
-        </button>
+        </div>
       </SidebarMenuButton>
     </SidebarMenuItem>
   );

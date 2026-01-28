@@ -98,6 +98,7 @@ interface QueueStatusUpdate {
   data?: unknown;  // ParsedCV
   error?: string;
   parseConfidence?: number;
+  projectId?: string;
 }
 
 interface QueuedCV {
@@ -226,8 +227,8 @@ contextBridge.exposeInMainWorld('api', {
    * Optionally associate with a project.
    * Returns { success: boolean, data?: ParsedCV, error?: string }
    */
-  reprocessCV: (filePath: string, projectId?: string): Promise<ExtractResult> =>
-    ipcRenderer.invoke('reprocess-cv', filePath, projectId),
+  reprocessCV: (filePath: string, projectId?: string, existingCvId?: string): Promise<ExtractResult> =>
+    ipcRenderer.invoke('reprocess-cv', filePath, projectId, existingCvId),
 
   // JD (Job Description) operations
 

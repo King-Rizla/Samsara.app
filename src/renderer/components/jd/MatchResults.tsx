@@ -68,6 +68,12 @@ export function MatchResults() {
     return item?.fileName || 'Unknown CV';
   };
 
+  // Filter match results to only show CVs that exist in current project
+  // This prevents showing stale results from CVs that were deleted or from other projects
+  const filteredMatchResults = matchResults.filter(result =>
+    queueItems.some(item => item.id === result.cv_id)
+  );
+
   return (
     <div className="h-full flex flex-col">
       {/* Header with JD info */}
@@ -113,19 +119,19 @@ export function MatchResults() {
 
       {/* Results list */}
       <div className="flex-1 overflow-y-auto p-2">
-        {matchResults.length === 0 ? (
+        {filteredMatchResults.length === 0 ? (
           <div className="p-4 text-center text-muted-foreground">
             <p>No match results yet.</p>
             <p className="text-sm mt-1">Match CVs against this JD to see rankings.</p>
           </div>
         ) : (
           <div className="space-y-2">
-            {matchResults.map((result, index) => {
+            {filteredMatchResults.map((result, index) => {
               const quality = getMatchQuality(result.match_score);
               return (
                 <div
                   key={result.cv_id}
-                  className="p-3 rounded-md border border-border hover:border-muted-foreground
+                  className="p-3 rounded-md border border-border bg-card hover:border-muted-foreground
                              cursor-pointer transition-colors"
                   onClick={() => loadCV(result.cv_id)}
                 >

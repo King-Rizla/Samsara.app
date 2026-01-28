@@ -18,7 +18,7 @@ export function ProjectView() {
   const navigate = useNavigate();
 
   const loadFromDatabase = useQueueStore((state) => state.loadFromDatabase);
-  const loadJDs = useJDStore((state) => state.loadJDs);
+  const { loadJDs, clearActiveJD } = useJDStore();
   const viewMode = useEditorStore((state) => state.viewMode);
   const { selectProject, projects } = useProjectStore();
 
@@ -34,10 +34,12 @@ export function ProjectView() {
 
   useEffect(() => {
     if (projectId) {
+      // Clear active JD from previous project before loading new data
+      clearActiveJD();
       loadFromDatabase();
       loadJDs();
     }
-  }, [projectId, loadFromDatabase, loadJDs]);
+  }, [projectId, clearActiveJD, loadFromDatabase, loadJDs]);
 
   const isPanelOpen = viewMode !== null || showSettings;
 
@@ -76,16 +78,16 @@ export function ProjectView() {
 
       {/* Main content */}
       <main className="flex-1 overflow-hidden flex">
-        <div data-testid="queue-panel" className={`border-r border-border ${isPanelOpen ? 'w-1/3' : 'w-1/2'}`}>
+        <div data-testid="queue-panel" className={`border-r border-border min-w-0 overflow-hidden ${isPanelOpen ? 'w-1/3' : 'w-1/2'}`}>
           <QueueTabs />
         </div>
 
-        <div data-testid="jd-panel" className={`border-r border-border ${isPanelOpen ? 'w-1/3' : 'w-1/2'}`}>
+        <div data-testid="jd-panel" className={`border-r border-border min-w-0 overflow-hidden ${isPanelOpen ? 'w-1/3' : 'w-1/2'}`}>
           <JDPanel />
         </div>
 
         {showSettings && (
-          <div className="w-1/3 border-l border-border">
+          <div className="w-1/3 min-w-0 overflow-hidden border-l border-border">
             <div className="p-4 border-b border-border">
               <h2 className="text-sm font-medium text-foreground">Settings</h2>
             </div>
@@ -93,17 +95,17 @@ export function ProjectView() {
           </div>
         )}
         {!showSettings && viewMode === 'cv' && (
-          <div className="w-1/3">
+          <div className="w-1/3 min-w-0 overflow-hidden">
             <CVEditor />
           </div>
         )}
         {!showSettings && viewMode === 'error' && (
-          <div className="w-1/3">
+          <div className="w-1/3 min-w-0 overflow-hidden">
             <ErrorDetailPanel />
           </div>
         )}
         {!showSettings && viewMode === 'jd' && (
-          <div className="w-1/3 overflow-y-auto">
+          <div className="w-1/3 min-w-0 overflow-y-auto">
             <JDDetail />
           </div>
         )}

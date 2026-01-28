@@ -165,7 +165,8 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
   clearSelection: () => set({ selectedIds: new Set(), lastSelectedId: null }),
 
   retryFailed: async (ids) => {
-    const { items, updateStatus, updateStage } = get();
+    const { items, updateStatus, updateStage, clearSelection } = get();
+    clearSelection();
     const projectId = useProjectStore.getState().activeProjectId;
     for (const id of ids) {
       const item = items.find((i) => i.id === id);
@@ -175,7 +176,7 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
 
         try {
           // Pass activeProjectId to associate reprocessed CV with current project
-          const result = await window.api.reprocessCV(item.filePath, projectId || undefined);
+          const result = await window.api.reprocessCV(item.filePath, projectId || undefined, id);
           if (result.success && result.data) {
             updateStatus(id, 'completed', {
               data: result.data,
@@ -275,6 +276,12 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
   },
 
   handleQueueStatusUpdate: (update: QueueStatusUpdate) => {
+    // Ignore updates for other projects
+    const activeProjectId = useProjectStore.getState().activeProjectId;
+    if (update.projectId && activeProjectId && update.projectId !== activeProjectId) {
+      return;
+    }
+
     const { items, addItem, updateStatus, updateStage } = get();
 
     // Check if item exists in store

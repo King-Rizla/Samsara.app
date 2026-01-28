@@ -300,7 +300,7 @@ ipcMain.handle('delete-cv', async (_event, cvId: string) => {
  * Returns { success: true, data: ParsedCV, id: string } on success
  * Returns { success: false, error: string } on failure
  */
-ipcMain.handle('reprocess-cv', async (_event, filePath: string, projectId?: string) => {
+ipcMain.handle('reprocess-cv', async (_event, filePath: string, projectId?: string, existingCvId?: string) => {
   const startTime = Date.now();
 
   // Validate file path
@@ -327,11 +327,18 @@ ipcMain.handle('reprocess-cv', async (_event, filePath: string, projectId?: stri
     // Extract CV using Python sidecar (same as extract-cv)
     const cvData = await extractCV(filePath) as ParsedCV;
 
-    // Persist to database with project association (creates new entry)
-    const id = insertCV(cvData, filePath, projectId);
+    let id: string;
+    if (existingCvId) {
+      // Retry: update existing failed record in-place
+      completeCVProcessing(existingCvId, cvData);
+      id = existingCvId;
+    } else {
+      // Fresh reprocess: create new entry
+      id = insertCV(cvData, filePath, projectId);
+    }
 
     const totalTime = Date.now() - startTime;
-    console.log(`CV reprocess completed in ${totalTime}ms`);
+    console.log(`CV reprocess completed in ${totalTime}ms (${existingCvId ? 'retry' : 'new'})`);
 
     return {
       success: true,

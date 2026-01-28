@@ -1,12 +1,13 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from "react";
 
 /**
  * Returns a debounced version of the callback.
  * The callback will be called after `delay` ms of no calls.
  */
-export function useDebounce<T extends (...args: any[]) => any>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function useDebounce<T extends (...args: unknown[]) => unknown>(
   callback: T,
-  delay: number
+  delay: number,
 ): T {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const callbackRef = useRef(callback);
@@ -25,7 +26,7 @@ export function useDebounce<T extends (...args: any[]) => any>(
         callbackRef.current(...args);
       }, delay);
     },
-    [delay]
+    [delay],
   ) as T;
 
   // Cleanup on unmount

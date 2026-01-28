@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { useEffect, useState, useCallback } from "react";
+import { MemoryRouter, Routes, Route } from "react-router-dom";
 import {
   DndContext,
   DragOverlay,
@@ -9,20 +9,23 @@ import {
   useSensor,
   useSensors,
   pointerWithin,
-  rectIntersection,
-} from '@dnd-kit/core';
-import { arrayMove } from '@dnd-kit/sortable';
-import { FolderOpen } from 'lucide-react';
-import { Toaster } from 'sonner';
-import { SidebarProvider, SidebarInset, SidebarTrigger } from './components/ui/sidebar';
-import { AppSidebar } from './components/sidebar/AppSidebar';
-import { Dashboard } from './routes/Dashboard';
-import { ProjectView } from './routes/ProjectView';
-import { Settings } from './routes/Settings';
-import { TooltipProvider } from './components/ui/tooltip';
-import { useQueueStore } from './stores/queueStore';
-import { useSettingsStore } from './stores/settingsStore';
-import './styles/globals.css';
+} from "@dnd-kit/core";
+import { arrayMove } from "@dnd-kit/sortable";
+import { FolderOpen } from "lucide-react";
+import { Toaster } from "sonner";
+import {
+  SidebarProvider,
+  SidebarInset,
+  SidebarTrigger,
+} from "./components/ui/sidebar";
+import { AppSidebar } from "./components/sidebar/AppSidebar";
+import { Dashboard } from "./routes/Dashboard";
+import { ProjectView } from "./routes/ProjectView";
+import { Settings } from "./routes/Settings";
+import { TooltipProvider } from "./components/ui/tooltip";
+import { useQueueStore } from "./stores/queueStore";
+import { useSettingsStore } from "./stores/settingsStore";
+import "./styles/globals.css";
 
 interface PinnedProject {
   id: string;
@@ -30,7 +33,9 @@ interface PinnedProject {
 }
 
 export function App() {
-  const [activeProject, setActiveProject] = useState<PinnedProject | null>(null);
+  const [activeProject, setActiveProject] = useState<PinnedProject | null>(
+    null,
+  );
   const [pinnedProjects, setPinnedProjects] = useState<PinnedProject[]>([]);
 
   // Configure sensors with distance constraint to prevent accidental drags
@@ -39,14 +44,14 @@ export function App() {
       activationConstraint: {
         distance: 8, // 8px movement required to start drag
       },
-    })
+    }),
   );
 
   // Load pinned projects on mount
   const loadPinnedProjects = useCallback(async () => {
     const result = await window.api.getPinnedProjects();
     if (result.success && result.data) {
-      setPinnedProjects(result.data.map(p => ({ id: p.id, name: p.name })));
+      setPinnedProjects(result.data.map((p) => ({ id: p.id, name: p.name })));
     }
   }, []);
 
@@ -64,7 +69,7 @@ export function App() {
     const handleStatusUpdate = useQueueStore.getState().handleQueueStatusUpdate;
 
     window.api.onQueueStatusUpdate((update) => {
-      console.log('Queue status update:', update);
+      console.log("Queue status update:", update);
       handleStatusUpdate(update);
     });
 
@@ -76,7 +81,7 @@ export function App() {
 
   const handleDragStart = (event: DragStartEvent) => {
     const data = event.active.data.current;
-    if (data?.type === 'project' || data?.type === 'pinned-project') {
+    if (data?.type === "project" || data?.type === "pinned-project") {
       setActiveProject({
         id: data.project.id,
         name: data.project.name,
@@ -91,44 +96,47 @@ export function App() {
     const activeData = active.data.current;
 
     // Case 1: Dropping unpinned project onto sidebar drop zone
-    if (over?.id === 'sidebar-quick-access' && activeData?.type === 'project') {
+    if (over?.id === "sidebar-quick-access" && activeData?.type === "project") {
       const project = activeData.project;
-      if (!pinnedProjects.some(p => p.id === project.id)) {
+      if (!pinnedProjects.some((p) => p.id === project.id)) {
         const result = await window.api.setPinnedProject(project.id, true);
         if (result.success) {
-          setPinnedProjects(prev => [...prev, { id: project.id, name: project.name }]);
+          setPinnedProjects((prev) => [
+            ...prev,
+            { id: project.id, name: project.name },
+          ]);
         }
       }
       return;
     }
 
     // Case 2: Reordering pinned projects within sidebar
-    if (activeData?.type === 'pinned-project' && over) {
-      const activeId = active.id.toString().replace('pinned-', '');
-      const overId = over.id.toString().replace('pinned-', '');
+    if (activeData?.type === "pinned-project" && over) {
+      const activeId = active.id.toString().replace("pinned-", "");
+      const overId = over.id.toString().replace("pinned-", "");
 
-      if (activeId !== overId && overId !== 'sidebar-quick-access') {
-        const oldIndex = pinnedProjects.findIndex(p => p.id === activeId);
-        const newIndex = pinnedProjects.findIndex(p => p.id === overId);
+      if (activeId !== overId && overId !== "sidebar-quick-access") {
+        const oldIndex = pinnedProjects.findIndex((p) => p.id === activeId);
+        const newIndex = pinnedProjects.findIndex((p) => p.id === overId);
 
         if (oldIndex !== -1 && newIndex !== -1) {
           const newOrder = arrayMove(pinnedProjects, oldIndex, newIndex);
           setPinnedProjects(newOrder);
           // Persist new order
-          await window.api.reorderPinnedProjects(newOrder.map(p => p.id));
+          await window.api.reorderPinnedProjects(newOrder.map((p) => p.id));
         }
         return;
       }
 
       // Case 3: Dragging pinned project OUT of sidebar (unpin via drag-back)
       // If dropped anywhere that's not the sidebar or another pinned item, unpin it
-      if (over.id !== 'sidebar-quick-access') {
-        const isOverPinnedItem = over.id.toString().startsWith('pinned-');
+      if (over.id !== "sidebar-quick-access") {
+        const isOverPinnedItem = over.id.toString().startsWith("pinned-");
         if (!isOverPinnedItem) {
           const projectId = activeData.project.id;
           const result = await window.api.setPinnedProject(projectId, false);
           if (result.success) {
-            setPinnedProjects(prev => prev.filter(p => p.id !== projectId));
+            setPinnedProjects((prev) => prev.filter((p) => p.id !== projectId));
           }
         }
       }
@@ -139,7 +147,7 @@ export function App() {
   const handleUnpin = async (projectId: string) => {
     const result = await window.api.setPinnedProject(projectId, false);
     if (result.success) {
-      setPinnedProjects(prev => prev.filter(p => p.id !== projectId));
+      setPinnedProjects((prev) => prev.filter((p) => p.id !== projectId));
     }
   };
 
@@ -150,7 +158,7 @@ export function App() {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <MemoryRouter initialEntries={['/']}>
+      <MemoryRouter initialEntries={["/"]}>
         <TooltipProvider>
           <SidebarProvider>
             <div className="flex h-screen w-full bg-background">
@@ -189,7 +197,7 @@ export function App() {
       <Toaster
         position="bottom-right"
         toastOptions={{
-          className: 'bg-card border-border text-foreground',
+          className: "bg-card border-border text-foreground",
           duration: Infinity,
         }}
       />

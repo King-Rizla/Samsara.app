@@ -1,29 +1,33 @@
-import { useMemo, useCallback, useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { useQueueStore } from '../../stores/queueStore';
-import { QueueList } from './QueueList';
-import { QueueControls } from './QueueControls';
-import { DropZone } from './DropZone';
-import { ExportModal } from '../export/ExportModal';
+import { useMemo, useCallback, useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { useQueueStore } from "../../stores/queueStore";
+import { QueueList } from "./QueueList";
+import { QueueControls } from "./QueueControls";
+import { DropZone } from "./DropZone";
+import { ExportModal } from "../export/ExportModal";
 
 export function QueueTabs() {
   const items = useQueueStore((state) => state.items);
-  const selectedIds = useQueueStore((state) => state.selectedIds);
   const clearSelection = useQueueStore((state) => state.clearSelection);
 
   // Export modal state
   const [exportModalOpen, setExportModalOpen] = useState(false);
-  const [exportCvId, setExportCvId] = useState<string>('');
+  const [exportCvId, setExportCvId] = useState<string>("");
   const [exportCvIds, setExportCvIds] = useState<string[]>([]);
-  const [exportCvName, setExportCvName] = useState<string>('');
+  const [exportCvName, setExportCvName] = useState<string>("");
 
   // Memoize counts to avoid recalculating on every render
   // Submitted tab shows both 'queued' and 'submitted' items (all in-progress CVs)
-  const counts = useMemo(() => ({
-    completed: items.filter((i) => i.status === 'completed').length,
-    submitted: items.filter((i) => i.status === 'submitted' || i.status === 'queued').length,
-    failed: items.filter((i) => i.status === 'failed').length,
-  }), [items]);
+  const counts = useMemo(
+    () => ({
+      completed: items.filter((i) => i.status === "completed").length,
+      submitted: items.filter(
+        (i) => i.status === "submitted" || i.status === "queued",
+      ).length,
+      failed: items.filter((i) => i.status === "failed").length,
+    }),
+    [items],
+  );
 
   // Clear selection when switching tabs
   const handleTabChange = useCallback(() => {
@@ -42,21 +46,25 @@ export function QueueTabs() {
   const handleBulkExport = useCallback((cvIds: string[]) => {
     setExportCvId(cvIds[0]);
     setExportCvIds(cvIds);
-    setExportCvName('');
+    setExportCvName("");
     setExportModalOpen(true);
   }, []);
 
   // Close export modal
   const handleCloseExport = useCallback(() => {
     setExportModalOpen(false);
-    setExportCvId('');
+    setExportCvId("");
     setExportCvIds([]);
-    setExportCvName('');
+    setExportCvName("");
   }, []);
 
   return (
     <div className="flex flex-col h-full">
-      <Tabs defaultValue="completed" className="flex-1 flex flex-col" onValueChange={handleTabChange}>
+      <Tabs
+        defaultValue="completed"
+        className="flex-1 flex flex-col"
+        onValueChange={handleTabChange}
+      >
         <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 border-b border-border">
           <TabsList className="bg-transparent gap-2">
             <TabsTrigger
@@ -83,13 +91,22 @@ export function QueueTabs() {
         </div>
 
         <div className="flex-1 min-h-0 overflow-hidden relative">
-          <TabsContent value="completed" className="absolute inset-0 m-0 p-0 overflow-y-auto">
+          <TabsContent
+            value="completed"
+            className="absolute inset-0 m-0 p-0 overflow-y-auto"
+          >
             <QueueList status="completed" onExport={handleExport} />
           </TabsContent>
-          <TabsContent value="submitted" className="absolute inset-0 m-0 p-0 overflow-y-auto">
+          <TabsContent
+            value="submitted"
+            className="absolute inset-0 m-0 p-0 overflow-y-auto"
+          >
             <QueueList status="submitted" />
           </TabsContent>
-          <TabsContent value="failed" className="absolute inset-0 m-0 p-0 overflow-y-auto">
+          <TabsContent
+            value="failed"
+            className="absolute inset-0 m-0 p-0 overflow-y-auto"
+          >
             <QueueList status="failed" />
           </TabsContent>
         </div>

@@ -83,7 +83,7 @@ def check_pdf_readable(file_path: str) -> Tuple[bool, str]:
     except Exception as e:
         try:
             doc.close()
-        except:
+        except Exception:  # noqa: S110
             pass
         return False, f"Error checking PDF: {str(e)}"
 
@@ -276,7 +276,7 @@ def extract_tables_with_pdfplumber(file_path: str, pages_with_tables: List[int])
                         ))
     except Exception as e:
         # Tables are optional, don't fail parsing
-        pass
+        print(f"Table extraction warning: {e}", file=sys.stderr)
 
     return tables
 
@@ -330,8 +330,8 @@ def parse_pdf(file_path: str) -> ParseResult:
                     tables = page.find_tables()
                 if tables.tables:
                     pages_with_tables.append(page_num)
-            except Exception:
-                pass  # Table detection is optional
+            except Exception:  # noqa: S110
+                pass
 
         page_count = doc.page_count
         doc.close()
@@ -358,6 +358,6 @@ def parse_pdf(file_path: str) -> ParseResult:
     except Exception as e:
         try:
             doc.close()
-        except:
+        except Exception:  # noqa: S110
             pass
         raise RuntimeError(f"Failed to parse PDF: {str(e)}")

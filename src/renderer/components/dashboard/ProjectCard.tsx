@@ -59,7 +59,7 @@ export function ProjectCard({ project, tokenUsage, llmMode = 'local', onArchive,
       {...attributes}
     >
       <CardHeader
-        className="flex flex-row items-start justify-between space-y-0 pb-2 cursor-grab"
+        className="flex flex-row items-start justify-between space-y-0 pb-2 cursor-grab select-none"
         {...listeners}
       >
         <div

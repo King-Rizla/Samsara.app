@@ -11,8 +11,10 @@ import { BrowserWindow } from 'electron';
 import {
   insertQueuedCV, updateCVStatus, completeCVProcessing,
   getNextQueuedCV, resetProcessingCVs, ParsedCV,
+  recordUsageEvent,
 } from './database';
 import { extractCV } from './pythonManager';
+import { loadSettings } from './settings';
 
 export interface QueueStatusUpdate {
   id: string;
@@ -95,7 +97,7 @@ export class QueueManager {
     }
 
     this.processing = true;
-    const { id, file_path } = next;
+    const { id, file_path, project_id } = next;
 
     console.log(`QueueManager: Processing CV ${id} (${file_path})`);
 
@@ -116,13 +118,35 @@ export class QueueManager {
         timeoutId = setTimeout(() => {
           this.handleTimeout(id);
         }, this.timeoutMs);
-      }) as ParsedCV;
+      }) as ParsedCV & {
+        token_usage?: {
+          prompt_tokens: number;
+          completion_tokens: number;
+          total_tokens: number;
+          model?: string;
+        };
+      };
 
       // Clear timeout - processing succeeded
       if (timeoutId) clearTimeout(timeoutId);
 
       // Save extracted data and mark completed
       completeCVProcessing(id, result);
+
+      // Record token usage if present
+      if (result.token_usage) {
+        const settings = loadSettings();
+        recordUsageEvent({
+          projectId: project_id || 'default-project',
+          eventType: 'cv_extraction',
+          promptTokens: result.token_usage.prompt_tokens || 0,
+          completionTokens: result.token_usage.completion_tokens || 0,
+          totalTokens: result.token_usage.total_tokens || 0,
+          llmMode: settings.llmMode,
+          model: result.token_usage.model,
+        });
+        console.log(`QueueManager: Recorded ${result.token_usage.total_tokens} tokens for CV ${id}`);
+      }
 
       console.log(`QueueManager: Completed CV ${id}`);
 

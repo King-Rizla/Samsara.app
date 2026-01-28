@@ -24,7 +24,7 @@ Samsara v1 delivers a local-first CV formatter and JD matching tool that replace
 - [x] **Phase 4.6: Queue Infrastructure & Persistence** - Fix timeout bug, DB status column, queue manager, real-time updates
 - [x] **Phase 4.7: Dashboard Enhancements** - Project drag-drop to sidebar, token/API tracking, usage limits
 - [ ] **Phase 4.8: JD Matching Enhancement** - Expanded skills with variants, boolean search generation, search hints
-- [ ] **Phase 5: Anonymization & Branding** - Redaction, blind profiles, and themed PDF output
+- [x] **Phase 5: Anonymization & Branding** - Redaction, blind profiles, and themed PDF output
 - [ ] **Phase 5.T: Export & Branding Tests** - E2E coverage for PDF generation and anonymization
 - [ ] **Phase 6: Bulk Processing & OS Integration** - 100+ file queue with context menu integration
 - [ ] **Phase 6.T: Performance & Integration Tests** - Load testing, memory profiling, and OS integration tests
@@ -237,9 +237,9 @@ Plans:
 **Plans**: 3 plans in 3 waves
 
 Plans:
-- [ ] 05-01-PLAN.md — Redaction engine with PyMuPDF (Full/Client/Punt modes)
-- [ ] 05-02-PLAN.md — Blind Profile generation with ReportLab and recruiter settings
-- [ ] 05-03-PLAN.md — Export UI with mode selection and bulk export
+- [x] 05-01-PLAN.md — Redaction engine with PyMuPDF (Full/Client/Punt modes)
+- [x] 05-02-PLAN.md — Blind Profile generation with ReportLab and recruiter settings
+- [x] 05-03-PLAN.md — Export UI with mode selection and bulk export
 
 ### Phase 5.T: Export & Branding Tests
 **Goal**: E2E test coverage for PDF generation and anonymization
@@ -339,15 +339,15 @@ Phases execute in order: 1 → 2 → 2.1 → 3 → 3.T → 4 → 4.T → 4.5 →
 | 4.6. Queue Infrastructure & Persistence | 5/5 | Complete | 2026-01-27 |
 | 4.7. Dashboard Enhancements | 5/5 | Complete | 2026-01-27 |
 | 4.8. JD Matching Enhancement | 0/4 | Not started | - |
-| 5. Anonymization & Branding | 0/3 | Not started | - |
+| 5. Anonymization & Branding | 3/3 | Complete | 2026-01-28 |
 | 5.T. Export & Branding Tests | 0/1 | Not started | - |
 | 6. Bulk Processing & OS Integration | 0/3 | Not started | - |
 | 6.T. Performance & Integration Tests | 0/1 | Not started | - |
 | 7. Testing and Bug Fixing Protocol | 0/4 | Not started | - |
 
-**Total Progress:** 33/42 plans complete
+**Total Progress:** 36/42 plans complete
 
 ---
 *Roadmap created: 2026-01-23*
-*Roadmap updated: 2026-01-28 (Phase 4.8 planned)*
+*Roadmap updated: 2026-01-28 (Phase 5 complete)*
 *Milestone: The Sovereign Formatter (v1)*

@@ -151,6 +151,13 @@ interface PinnedProjectsResult {
   error?: string;
 }
 
+// Export CV result type (Phase 5)
+interface ExportCVResult {
+  success: boolean;
+  outputPath?: string;
+  error?: string;
+}
+
 /**
  * Expose protected methods to the renderer process.
  * This maintains security by using contextBridge instead of nodeIntegration.
@@ -393,6 +400,19 @@ contextBridge.exposeInMainWorld('api', {
    */
   updateAppSettings: (updates: { globalTokenLimit?: number; warningThreshold?: number }): Promise<AppSettingsResult> =>
     ipcRenderer.invoke('update-app-settings', updates),
+
+  // CV Export operations (Phase 5)
+
+  /**
+   * Export CV with optional redaction.
+   * mode: 'full' | 'client' | 'punt'
+   *   - full: No redaction
+   *   - client: Remove phone and email (default)
+   *   - punt: Remove phone, email, AND name
+   * Returns { success: boolean, outputPath?: string, error?: string }
+   */
+  exportCV: (cvId: string, mode: 'full' | 'client' | 'punt', outputDir?: string): Promise<ExportCVResult> =>
+    ipcRenderer.invoke('export-cv', cvId, mode, outputDir),
 });
 
 /**

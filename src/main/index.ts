@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import started from 'electron-squirrel-startup';
 import {
   initDatabase, closeDatabase,
-  insertCV, getAllCVs, getCVFull, updateCVField, deleteCV, ParsedCV,
+  insertCV, getAllCVs, getCV, getCVFull, updateCVField, deleteCV, ParsedCV,
   insertJD, getJD, getAllJDs, deleteJD, ParsedJD,
   insertMatchResult, getMatchResultsForJD,
   createProject, getAllProjects, getProject, updateProject, deleteProject, getAggregateStats,
@@ -980,5 +980,71 @@ ipcMain.handle('update-app-settings', async (_event, updates: Partial<Omit<AppSe
   } catch (error) {
     console.error('update-app-settings error:', error);
     return { success: false, error: String(error) };
+  }
+});
+
+// ============================================================================
+// CV Export IPC Handlers (Phase 5)
+// ============================================================================
+
+/**
+ * Export CV with optional redaction.
+ * mode: 'full' | 'client' | 'punt'
+ *   - full: No redaction
+ *   - client: Remove phone and email (default)
+ *   - punt: Remove phone, email, AND name
+ * Returns { success: true, outputPath: string } on success
+ * Returns { success: false, error: string } on failure
+ */
+ipcMain.handle('export-cv', async (_event, cvId: string, mode: string, outputDir?: string) => {
+  try {
+    // Get CV record for file_path
+    const cvRecord = getCV(cvId);
+    if (!cvRecord) {
+      return { success: false, error: 'CV not found' };
+    }
+
+    // Get CV data for contact info
+    const cvData = getCVFull(cvId);
+    if (!cvData) {
+      return { success: false, error: 'CV data not found' };
+    }
+
+    // Validate mode
+    const validModes = ['full', 'client', 'punt'];
+    if (!validModes.includes(mode)) {
+      return { success: false, error: `Invalid mode: ${mode}. Must be one of: full, client, punt` };
+    }
+
+    // Default output directory to Downloads folder
+    const actualOutputDir = outputDir || app.getPath('downloads');
+
+    // Ensure output directory exists
+    if (!fs.existsSync(actualOutputDir)) {
+      return { success: false, error: `Output directory does not exist: ${actualOutputDir}` };
+    }
+
+    // Call Python sidecar for export
+    const result = await sendToPython({
+      action: 'export_cv',
+      cv_id: cvId,
+      source_path: cvRecord.file_path,
+      contact_info: cvData.contact || {},
+      mode: mode,
+      output_dir: actualOutputDir
+    }) as { output_path: string; mode: string; redacted_fields: string[] };
+
+    console.log(`CV export completed: ${result.output_path} (mode: ${result.mode})`);
+
+    return {
+      success: true,
+      outputPath: result.output_path
+    };
+  } catch (error) {
+    console.error('export-cv error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to export CV'
+    };
   }
 });

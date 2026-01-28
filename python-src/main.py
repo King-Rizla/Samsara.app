@@ -13,6 +13,7 @@ import spacy
 
 from parsers.base import parse_document
 from schema.cv_schema import ParsedCV, WorkEntry, EducationEntry, SkillGroup, ContactInfo
+from export.redaction import create_redacted_cv
 from extractors.llm import OllamaClient, OpenAIClient
 from extractors.llm.schemas import LLMFullExtraction, LLMJDExtraction
 from extractors.llm.prompts import FULL_EXTRACTION_PROMPT, JD_EXTRACTION_PROMPT
@@ -467,6 +468,85 @@ def handle_request(request: dict) -> dict:
                 'success': False,
                 'error': f'Error extracting JD: {str(e)}',
                 'data': {'token_usage': token_usage}
+            }
+
+    if action == 'export_cv':
+        # Required params
+        source_path = request.get('source_path')
+        contact_info = request.get('contact_info', {})
+        mode = request.get('mode', 'client')  # Default to client mode
+        output_dir = request.get('output_dir')
+
+        # Validate required params
+        if not source_path:
+            return {
+                'id': request_id,
+                'success': False,
+                'error': 'Missing required parameter: source_path'
+            }
+        if not output_dir:
+            return {
+                'id': request_id,
+                'success': False,
+                'error': 'Missing required parameter: output_dir'
+            }
+
+        try:
+            import re
+
+            # Create redacted PDF
+            pdf_bytes = create_redacted_cv(source_path, contact_info, mode)
+
+            # Determine output filename
+            # punt mode: always "Candidate_CV.pdf"
+            # full/client mode: "{name}_CV.pdf" (sanitized) or "Candidate_CV.pdf" if no name
+            if mode == 'punt':
+                base_name = 'Candidate'
+            else:
+                name = contact_info.get('name', '')
+                if name and isinstance(name, str) and name.strip():
+                    # Sanitize name for filesystem (remove invalid chars)
+                    base_name = re.sub(r'[<>:"/\\|?*]', '', name.strip())
+                    base_name = base_name.replace(' ', '_')
+                else:
+                    base_name = 'Candidate'
+
+            output_filename = f"{base_name}_CV.pdf"
+            output_path = os.path.join(output_dir, output_filename)
+
+            # Write PDF to output directory
+            with open(output_path, 'wb') as f:
+                f.write(pdf_bytes)
+
+            return {
+                'id': request_id,
+                'success': True,
+                'data': {
+                    'output_path': output_path,
+                    'mode': mode,
+                    'redacted_fields': ['phone', 'email'] if mode == 'client' else (
+                        ['phone', 'email', 'name'] if mode == 'punt' else []
+                    )
+                }
+            }
+
+        except FileNotFoundError as e:
+            return {
+                'id': request_id,
+                'success': False,
+                'error': f'Source PDF not found: {str(e)}'
+            }
+        except ValueError as e:
+            return {
+                'id': request_id,
+                'success': False,
+                'error': str(e)
+            }
+        except Exception as e:
+            return {
+                'id': request_id,
+                'success': False,
+                'error': f'Error exporting CV: {str(e)}'
             }
 
     return {

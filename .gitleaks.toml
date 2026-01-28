@@ -1,0 +1,7 @@
+[allowlist]
+description = "Samsara allowlist"
+paths = [
+  '''\.planning/''',
+  '''python-src/tests/fixtures/''',
+  '''e2e/''',
+]

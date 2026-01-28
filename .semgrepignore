@@ -1,0 +1,7 @@
+node_modules/
+.vite/
+out/
+dist/
+python-dist/
+python-build/
+e2e/

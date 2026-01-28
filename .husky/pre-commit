@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+npx lint-staged
+
+# To enable Python pre-commit hooks, install pre-commit (pip install pre-commit)
+# then uncomment the line below:
+# pre-commit run --all-files

@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-01-23)
 
 ## Current Position
 
-Phase: 4.7 of 7 (Dashboard Enhancements) - COMPLETE
-Plan: 5 of 5 in current phase
-Status: Phase 04.7 complete
-Last activity: 2026-01-27 - Completed usage display, toast warnings, Settings page
+Phase: 5 of 7 (Anonymization & Branding)
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-01-28 - Completed 05-01-PLAN.md (PDF Redaction Engine)
 
-Progress: [####################] 100% (33/33 plans through Phase 4.7-05)
+Progress: [#####################] 100% (34/34 plans through Phase 5-01)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 33
+- Total plans completed: 34
 - Average duration: 11 min
-- Total execution time: ~6 hours
+- Total execution time: ~6.1 hours
 
 **By Phase:**
 
@@ -37,14 +37,14 @@ Progress: [####################] 100% (33/33 plans through Phase 4.7-05)
 | 4.5. Project Homepage | 4/4 | 29 min | 7 min |
 | 4.6. Queue Infrastructure | 5/5 | 18 min | 4 min |
 | 4.7. Dashboard Enhancements | 5/5 | 32 min | 6 min |
-| 5. Anonymization & Branding | 0/3 | - | - |
+| 5. Anonymization & Branding | 1/3 | 8 min | 8 min |
 | 5.T. Export & Branding Tests | 0/1 | - | - |
 | 6. Bulk Processing & OS Integration | 0/3 | - | - |
 | 6.T. Performance & Integration Tests | 0/1 | - | - |
 
 **Recent Trend:**
-- Last 5 plans: 6 min, 7 min, 6 min, 5 min, 6 min
-- Trend: UI integration plans consistently fast
+- Last 5 plans: 6 min, 5 min, 6 min, 6 min, 8 min
+- Trend: Python sidecar + IPC plans consistent
 
 *Updated after each plan completion*
 
@@ -138,6 +138,10 @@ Recent decisions affecting current work:
 - [04.7-05]: GPT-4o-mini blended rate ~$0.30 per 1M tokens for cost estimation
 - [04.7-05]: Toast duration: Infinity (stays until user dismisses)
 - [04.7-05]: Settings aggregated into single unified page (LLM + usage limits)
+- [05-01]: White fill (1,1,1) for redaction produces blank space, not black bars
+- [05-01]: apply_redactions() physically removes text (not just overlay) for true PDF redaction
+- [05-01]: Default export mode is 'client' (remove phone+email)
+- [05-01]: Output filename: {Name}_CV.pdf or Candidate_CV.pdf for punt mode
 
 ### Pending Todos
 
@@ -161,29 +165,16 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-01-27
-Stopped at: Completed 04.7-05-PLAN.md (usage display, toast warnings, Settings page)
+Last session: 2026-01-28
+Stopped at: Completed 05-01-PLAN.md (PDF Redaction Engine)
 Resume file: None
 
 ## Next Steps
 
-**Phase 4.6: Queue Infrastructure & Persistence** - COMPLETE (with gap closure)
-- [x] Plan 04.6-01: Database schema migration (status column, queue functions)
-- [x] Plan 04.6-02: Queue manager with serial processing
-- [x] Plan 04.6-03: Preload API for queue operations
-- [x] Plan 04.6-04: UI integration with real-time updates
-- [x] Plan 04.6-05: Timeout-on-ACK fix (gap closure)
-
-**Phase 4.7: Dashboard Enhancements** - COMPLETE
-- Goal: Project quick-access and usage tracking
-- [x] Plan 04.7-01: Database schema for usage tracking and pinning (migration v3)
-- [x] Plan 04.7-02: Python token capture
-- [x] Plan 04.7-03: IPC handlers for usage tracking and settings
-- [x] Plan 04.7-04: @dnd-kit drag-drop infrastructure for project pinning
-- [x] Plan 04.7-05: Usage display, toast warnings, Settings page
-
-**Phase 5: Anonymization & Branding** - NOT STARTED
+**Phase 5: Anonymization & Branding** - IN PROGRESS
 - Goal: Export CVs with company branding, anonymization options
-- Plans: 05-01, 05-02, 05-03
+- [x] Plan 05-01: PDF Redaction Engine (create_redacted_cv, export_cv action, IPC handler)
+- [ ] Plan 05-02: Blind Profile generation (ReportLab front sheet)
+- [ ] Plan 05-03: Export UI (export dialog, mode selection)
 
-**Next:** Execute Phase 5 (Anonymization & Branding)
+**Next:** Execute 05-02-PLAN.md (Blind Profile Generation)

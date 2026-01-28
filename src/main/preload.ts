@@ -443,6 +443,13 @@ contextBridge.exposeInMainWorld('api', {
    */
   setRecruiterSettings: (settings: RecruiterSettings): Promise<{ success: boolean; error?: string }> =>
     ipcRenderer.invoke('set-recruiter-settings', settings),
+
+  /**
+   * Open folder selection dialog for bulk export.
+   * Returns { canceled: boolean, path?: string }
+   */
+  selectFolder: (): Promise<{ canceled: boolean; path?: string }> =>
+    ipcRenderer.invoke('select-folder'),
 });
 
 /**

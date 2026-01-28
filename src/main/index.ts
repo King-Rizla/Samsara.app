@@ -1087,3 +1087,19 @@ ipcMain.handle('set-recruiter-settings', async (_event, settings: { name?: strin
     return { success: false, error: String(error) };
   }
 });
+
+/**
+ * Open folder selection dialog.
+ * Returns { canceled: false, path: string } on selection
+ * Returns { canceled: true } if user cancels
+ */
+ipcMain.handle('select-folder', async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openDirectory'],
+    title: 'Select export folder'
+  });
+  return {
+    canceled: result.canceled,
+    path: result.filePaths[0]
+  };
+});

@@ -133,11 +133,20 @@ interface UsageStatsResult {
   error?: string;
 }
 
+interface BooleanSyntaxSettings {
+  andOperator: 'AND' | '&&' | '+';
+  orOperator: 'OR' | '||' | ',';
+  notOperator: 'NOT' | '-' | '!';
+  phraseDelimiter: '"' | "'";
+  groupingStyle: 'parentheses' | 'none';
+}
+
 interface AppSettingsData {
   llmMode: 'local' | 'cloud';
   hasApiKey: boolean;
   globalTokenLimit?: number;
   warningThreshold: number;
+  booleanSyntax?: BooleanSyntaxSettings;
 }
 
 interface AppSettingsResult {
@@ -412,7 +421,7 @@ contextBridge.exposeInMainWorld('api', {
   /**
    * Update app settings (excluding API key - use setLLMSettings for that).
    */
-  updateAppSettings: (updates: { globalTokenLimit?: number; warningThreshold?: number }): Promise<AppSettingsResult> =>
+  updateAppSettings: (updates: { globalTokenLimit?: number; warningThreshold?: number; booleanSyntax?: BooleanSyntaxSettings }): Promise<AppSettingsResult> =>
     ipcRenderer.invoke('update-app-settings', updates),
 
   // CV Export operations (Phase 5)

@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import type { BooleanSyntaxConfig } from '../types/jd';
+import { DEFAULT_BOOLEAN_SYNTAX } from '../lib/booleanSyntax';
 
 interface UsageStats {
   totalTokens: number;
@@ -14,6 +16,7 @@ interface UsageState {
   globalTokenLimit: number | null;
   warningThreshold: number;
   llmMode: 'local' | 'cloud';
+  booleanSyntax: BooleanSyntaxConfig;
 
   // Loading state
   isLoading: boolean;
@@ -21,6 +24,8 @@ interface UsageState {
   // Actions
   loadUsage: () => Promise<void>;
   loadSettings: () => Promise<void>;
+  loadBooleanSyntax: () => Promise<void>;
+  updateBooleanSyntax: (config: Partial<BooleanSyntaxConfig>) => Promise<void>;
   isOverLimit: () => boolean;
   isNearLimit: () => boolean;
   getProjectUsage: (projectId: string) => UsageStats;
@@ -66,6 +71,7 @@ export const useUsageStore = create<UsageState>((set, get) => ({
   globalTokenLimit: null,
   warningThreshold: 80,
   llmMode: 'local',
+  booleanSyntax: DEFAULT_BOOLEAN_SYNTAX,
   isLoading: true,
 
   loadUsage: async () => {
@@ -92,10 +98,33 @@ export const useUsageStore = create<UsageState>((set, get) => ({
           globalTokenLimit: result.data.globalTokenLimit ?? null,
           warningThreshold: result.data.warningThreshold,
           llmMode: result.data.llmMode,
+          booleanSyntax: result.data.booleanSyntax ?? DEFAULT_BOOLEAN_SYNTAX,
         });
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
+    }
+  },
+
+  loadBooleanSyntax: async () => {
+    try {
+      const result = await window.api.getAppSettings();
+      if (result.success && result.data?.booleanSyntax) {
+        set({ booleanSyntax: result.data.booleanSyntax });
+      }
+    } catch (error) {
+      console.error('Failed to load boolean syntax:', error);
+    }
+  },
+
+  updateBooleanSyntax: async (config: Partial<BooleanSyntaxConfig>) => {
+    const current = get().booleanSyntax;
+    const updated = { ...current, ...config };
+    try {
+      await window.api.updateAppSettings({ booleanSyntax: updated });
+      set({ booleanSyntax: updated });
+    } catch (error) {
+      console.error('Failed to update boolean syntax:', error);
     }
   },
 

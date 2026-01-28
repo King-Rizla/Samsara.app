@@ -6,6 +6,14 @@ import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 
+export interface BooleanSyntaxSettings {
+  andOperator: 'AND' | '&&' | '+';
+  orOperator: 'OR' | '||' | ',';
+  notOperator: 'NOT' | '-' | '!';
+  phraseDelimiter: '"' | "'";
+  groupingStyle: 'parentheses' | 'none';
+}
+
 export interface AppSettings {
   llmMode: 'local' | 'cloud';
   openaiApiKey?: string;
@@ -16,6 +24,8 @@ export interface AppSettings {
   recruiterName?: string;
   recruiterPhone?: string;
   recruiterEmail?: string;
+  // Boolean syntax configuration (Phase 4.8)
+  booleanSyntax?: BooleanSyntaxSettings;
 }
 
 /**

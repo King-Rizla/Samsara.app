@@ -961,6 +961,7 @@ ipcMain.handle('get-app-settings', async () => {
         hasApiKey: Boolean(settings.openaiApiKey),
         globalTokenLimit: settings.globalTokenLimit,
         warningThreshold: settings.warningThreshold ?? 80,
+        booleanSyntax: settings.booleanSyntax,
       },
     };
   } catch (error) {
@@ -982,6 +983,7 @@ ipcMain.handle('update-app-settings', async (_event, updates: Partial<Omit<AppSe
         hasApiKey: Boolean(updated.openaiApiKey),
         globalTokenLimit: updated.globalTokenLimit,
         warningThreshold: updated.warningThreshold ?? 80,
+        booleanSyntax: updated.booleanSyntax,
       },
     };
   } catch (error) {

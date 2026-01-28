@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Settings as SettingsIcon, User } from 'lucide-react';
+import { ArrowLeft, Settings as SettingsIcon, User, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
@@ -18,7 +18,7 @@ const LIMIT_PRESETS = [
 
 export function Settings() {
   const navigate = useNavigate();
-  const { globalUsage, globalTokenLimit, warningThreshold, llmMode, loadSettings, loadUsage } = useUsageStore();
+  const { globalUsage, globalTokenLimit, warningThreshold, llmMode, booleanSyntax, loadSettings, loadUsage, updateBooleanSyntax } = useUsageStore();
   const { recruiter, loadRecruiterSettings, saveRecruiterSettings } = useSettingsStore();
 
   const [limit, setLimit] = useState<string>(globalTokenLimit?.toString() ?? '');
@@ -208,6 +208,106 @@ export function Settings() {
             <Button onClick={handleSave} disabled={isSaving}>
               {isSaving ? 'Saving...' : 'Save Limits'}
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Boolean Syntax Configuration Card */}
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Search className="h-5 w-5" />
+              Boolean Syntax
+            </CardTitle>
+            <CardDescription>
+              Configure boolean search string syntax for your recruiting platform.
+              Default syntax is LinkedIn-compatible. Changes are saved automatically.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* AND Operator */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">AND Operator</label>
+              <div className="flex gap-2">
+                {(['AND', '&&', '+'] as const).map((op) => (
+                  <Button
+                    key={op}
+                    variant={booleanSyntax.andOperator === op ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => updateBooleanSyntax({ andOperator: op })}
+                  >
+                    {op}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* OR Operator */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">OR Operator</label>
+              <div className="flex gap-2">
+                {(['OR', '||', ','] as const).map((op) => (
+                  <Button
+                    key={op}
+                    variant={booleanSyntax.orOperator === op ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => updateBooleanSyntax({ orOperator: op })}
+                  >
+                    {op}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* NOT Operator */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">NOT Operator</label>
+              <div className="flex gap-2">
+                {(['NOT', '-', '!'] as const).map((op) => (
+                  <Button
+                    key={op}
+                    variant={booleanSyntax.notOperator === op ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => updateBooleanSyntax({ notOperator: op })}
+                  >
+                    {op}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Phrase Delimiter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Phrase Delimiter</label>
+              <div className="flex gap-2">
+                {(['"', "'"] as const).map((d) => (
+                  <Button
+                    key={d}
+                    variant={booleanSyntax.phraseDelimiter === d ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => updateBooleanSyntax({ phraseDelimiter: d })}
+                  >
+                    {d === '"' ? 'Double "' : "Single '"}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Grouping Style */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Grouping Style</label>
+              <div className="flex gap-2">
+                {(['parentheses', 'none'] as const).map((g) => (
+                  <Button
+                    key={g}
+                    variant={booleanSyntax.groupingStyle === g ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => updateBooleanSyntax({ groupingStyle: g })}
+                  >
+                    {g === 'parentheses' ? '( ) Parentheses' : 'None'}
+                  </Button>
+                ))}
+              </div>
+            </div>
           </CardContent>
         </Card>
 

@@ -1,4 +1,4 @@
-import type { JobDescription, MatchResult, SkillRequirement } from '../types/jd';
+import type { JobDescription, MatchResult, SkillRequirement, ExpandedSkill } from '../types/jd';
 import type { ParsedCV, SkillGroup } from '../types/cv';
 import { normalizeSkill, skillsMatch } from './skillVariants';
 
@@ -19,16 +19,39 @@ function flattenCVSkills(skillGroups: SkillGroup[]): string[] {
 
 /**
  * Check if a JD skill requirement is matched by any CV skill.
+ * Uses LLM-generated expanded skill variants as primary source,
+ * falling back to static skillVariants mapping.
  */
 function findMatchingSkill(
   requirement: SkillRequirement,
-  cvSkills: string[]
+  cvSkills: string[],
+  expandedSkills?: ExpandedSkill[]
 ): string | null {
   const normalizedReq = normalizeSkill(requirement.skill);
 
+  // Primary: check LLM-generated expanded variants
+  if (expandedSkills) {
+    const expanded = expandedSkills.find(
+      (es) => normalizeSkill(es.skill) === normalizedReq
+    );
+    if (expanded) {
+      const allVariants = [
+        normalizeSkill(expanded.skill),
+        ...expanded.variants.map(normalizeSkill),
+        ...expanded.related_tools.map(normalizeSkill),
+      ];
+      for (const cvSkill of cvSkills) {
+        if (allVariants.includes(cvSkill)) {
+          return cvSkill;
+        }
+      }
+    }
+  }
+
+  // Fallback: static skill variant matching
   for (const cvSkill of cvSkills) {
     if (skillsMatch(normalizedReq, cvSkill)) {
-      return cvSkill;  // Return the CV skill that matched
+      return cvSkill;
     }
   }
 
@@ -51,6 +74,7 @@ export function calculateMatchScore(
   jd: JobDescription
 ): MatchResult {
   const cvSkills = flattenCVSkills(cv.skills);
+  const expandedSkills = jd.matching_metadata?.expanded_skills;
 
   const matchedRequired: string[] = [];
   const missingRequired: string[] = [];
@@ -59,7 +83,7 @@ export function calculateMatchScore(
 
   // Check required skills
   for (const req of jd.required_skills) {
-    const match = findMatchingSkill(req, cvSkills);
+    const match = findMatchingSkill(req, cvSkills, expandedSkills);
     if (match) {
       matchedRequired.push(req.skill);
     } else {
@@ -69,7 +93,7 @@ export function calculateMatchScore(
 
   // Check preferred skills
   for (const pref of jd.preferred_skills) {
-    const match = findMatchingSkill(pref, cvSkills);
+    const match = findMatchingSkill(pref, cvSkills, expandedSkills);
     if (match) {
       matchedPreferred.push(pref.skill);
     } else {

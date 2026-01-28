@@ -23,6 +23,7 @@ Samsara v1 delivers a local-first CV formatter and JD matching tool that replace
 - [x] **Phase 4.5: Project Homepage & Organization** - Homepage with project-scoped CVs, JDs, and matches for multi-role workflow
 - [x] **Phase 4.6: Queue Infrastructure & Persistence** - Fix timeout bug, DB status column, queue manager, real-time updates
 - [x] **Phase 4.7: Dashboard Enhancements** - Project drag-drop to sidebar, token/API tracking, usage limits
+- [ ] **Phase 4.8: JD Matching Enhancement** - Expanded skills with variants, boolean search generation, search hints
 - [ ] **Phase 5: Anonymization & Branding** - Redaction, blind profiles, and themed PDF output
 - [ ] **Phase 5.T: Export & Branding Tests** - E2E coverage for PDF generation and anonymization
 - [ ] **Phase 6: Bulk Processing & OS Integration** - 100+ file queue with context menu integration
@@ -204,9 +205,29 @@ Plans:
 - [x] 04.7-04-PLAN.md — @dnd-kit drag-drop: pin, reorder, unpin via X/drag-back
 - [x] 04.7-05-PLAN.md — UI: usage display, toast warnings, unified Settings, hidden scrollbars
 
+### Phase 4.8: JD Matching Enhancement (INSERTED)
+**Goal**: Maximize JD parsing LLM call value by generating expanded skill variants, boolean search strings, and search hints for improved algorithmic matching and future auto-sourcing
+**Depends on**: Phase 4.7
+**Requirements**: None (enhancement phase - prepares for M4 Intelligent Sourcing)
+**Success Criteria** (what must be TRUE):
+  1. JD parsing extracts skills with semantic variants (synonyms, abbreviations, related tools)
+  2. JD parsing generates boolean search strings in three tiers (wide/midline/narrow)
+  3. JD parsing extracts search hints (job titles, industries, negative keywords)
+  4. Boolean syntax configurable in Settings (AND/OR/NOT operators, phrase delimiters)
+  5. Original JD raw_text preserved and displayed; matching_metadata stored separately
+  6. UI displays collapsible "Search Tools" section with copyable/editable booleans
+  7. Algorithmic matching uses expanded skill variants for improved recall
+**Plans**: 4 plans in 3 waves
+
+Plans:
+- [ ] 04.8-01-PLAN.md — Database schema migration (matching_metadata JSON column)
+- [ ] 04.8-02-PLAN.md — Enhanced JD extraction prompt (skills+variants, booleans, search hints)
+- [ ] 04.8-03-PLAN.md — TypeScript types + Settings UI for boolean syntax configuration
+- [ ] 04.8-04-PLAN.md — SearchTools UI component + matching engine update
+
 ### Phase 5: Anonymization & Branding
 **Goal**: Generate blind profiles and branded client-ready PDFs
-**Depends on**: Phase 4.7
+**Depends on**: Phase 4.8
 **Requirements**: F-02b, F-02c, F-03c
 **Success Criteria** (what must be TRUE):
   1. User can apply "Blackout" redaction that visually removes contact details from PDF layer
@@ -303,7 +324,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in order: 1 → 2 → 2.1 → 3 → 3.T → 4 → 4.T → 4.5 → 4.6 → 4.7 → 5 → 5.T → 6 → 6.T → 7
+Phases execute in order: 1 → 2 → 2.1 → 3 → 3.T → 4 → 4.T → 4.5 → 4.6 → 4.7 → 4.8 → 5 → 5.T → 6 → 6.T → 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -317,15 +338,16 @@ Phases execute in order: 1 → 2 → 2.1 → 3 → 3.T → 4 → 4.T → 4.5 →
 | 4.5. Project Homepage & Organization | 4/4 | Complete | 2026-01-27 |
 | 4.6. Queue Infrastructure & Persistence | 5/5 | Complete | 2026-01-27 |
 | 4.7. Dashboard Enhancements | 5/5 | Complete | 2026-01-27 |
+| 4.8. JD Matching Enhancement | 0/4 | Not started | - |
 | 5. Anonymization & Branding | 0/3 | Not started | - |
 | 5.T. Export & Branding Tests | 0/1 | Not started | - |
 | 6. Bulk Processing & OS Integration | 0/3 | Not started | - |
 | 6.T. Performance & Integration Tests | 0/1 | Not started | - |
 | 7. Testing and Bug Fixing Protocol | 0/4 | Not started | - |
 
-**Total Progress:** 33/38 plans complete
+**Total Progress:** 33/42 plans complete
 
 ---
 *Roadmap created: 2026-01-23*
-*Roadmap updated: 2026-01-27 (Phase 4.7 complete)*
+*Roadmap updated: 2026-01-28 (Phase 4.8 planned)*
 *Milestone: The Sovereign Formatter (v1)*

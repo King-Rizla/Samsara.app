@@ -9,6 +9,42 @@ export interface SkillRequirement {
   category?: string;
 }
 
+// ============================================================================
+// Matching Metadata Types (Phase 4.8)
+// ============================================================================
+
+export interface ExpandedSkill {
+  skill: string;
+  variants: string[];
+  related_tools: string[];
+}
+
+export interface BooleanStrings {
+  wide: string;
+  midline: string;
+  narrow: string;
+}
+
+export interface SearchHints {
+  suggested_titles: string[];
+  industries: string[];
+  negative_keywords: string[];
+}
+
+export interface MatchingMetadata {
+  expanded_skills: ExpandedSkill[];
+  boolean_strings: BooleanStrings;
+  search_hints: SearchHints;
+}
+
+export interface BooleanSyntaxConfig {
+  andOperator: 'AND' | '&&' | '+';
+  orOperator: 'OR' | '||' | ',';
+  notOperator: 'NOT' | '-' | '!';
+  phraseDelimiter: '"' | "'";
+  groupingStyle: 'parentheses' | 'none';
+}
+
 /**
  * Full job description with LLM-extracted requirements.
  */
@@ -27,6 +63,9 @@ export interface JobDescription {
   experience_max?: number;
   education_level?: string;
   certifications: string[];
+
+  // Matching metadata (Phase 4.8)
+  matching_metadata?: MatchingMetadata;
 }
 
 /**

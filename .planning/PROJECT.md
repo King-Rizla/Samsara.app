@@ -10,9 +10,9 @@ Samsara is a **Sovereign Recruitment Suite**. It is a local-first desktop applic
 
 We attack the "Admin Bottleneck" (Category 1) first.
 
-* **Problem:** Agencies pay $30k+ for DaXtra or ration AllSorted licenses, forcing manual "Shadow Workflows" where recruiters email CVs to admins.
+- **Problem:** Agencies pay $30k+ for DaXtra or ration AllSorted licenses, forcing manual "Shadow Workflows" where recruiters email CVs to admins.
 
-* **Solution:** A $0-latency, drag-and-drop Desktop Formatter installed on *every* recruiter's machine.
+- **Solution:** A $0-latency, drag-and-drop Desktop Formatter installed on _every_ recruiter's machine.
 
 ## Core Value
 
@@ -22,7 +22,28 @@ We attack the "Admin Bottleneck" (Category 1) first.
 
 2. **Zero Egress:** Candidate data never leaves the laptop (GDPR/Defense compliant).
 
-3. **Zero Per-Seat Tax:** We monetize the *Agency*, not the *User*, destroying the "Shadow License" economy.
+3. **Zero Per-Seat Tax:** We monetize the _Agency_, not the _User_, destroying the "Shadow License" economy.
+
+## Current State
+
+**Shipped:** v1 The Sovereign Formatter (2026-01-30)
+**Codebase:** 25,058 LOC (14,153 TypeScript/CSS + 10,905 Python)
+**Architecture:** Electron + React + Tailwind + Zustand | Python sidecar (PyInstaller) | SQLite (better-sqlite3)
+
+**Capabilities delivered:**
+
+- CV parsing (PDF/DOCX) with LLM-enhanced extraction (Ollama/Qwen 2.5)
+- JD matching with skill variants, boolean search generation, and search tools
+- Multi-project dashboard with drag-drop sidebar pinning and usage tracking
+- PDF redaction, blind profiles, and branded export
+- Quality gates: pre-commit hooks, unit tests, security audit
+
+**Known tech debt:**
+
+- LLM extraction ~50s per CV (needs optimization)
+- JD prompt produces truncated booleans
+- PDF parsing may fail on 30-40% of adversarial corpus
+- macOS unsigned Python binary signing needed
 
 ## Context
 
@@ -38,14 +59,79 @@ We attack the "Admin Bottleneck" (Category 1) first.
 - **Performance**: < 2 seconds per resume processing on local CPU
 - **Privacy**: Zero data egress — candidate data never leaves the machine
 
+## Requirements
+
+### Validated
+
+- ✓ F-01c: <2s per CV processing — v1
+- ✓ F-02a: Local Python extraction of contact fields — v1
+- ✓ F-02b: Auto-redaction "Blackout" of contact details — v1
+- ✓ F-02c: Blind Profile generation — v1
+- ✓ F-03a: Split view editor — v1
+- ✓ F-03b: Instant field fix — v1
+- ✓ F-03c: Branding engine with theme.json — v1
+- ✓ M-01a: Paste/upload Job Description — v1
+- ✓ M-01b: Select CVs for JD matching — v1
+- ✓ M-01c: Score CVs against JD — v1
+- ✓ M-01d: Ranked CV results — v1
+- ✓ M-01e: Highlighted matching skills — v1
+
+### Active
+
+- [ ] F-01a: Drag-and-drop queue handles 100+ files simultaneously
+- [ ] F-01b: OS right-click context menu integration (Windows/macOS)
+
+### Out of Scope
+
+| Feature                  | Reason                                                        |
+| ------------------------ | ------------------------------------------------------------- |
+| Cloud processing         | Core value is local-first; eliminates COGS and privacy risk   |
+| Per-seat licensing       | Business model is agency-wide license                         |
+| Bot-based call recording | Key decision: stealth via system audio capture                |
+| Direct API integrations  | Key decision: DOM Bridge approach for universal compatibility |
+
 ## Key Decisions
 
-| Decision | Rationale | Outcome |
-|----------|-----------|---------|
-| **Formatter First** | Highest friction point; easiest ROI to prove ("4 hours to 4 minutes"). | ✓ Final |
-| **Local Processing** | Eliminates server COGS; enables "Zero Latency" bulk actions. | ✓ Final |
-| **No Bots** | "Listeners" must record system audio, not join calls as a bot. | ✓ Final |
-| **DOM Bridge** | Integration via browser DOM (Frontend) rather than expensive API (Backend). | ✓ Final |
+| Decision                         | Rationale                                                                   | Outcome |
+| -------------------------------- | --------------------------------------------------------------------------- | ------- |
+| **Formatter First**              | Highest friction point; easiest ROI to prove ("4 hours to 4 minutes").      | ✓ Final |
+| **Local Processing**             | Eliminates server COGS; enables "Zero Latency" bulk actions.                | ✓ Final |
+| **No Bots**                      | "Listeners" must record system audio, not join calls as a bot.              | ✓ Final |
+| **DOM Bridge**                   | Integration via browser DOM (Frontend) rather than expensive API (Backend). | ✓ Final |
+| **PyInstaller --onedir**         | Faster startup than --onefile for spaCy model loading.                      | ✓ Good  |
+| **Qwen 2.5 7B default**          | Qwen3 breaks JSON with thinking tags. Reliable structured output.           | ✓ Good  |
+| **Single unified LLM call**      | 1 API call vs 4 separate for cost + speed efficiency.                       | ✓ Good  |
+| **ACK timeout pattern**          | Python sends ACK before extraction; timeout starts on ACK not submission.   | ✓ Good  |
+| **Phase 7 replaces test phases** | E2E tests fragile; comprehensive quality gates more effective.              | ✓ Good  |
+| **Terminal dark mode only**      | Simpler theming, matches target audience aesthetic.                         | ✓ Good  |
+
+## Product Vision
+
+Samsara automates the complete candidate recruitment flow from initial sourcing through interview scheduling. The full vision is documented in `.planning/vision/candidate-flow.md`.
+
+### Milestone Roadmap
+
+| Milestone                       | Scope                                                     | Status     |
+| ------------------------------- | --------------------------------------------------------- | ---------- |
+| **M1: The Sovereign Formatter** | CV parsing, JD matching, branding, bulk processing        | Shipped v1 |
+| **M2: Automated Outreach**      | SMS/email, AI pre-screening, ATS integration              | Draft      |
+| **M3: Client Coordination**     | Feedback portal, interview scheduling                     | Draft      |
+| **M4: Intelligent Sourcing**    | Call transcription, boolean search, CV library connectors | Draft      |
+
+### Candidate Flow Stages
+
+1. **Initial Setup & Sourcing** (M4) - Call recording, criteria extraction, CV library search, de-duplication
+2. **Candidate Outreach** (M2) - Automated contact, AI pre-screening, ATS data entry, branded CV submission
+3. **Client Decision & Interview** (M3) - Feedback collection, interview scheduling, confirmations
+
+### Milestone Drafts
+
+Future milestone plans are in `.planning/milestones/`:
+
+- `02-automated-outreach/ROADMAP-DRAFT.md`
+- `03-client-coordination/ROADMAP-DRAFT.md`
+- `04-intelligent-sourcing/ROADMAP-DRAFT.md`
 
 ---
-*Last updated: 2026-01-23 after initialization*
+
+_Last updated: 2026-01-30 after v1 milestone completion_

@@ -1,317 +1,298 @@
 # Technology Stack
 
 **Project:** Samsara - Sovereign Recruitment Suite
-**Researched:** 2026-01-23
-**Research Mode:** Ecosystem (Stack Dimension)
+**Researched:** 2026-01-31
+**Research Mode:** Ecosystem (Stack Dimension) -- M5 Agent Additions
+**Scope:** NEW additions only. Existing stack (Electron 40, React 19, TypeScript, Tailwind, Zustand, Python sidecar, better-sqlite3) is validated and unchanged.
 
 ---
 
 ## Executive Summary
 
-This stack is optimized for a **local-first, privacy-preserving desktop application** with heavy PDF processing. The architecture uses Electron for the UI shell, Python as a sidecar process for document processing, and SQLite for local persistence. All technologies are selected for offline operation, GDPR compliance (zero data egress), and sub-2-second processing targets.
+M5 adds a conversational AI agent to the existing Samsara desktop app. This requires additions in four areas: (1) chat UI components for streaming markdown, (2) an LLM integration layer for tool-use/function-calling, (3) a cloud proxy backend for subscription-based LLM access, and (4) local storage for conversation history and learned preferences.
+
+The recommended approach uses the **Vercel AI SDK** for the streaming/tool-use abstraction on the frontend, a lightweight **Hono + Cloudflare Workers** proxy backend, and extends the existing SQLite database for conversation storage. No new UI framework dependencies are needed -- Tailwind + Radix primitives handle the chat UI.
 
 ---
 
-## Recommended Stack
+## Recommended Stack Additions
 
-### Desktop Shell (Electron)
+### 1. LLM Integration & Streaming (Frontend)
 
-| Technology | Version | Purpose | Confidence | Rationale |
-|------------|---------|---------|------------|-----------|
-| **Electron** | 39.x+ | Desktop app shell | HIGH | Latest stable with Chromium 142, Node 22. Official tool for cross-platform desktop apps. Active development with 6 major releases in 2025. |
-| **Electron Forge** | 7.x | Build toolchain | HIGH | Official Electron toolchain. Handles packaging, code signing, and distribution. Supports NSIS installers for Windows context menu integration. |
-| **Vite Plugin for Forge** | latest | Build bundler | HIGH | Fast HMR, ES modules. Recommended over Webpack for 2025 projects. Use `@electron-forge/plugin-vite`. Note: Still marked "experimental" as of v7.5.0 but stable in practice. |
-| **electron-builder** | 26.x | Packaging (alternative) | MEDIUM | If Forge doesn't meet packaging needs, electron-builder offers more NSIS customization options for shell extension registration. |
+| Technology             | Version | Purpose                         | Confidence | Rationale                                                                                                                                                                                                              |
+| ---------------------- | ------- | ------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **ai (Vercel AI SDK)** | 4.x     | Streaming, tool-use abstraction | MEDIUM     | Provides `useChat` hook with built-in streaming, tool calling, and message management. Works with any LLM provider via adapters. Framework-agnostic core. Note: version based on training data, verify before install. |
+| **@ai-sdk/react**      | latest  | React hooks for chat UI         | MEDIUM     | `useChat` and `useCompletion` hooks handle SSE streaming, message state, loading states. Eliminates boilerplate for streaming chat.                                                                                    |
 
-**Source:** [Electron Releases](https://releases.electronjs.org/), [Electron Forge Vite Plugin](https://www.electronforge.io/config/plugins/vite)
+**Why Vercel AI SDK over raw fetch/SSE:**
 
-### Frontend Framework
+- Built-in streaming protocol (handles chunked responses, backpressure)
+- Tool-use/function-calling abstraction maps cleanly to IPC handlers
+- Message history management built-in
+- Provider-agnostic: swap between OpenAI, Anthropic, local Ollama without code changes
+- Active maintenance, large community
 
-| Technology | Version | Purpose | Confidence | Rationale |
-|------------|---------|---------|------------|-----------|
-| **React** | 18.x | UI framework | HIGH | Most mature ecosystem for desktop apps. Component model works well with Electron's multi-window architecture. |
-| **TypeScript** | 5.x | Type safety | HIGH | Essential for maintainable desktop apps. Full type coverage for IPC, data models, and Python API contracts. |
-| **Tailwind CSS** | 3.x | Styling | HIGH | Utility-first CSS. Fast iteration, consistent design system. Works well with component libraries. |
-| **shadcn/ui** | latest | Component library | HIGH | Accessible, customizable components built on Radix UI. Not a dependency but copy-paste components - keeps bundle small. |
-| **Zustand** | 5.x | State management | HIGH | Lightweight (1.2kb), minimal boilerplate. Perfect for medium-complexity apps like Samsara. Zustand over Redux for 90% of desktop apps in 2025. |
+**Alternative considered: LangChain.js** -- Rejected. Too heavy, too many abstractions for what is fundamentally "send messages, call tools, stream responses." Vercel AI SDK is lighter and more focused.
 
-**Source:** [Zustand Comparison](https://zustand.docs.pmnd.rs/getting-started/comparison), [shadcn/ui](https://ui.shadcn.com/)
+**Alternative considered: Raw EventSource/fetch** -- Viable but means reimplementing streaming, tool-call parsing, retry logic. Not worth it when AI SDK handles it.
 
-### Electron IPC Communication
+### 2. Chat UI Components (Frontend)
 
-| Technology | Pattern | Purpose | Confidence | Rationale |
-|------------|---------|---------|------------|-----------|
-| **ipcMain.handle + ipcRenderer.invoke** | Request/Response | Main process API calls | HIGH | Official recommended pattern since Electron 7. Returns Promise, clean async flow. |
-| **contextBridge** | Security | Expose APIs to renderer | HIGH | Required for secure IPC. Never expose raw ipcRenderer. |
-| **Preload scripts** | Security | Bridge main/renderer | HIGH | Mandatory with contextIsolation enabled (default since Electron 12). |
+| Technology           | Version | Purpose                    | Confidence | Rationale                                                                                           |
+| -------------------- | ------- | -------------------------- | ---------- | --------------------------------------------------------------------------------------------------- |
+| **react-markdown**   | 9.x     | Markdown rendering in chat | HIGH       | Standard for rendering LLM markdown output. Supports GFM, syntax highlighting plugins. Lightweight. |
+| **remark-gfm**       | 4.x     | GitHub-flavored markdown   | HIGH       | Tables, strikethrough, task lists in LLM responses.                                                 |
+| **rehype-highlight** | 7.x     | Code syntax highlighting   | HIGH       | Highlight code blocks in agent responses. Uses highlight.js under the hood.                         |
 
-**Source:** [Electron IPC Documentation](https://www.electronjs.org/docs/latest/tutorial/ipc)
+**What NOT to add:**
 
-### Python Sidecar (Document Processing)
+- **No chat UI component library** (e.g., chatscope, stream-chat-react). These are designed for multi-user messaging apps, not AI agent interfaces. Build the chat panel with existing Tailwind + Radix primitives. The UI is simple: message list + input box + streaming indicator.
+- **No rich text editor** for the input. Plain textarea or contenteditable div is sufficient. Recruiters type natural language, not formatted documents.
 
-| Technology | Version | Purpose | Confidence | Rationale |
-|------------|---------|---------|------------|-----------|
-| **Python** | 3.11 or 3.12 | Sidecar runtime | HIGH | 3.11 has 10-60% performance improvement. 3.12 adds more optimizations. Avoid 3.10.0 (PyInstaller bug). All recommended libraries support 3.9-3.14. |
-| **python-shell** | 5.x | Node-Python IPC | MEDIUM | Simple stdio-based communication. JSON mode for structured data. Battle-tested but not heavily maintained. Consider FastAPI/HTTP for complex APIs. |
-| **PyInstaller** | 6.18.x | Python bundling | HIGH | Bundle Python + dependencies into single executable. Required for distributing to users without Python installed. Supports 3.8-3.14. |
+### 3. Tool-Use / Agent Architecture (Frontend + Main Process)
 
-**Source:** [PyInstaller PyPI](https://pypi.org/project/pyinstaller/), [python-shell npm](https://www.npmjs.com/package/python-shell)
+| Technology | Version | Purpose                | Confidence | Rationale                                                                                      |
+| ---------- | ------- | ---------------------- | ---------- | ---------------------------------------------------------------------------------------------- |
+| **zod**    | 3.x     | Tool parameter schemas | HIGH       | Already implicit via AI SDK dependency. Define tool schemas that map to existing IPC handlers. |
 
-### PDF Processing (Python)
+**Architecture pattern:** The agent's "tools" are thin wrappers around existing `ipcRenderer.invoke` calls. No new IPC handlers needed for most operations.
 
-| Technology | Version | Purpose | Confidence | Rationale |
-|------------|---------|---------|------------|-----------|
-| **PyMuPDF (fitz)** | 1.26.x | Fast PDF extraction | HIGH | Fastest Python PDF library. 10x faster than pdfplumber for bulk extraction. Native bindings to MuPDF. Use for initial text extraction and image rendering. |
-| **pdfplumber** | 0.11.x | Table extraction | HIGH | Best-in-class table detection. Use for structured resume sections (work history tables, skills lists). Slower than PyMuPDF but superior table handling. |
-| **ReportLab** | 4.4.x | PDF generation | HIGH | Industry standard for programmatic PDF creation. Canvas-based API for precise layout control. Use for branded PDF output. Supports Python 3.9-3.14. |
-| **WeasyPrint** | 68.x | HTML-to-PDF | MEDIUM | Alternative to ReportLab if using HTML templates for branded output. Requires Python 3.10+. No JavaScript support. |
+```
+Agent Tool Definition (renderer)
+    |
+    v
+Vercel AI SDK tool-call handler
+    |
+    v
+window.electronAPI.[existing method]  (preload bridge)
+    |
+    v
+ipcMain.handle (existing handlers)
+```
 
-**Recommendation:** Use PyMuPDF for initial parsing (speed), pdfplumber for table extraction (accuracy), ReportLab for PDF generation (control).
+The ~30 existing IPC handlers (get-all-cvs, get-jd, run matching, etc.) become the agent's tool catalog. Each tool definition needs:
 
-**Source:** [PyMuPDF PyPI](https://pypi.org/project/pymupdf/), [pdfplumber PyPI](https://pypi.org/project/pdfplumber/), [ReportLab PyPI](https://pypi.org/project/reportlab/)
+- A name matching the IPC channel
+- A zod schema for parameters
+- A description for the LLM
 
-### NLP / Resume Parsing (Python)
+**No additional agent framework needed.** The Vercel AI SDK's `tools` parameter + existing IPC = complete agent loop.
 
-| Technology | Version | Purpose | Confidence | Rationale |
-|------------|---------|---------|------------|-----------|
-| **spaCy** | 3.8.x | NER, entity extraction | HIGH | Production-grade NLP. Pre-trained models for names, organizations, dates. Fine-tunable for resume-specific entities (skills, job titles). Supports Python 3.9-3.14. |
-| **en_core_web_sm** | 3.8.x | English model (small) | HIGH | 12MB model, fast inference. Sufficient for basic NER. Use `en_core_web_trf` (transformer) only if accuracy issues arise. |
-| **spacy-resume-ner** | latest | Resume-specific NER | LOW | Community model for resume parsing. Evaluate before adopting - may need custom training. |
+### 4. LLM Proxy Backend (Server-Side)
 
-**Source:** [spaCy PyPI](https://pypi.org/project/spacy/), [spaCy NER Documentation](https://spacy.io/usage/linguistic-features)
+| Technology                                  | Version | Purpose              | Confidence | Rationale                                                                                                                                                |
+| ------------------------------------------- | ------- | -------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Hono**                                    | 4.x     | HTTP framework       | MEDIUM     | Ultra-lightweight (14kb), runs on Cloudflare Workers, Vercel Edge, Node, Deno. Perfect for a proxy that adds auth + rate limiting + forwards to LLM API. |
+| **Cloudflare Workers**                      | -       | Hosting              | MEDIUM     | Free tier: 100K requests/day. Edge deployment = low latency globally. KV for rate limiting state. D1 for user/subscription data.                         |
+| **@ai-sdk/openai** or **@ai-sdk/anthropic** | latest  | LLM provider adapter | MEDIUM     | Server-side adapter for the actual LLM API call. Handles streaming response format.                                                                      |
+| **Stripe**                                  | latest  | Subscription billing | HIGH       | Industry standard for SaaS billing. Webhooks for subscription status.                                                                                    |
+| **better-auth** or **Lucia**                | latest  | Authentication       | LOW        | Lightweight auth for the proxy. Session-based. Verify current recommendations before choosing -- auth libraries churn fast.                              |
 
-### Database (Local Storage)
+**Why Hono + Workers over Express/Next.js:**
 
-| Technology | Version | Purpose | Confidence | Rationale |
-|------------|---------|---------|------------|-----------|
-| **better-sqlite3** | 12.6.x | SQLite bindings | HIGH | Fastest Node.js SQLite library. Synchronous API (actually faster than async alternatives due to reduced overhead). 11-24x faster than alternatives in benchmarks. |
-| **SQLite** | 3.x | Database engine | HIGH | Perfect for local-first apps. Single file, zero config, ACID compliant. Handles concurrent reads well. WAL mode for best write performance. |
-| **Drizzle ORM** | 0.36.x | Type-safe queries | MEDIUM | Lightweight ORM with TypeScript inference. Alternative to raw SQL. Optional - raw better-sqlite3 is fine for simpler schemas. |
+- The proxy does three things: authenticate, rate-limit, forward. It does not need a full framework.
+- Hono is purpose-built for edge runtimes.
+- Cloudflare Workers pricing is usage-based (good for subscription SaaS).
+- Built-in KV/D1 eliminates need for external database for simple state.
 
-**Do NOT use:** sql.js (in-memory only, no persistence), node-sqlite3 (async, slower), Sequelize (heavy ORM overhead for local app).
+**Alternative considered: Supabase Edge Functions** -- Viable but ties you to Supabase ecosystem. Workers is more portable.
 
-**Source:** [better-sqlite3 GitHub](https://github.com/WiseLibs/better-sqlite3), [Local-First Apps 2025](https://blog.logrocket.com/offline-first-frontend-apps-2025-indexeddb-sqlite/)
+**Alternative considered: Self-hosted Express on VPS** -- More ops burden, no edge distribution. Only choose this if you need GPU-local inference.
 
-### Windows Shell Integration
+### 5. Conversation History & Preferences (Local Storage)
 
-| Technology | Purpose | Confidence | Rationale |
-|------------|---------|------------|-----------|
-| **NSIS Custom Scripts** | Context menu registration | HIGH | electron-builder/Forge use NSIS for Windows installers. Custom `installer.nsh` can write registry keys for shell integration. |
-| **Registry paths** | Shell handler | HIGH | `HKEY_CLASSES_ROOT\*\shell\Samsara` for file context menu. `HKEY_CLASSES_ROOT\Directory\shell\Samsara` for folder context menu. |
-| **File type associations** | .pdf handling | MEDIUM | Optional: Register as PDF handler. Registry under `HKEY_CLASSES_ROOT\.pdf\OpenWithProgids`. |
+| Technology                    | Version | Purpose              | Confidence | Rationale                                                                                                             |
+| ----------------------------- | ------- | -------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------- |
+| **better-sqlite3** (existing) | 12.6.x  | Conversation storage | HIGH       | Already in stack. Add tables for conversations, messages, tool calls, and user preferences. No new dependency needed. |
 
-**Source:** [electron-builder NSIS](https://www.electron.build/nsis.html), [Microsoft Shell Handlers](https://learn.microsoft.com/en-us/windows/win32/shell/context-menu-handlers)
+**New SQLite tables needed:**
 
-### PDF Visual Editing (Redaction UI)
+```sql
+-- Conversation sessions
+CREATE TABLE conversations (
+  id TEXT PRIMARY KEY,
+  project_id TEXT REFERENCES projects(id),
+  title TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
 
-| Technology | Version | Purpose | Confidence | Rationale |
-|------------|---------|------------|-----------|
-| **pdf.js** | 4.x | PDF rendering | HIGH | Mozilla's PDF renderer. Render PDFs in canvas for visual selection. Free, open source. |
-| **Custom Canvas Overlay** | - | Redaction selection | MEDIUM | Build redaction selection UI on canvas overlay. Track coordinates, send to Python for actual redaction. |
-| **Nutrient SDK** | - | Full-featured PDF editor | LOW | Commercial option if pdf.js insufficient. Includes built-in redaction. Evaluate cost vs. build. |
+-- Individual messages
+CREATE TABLE messages (
+  id TEXT PRIMARY KEY,
+  conversation_id TEXT REFERENCES conversations(id),
+  role TEXT CHECK(role IN ('user','assistant','system','tool')),
+  content TEXT,
+  tool_calls TEXT,       -- JSON array of tool invocations
+  tool_results TEXT,     -- JSON array of tool results
+  tokens_used INTEGER,
+  created_at TEXT DEFAULT (datetime('now'))
+);
 
-**Recommendation:** Start with pdf.js + custom canvas overlay. Redaction coordinates sent to Python (PyMuPDF can apply redactions). Only evaluate commercial SDKs if custom solution proves inadequate.
+-- Learned preferences (feedback across sessions)
+CREATE TABLE agent_preferences (
+  id TEXT PRIMARY KEY,
+  category TEXT,         -- e.g., 'matching_style', 'output_format'
+  key TEXT,
+  value TEXT,            -- JSON
+  confidence REAL,       -- 0.0 to 1.0, increases with repeated feedback
+  created_at TEXT DEFAULT (datetime('now')),
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+```
 
-**Source:** [pdf.js](https://mozilla.github.io/pdf.js/), [Nutrient Electron SDK](https://www.nutrient.io/sdk/electron)
+**No vector database needed.** Preferences are key-value pairs with confidence scores, not embeddings. Conversation history is retrieved by conversation_id, not semantic search. Keep it simple.
+
+---
+
+## Full Addition Summary
+
+### npm install (new dependencies)
+
+```bash
+# Core agent
+npm install ai @ai-sdk/react react-markdown remark-gfm rehype-highlight
+
+# Dev (types if needed)
+# ai SDK includes its own types
+```
+
+**Total new dependencies: 5 packages.** Minimal footprint.
+
+### Proxy backend (separate repo/directory)
+
+```bash
+# Initialize proxy project
+npm init -y
+npm install hono @ai-sdk/openai @ai-sdk/anthropic @hono/zod-validator zod stripe
+npm install -D wrangler typescript @types/node
+
+# Or with Anthropic as primary provider:
+npm install hono @ai-sdk/anthropic @hono/zod-validator zod stripe
+```
+
+---
+
+## What NOT to Add
+
+| Technology                              | Why Avoid                                                                                                                                            |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **LangChain.js**                        | Over-engineered for this use case. Adds massive dependency tree for abstractions you don't need. AI SDK's tool-calling is sufficient.                |
+| **chatscope/stream-chat-react**         | Multi-user chat libraries. Wrong abstraction for single-user AI agent. Build with Tailwind.                                                          |
+| **ChromaDB / Pinecone / any vector DB** | No semantic search needed. Preferences are structured key-value. Conversations retrieved by ID. SQLite is enough.                                    |
+| **Socket.io / WebSocket library**       | SSE (Server-Sent Events) is sufficient for LLM streaming. AI SDK handles this. WebSockets add complexity for no benefit in unidirectional streaming. |
+| **Redis**                               | For the proxy rate limiting, Cloudflare KV is sufficient. Only add Redis if self-hosting.                                                            |
+| **Prisma / Drizzle (for proxy)**        | Cloudflare D1 with raw SQL or Hono's built-in D1 bindings is enough for user/subscription tables.                                                    |
+| **NextAuth**                            | Designed for Next.js. Use a lighter auth solution for the Hono proxy.                                                                                |
+
+---
+
+## Integration Points with Existing Stack
+
+### How Agent Connects to Existing App
+
+| Existing Component | Agent Integration                                            | Change Required                       |
+| ------------------ | ------------------------------------------------------------ | ------------------------------------- |
+| IPC handlers (30+) | Exposed as agent tools via schema definitions                | None -- handlers stay as-is           |
+| Preload bridge     | Agent calls same `window.electronAPI.*` methods              | May need to expose additional methods |
+| Zustand stores     | Chat panel uses new `useChatStore` alongside existing stores | New store, no changes to existing     |
+| SQLite database    | New tables added via migration                               | Migration script only                 |
+| Python sidecar     | Agent triggers Python operations via existing IPC            | None                                  |
+| React Router       | New `/chat` or sidebar panel route                           | Add route                             |
+| Tailwind           | Chat UI styled with existing Tailwind config                 | None                                  |
+
+### Streaming Architecture in Electron
+
+```
+[Renderer: Chat Panel]
+    |
+    | useChat() hook (AI SDK)
+    |
+    v
+[Renderer: Proxy Client]
+    |
+    | fetch() with streaming (SSE)
+    | Via Electron's net module or direct HTTPS
+    |
+    v
+[Cloud: Hono Proxy on Workers]
+    |
+    | Auth check, rate limit, forward
+    |
+    v
+[LLM Provider API: Anthropic/OpenAI]
+    |
+    | Streaming response (SSE)
+    |
+    v
+[Back through proxy -> renderer -> UI update per token]
+```
+
+**Key consideration:** Electron's CSP may block direct fetch to external APIs from the renderer. Two options:
+
+1. **Proxy through main process** -- renderer sends to main via IPC, main makes HTTPS request. Safer, more control.
+2. **Direct from renderer** -- Configure CSP to allow the proxy domain. Simpler but less secure.
+
+**Recommendation:** Proxy through main process for auth token security. Store the subscription API key in main process, never expose to renderer.
 
 ---
 
 ## Alternatives Considered
 
-| Category | Recommended | Alternative | Why Not Alternative |
-|----------|-------------|-------------|---------------------|
-| Desktop Framework | Electron | Tauri | Tauri is lighter but Python sidecar integration is better documented for Electron. Tauri's Rust backend doesn't help when heavy processing is in Python anyway. |
-| Build Tool | Vite (via Forge) | Webpack | Webpack is slower, more complex config. Vite HMR is near-instant. |
-| State Management | Zustand | Redux Toolkit | Redux adds boilerplate without clear benefit for medium app. Zustand handles Samsara's complexity with less code. |
-| PDF Parsing | PyMuPDF + pdfplumber | pypdf, PDFMiner | pypdf slower, fewer features. PDFMiner is pdfplumber's base - use pdfplumber for better API. |
-| PDF Generation | ReportLab | FPDF2, Pillow | FPDF2 less mature. Pillow can't generate real PDFs. ReportLab is industry standard. |
-| Node-Python IPC | python-shell | zerorpc, HTTP/FastAPI | zerorpc has C++ dependencies, harder to bundle. HTTP adds overhead for local IPC. python-shell is simplest for stdio. |
-| SQLite Bindings | better-sqlite3 | sql.js, node-sqlite3 | sql.js is in-memory only. node-sqlite3 is async and slower. better-sqlite3 is fastest. |
-| NLP | spaCy | NLTK, Transformers | NLTK is slower, less accurate. Transformers overkill for NER - spaCy models are sufficient. |
-
----
-
-## Version Matrix
-
-All versions verified as of 2026-01-23:
-
-| Package | Verified Version | Python/Node Requirement | Source |
-|---------|------------------|-------------------------|--------|
-| Electron | 39.x | Node 22.x | [releases.electronjs.org](https://releases.electronjs.org/) |
-| better-sqlite3 | 12.6.2 | Node 14.21.1+ | [GitHub](https://github.com/WiseLibs/better-sqlite3) |
-| PyMuPDF | 1.26.7 | Python 3.10+ | [PyPI](https://pypi.org/project/pymupdf/) |
-| pdfplumber | 0.11.9 | Python 3.8+ | [PyPI](https://pypi.org/project/pdfplumber/) |
-| ReportLab | 4.4.9 | Python 3.9+ | [PyPI](https://pypi.org/project/reportlab/) |
-| WeasyPrint | 68.0 | Python 3.10+ | [PyPI](https://pypi.org/project/weasyprint/) |
-| spaCy | 3.8.11 | Python 3.9+ | [PyPI](https://pypi.org/project/spacy/) |
-| PyInstaller | 6.18.0 | Python 3.8-3.14 | [PyPI](https://pypi.org/project/pyinstaller/) |
-
-**Python Version Recommendation:** Use **Python 3.11** or **3.12**. Both are compatible with all libraries. 3.11 has significant performance improvements. Avoid 3.10.0 specifically (PyInstaller bug).
-
----
-
-## Installation Commands
-
-### Node.js Dependencies
-
-```bash
-# Initialize Electron project with Forge + Vite
-npm init electron-app@latest samsara -- --template=vite-typescript
-
-# Core dependencies
-npm install react react-dom
-npm install better-sqlite3
-npm install zustand
-npm install electron-context-menu  # Optional: in-app context menus
-npm install python-shell
-
-# Dev dependencies
-npm install -D typescript @types/react @types/react-dom
-npm install -D tailwindcss postcss autoprefixer
-npm install -D @types/better-sqlite3
-npm install -D electron-rebuild  # Rebuild native modules
-```
-
-### Python Dependencies
-
-```bash
-# Create virtual environment
-python -m venv .venv
-source .venv/bin/activate  # or .venv\Scripts\activate on Windows
-
-# Core dependencies
-pip install pymupdf==1.26.7
-pip install pdfplumber==0.11.9
-pip install reportlab==4.4.9
-pip install spacy==3.8.11
-pip install pyinstaller==6.18.0
-
-# Download spaCy model
-python -m spacy download en_core_web_sm
-
-# Optional: WeasyPrint for HTML-to-PDF
-pip install weasyprint==68.0
-```
-
-### Rebuild Native Modules for Electron
-
-```bash
-# After npm install, rebuild better-sqlite3 for Electron's Node version
-npx electron-rebuild
-```
-
----
-
-## Architecture Implications
-
-### Performance Targets
-
-| Operation | Target | Stack Component | Notes |
-|-----------|--------|-----------------|-------|
-| PDF parse | < 500ms | PyMuPDF | Fast C bindings |
-| Entity extraction | < 1s | spaCy en_core_web_sm | Small model, CPU inference |
-| Branded PDF generation | < 500ms | ReportLab | Pre-compiled templates |
-| **Total per resume** | **< 2s** | Combined | Meets requirement |
-
-### Data Flow
-
-```
-User drops PDF
-    |
-    v
-[Electron Main] --> python-shell --> [Python Sidecar]
-    |                                      |
-    v                                      v
-[better-sqlite3]                    [PyMuPDF: extract]
-    |                                      |
-    v                                      v
-[Local SQLite DB]                   [spaCy: parse entities]
-                                          |
-                                          v
-                                    [ReportLab: generate branded PDF]
-                                          |
-                                          v
-                              [Return to Electron via stdout JSON]
-```
-
-### Security Model
-
-- **Context Isolation:** Enabled (Electron default)
-- **Node Integration:** Disabled in renderer
-- **Preload Scripts:** Required for all main process access
-- **IPC Whitelist:** Only expose specific channels via contextBridge
-- **Python Sidecar:** Communicates via stdio, no network exposure
-- **SQLite:** Local file only, no network sync
-
----
-
-## What NOT to Use
-
-| Technology | Why Avoid |
-|------------|-----------|
-| **Tauri** | Python sidecar pattern better documented for Electron. Tauri's Rust backend doesn't help when processing is in Python. |
-| **node-sqlite3** | Async API is actually slower due to callback overhead. Use better-sqlite3. |
-| **sql.js** | In-memory only, no real persistence. Not suitable for desktop app. |
-| **Sequelize/TypeORM** | Heavy ORMs add overhead. better-sqlite3 with raw SQL or Drizzle is sufficient. |
-| **zerorpc** | C++ dependencies complicate bundling. python-shell is simpler. |
-| **PyPDF2/pypdf** | Slower, fewer features than PyMuPDF. |
-| **NLTK** | Slower and less accurate than spaCy for NER. |
-| **Redux** | Overkill for Samsara's complexity. Zustand is simpler with same capabilities. |
-| **Create React App** | Deprecated. Use Vite. |
-| **Webpack** | Slower than Vite, more complex configuration. |
+| Category             | Recommended                  | Alternative              | Why Not                                                                |
+| -------------------- | ---------------------------- | ------------------------ | ---------------------------------------------------------------------- |
+| LLM SDK              | Vercel AI SDK                | LangChain.js             | LangChain too heavy, too many abstractions for proxy+tool-call pattern |
+| LLM SDK              | Vercel AI SDK                | Raw fetch+SSE            | Works but reimplements streaming, tool parsing, retry logic            |
+| Markdown             | react-markdown               | marked + DOMPurify       | react-markdown integrates better with React, handles XSS by default    |
+| Proxy hosting        | Cloudflare Workers           | Vercel Edge / AWS Lambda | Workers has best free tier and built-in KV/D1                          |
+| Proxy framework      | Hono                         | Express                  | Express too heavy for edge, Hono purpose-built for Workers             |
+| Conversation storage | SQLite (existing)            | IndexedDB in renderer    | SQLite already in stack, accessed from main process, more reliable     |
+| Preferences          | SQLite key-value             | Separate JSON files      | SQLite is transactional, queryable. JSON files risk corruption.        |
+| Auth                 | TBD (verify before choosing) | Firebase Auth            | Firebase adds cloud dependency. Keep auth lightweight.                 |
 
 ---
 
 ## Confidence Assessment
 
-| Area | Confidence | Notes |
-|------|------------|-------|
-| Electron + Forge + Vite | HIGH | Official toolchain, well-documented |
-| React + TypeScript + Tailwind | HIGH | Standard modern stack |
-| better-sqlite3 | HIGH | Benchmarked, widely adopted |
-| PyMuPDF + pdfplumber | HIGH | Verified versions, well-documented APIs |
-| ReportLab | HIGH | Industry standard, active maintenance |
-| spaCy | HIGH | Production-grade, good resume NER support |
-| python-shell | MEDIUM | Works but not heavily maintained. May need fallback to HTTP. |
-| NSIS shell integration | MEDIUM | Documented but requires custom scripting. Test early. |
-| pdf.js + custom redaction UI | MEDIUM | Standard approach but requires custom dev work |
+| Area                                | Confidence | Notes                                                                                                                         |
+| ----------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Chat UI (react-markdown + Tailwind) | HIGH       | Stable, well-known libraries. No version uncertainty.                                                                         |
+| Vercel AI SDK                       | MEDIUM     | Confident in approach but version (4.x) unverified against current release. API may have changed. Verify before implementing. |
+| Hono + Cloudflare Workers           | MEDIUM     | Architecture is sound. Specific Hono middleware for auth/rate-limiting needs verification at implementation time.             |
+| SQLite for conversations            | HIGH       | Proven pattern, already in stack.                                                                                             |
+| Tool-use via IPC mapping            | HIGH       | Architectural pattern, no library dependency. Just schema definitions.                                                        |
+| Auth library choice                 | LOW        | Auth ecosystem churns rapidly. Research specific options at implementation time.                                              |
+| Stripe integration                  | HIGH       | Stable API, well-documented.                                                                                                  |
 
 ---
 
 ## Open Questions for Phase-Specific Research
 
-1. **Python bundling size:** PyInstaller onefile with PyMuPDF + spaCy may be large (100-200MB). Need to test actual bundle size and startup time.
-
-2. **spaCy model selection:** Start with `en_core_web_sm`. May need `en_core_web_md` or custom training if accuracy insufficient for resume entities.
-
-3. **Windows 11 context menu:** Windows 11 has new context menu behavior. May need registry tweaks for "Show more options" visibility.
-
-4. **Hot reload with Python sidecar:** Vite HMR works for renderer, but Python changes require sidecar restart. Consider development workflow.
+1. **Vercel AI SDK version:** Verify current stable version and confirm `useChat` + `tools` API shape before implementation.
+2. **Electron CSP for streaming:** Test whether SSE from renderer to external proxy works with default Electron CSP, or if main-process proxying is required.
+3. **Auth library:** Evaluate better-auth vs Lucia vs custom JWT at proxy implementation time. This space moves fast.
+4. **LLM provider choice:** Anthropic Claude vs OpenAI GPT for tool-use quality. AI SDK supports both -- can A/B test. Anthropic's tool-use is generally stronger as of early 2025 training data.
+5. **Token budget management:** How to handle conversation context windows. May need summarization strategy for long conversations.
+6. **Offline fallback:** When proxy is unreachable, can agent fall back to local Ollama/Qwen for basic operations? AI SDK supports Ollama adapter.
 
 ---
 
 ## Sources
 
-### Official Documentation (HIGH confidence)
-- [Electron IPC Tutorial](https://www.electronjs.org/docs/latest/tutorial/ipc)
-- [Electron Forge NSIS](https://www.electron.build/nsis.html)
-- [PyMuPDF Documentation](https://pymupdf.readthedocs.io/)
-- [pdfplumber GitHub](https://github.com/jsvine/pdfplumber)
-- [spaCy Linguistic Features](https://spacy.io/usage/linguistic-features)
-- [better-sqlite3 GitHub](https://github.com/WiseLibs/better-sqlite3)
+### High Confidence (verified from project)
 
-### Version Verification (HIGH confidence)
-- [PyPI - pdfplumber 0.11.9](https://pypi.org/project/pdfplumber/)
-- [PyPI - PyMuPDF 1.26.7](https://pypi.org/project/pymupdf/)
-- [PyPI - ReportLab 4.4.9](https://pypi.org/project/reportlab/)
-- [PyPI - spaCy 3.8.11](https://pypi.org/project/spacy/)
-- [PyPI - PyInstaller 6.18.0](https://pypi.org/project/pyinstaller/)
-- [PyPI - WeasyPrint 68.0](https://pypi.org/project/weasyprint/)
-- [Electron Releases](https://releases.electronjs.org/)
+- Existing IPC handlers: `src/main/index.ts` (~30 handlers verified)
+- Existing dependencies: `package.json` (React 19, Electron 40, better-sqlite3 12.6.2, Zustand 5.x)
 
-### Ecosystem Research (MEDIUM confidence)
-- [Electron vs Tauri 2025](https://www.dolthub.com/blog/2025-11-13-electron-vs-tauri/)
-- [PDF Extractors 2025 Comparison](https://onlyoneaman.medium.com/i-tested-7-python-pdf-extractors-so-you-dont-have-to-2025-edition-c88013922257)
-- [Local-First Apps 2025](https://blog.logrocket.com/offline-first-frontend-apps-2025-indexeddb-sqlite/)
-- [Zustand vs Redux 2025](https://zustand.docs.pmnd.rs/getting-started/comparison)
-- [React State Management 2025](https://www.zignuts.com/blog/react-state-management-2025)
+### Medium Confidence (training data, verify before use)
+
+- Vercel AI SDK: https://sdk.vercel.ai/docs
+- Hono framework: https://hono.dev/
+- Cloudflare Workers: https://developers.cloudflare.com/workers/
+- react-markdown: https://github.com/remarkjs/react-markdown
+
+### Low Confidence (needs verification at implementation time)
+
+- Auth library recommendations (ecosystem churn)
+- Exact Vercel AI SDK 4.x API surface
+- Cloudflare D1 pricing for subscription data storage

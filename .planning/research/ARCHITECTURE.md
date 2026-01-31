@@ -1,710 +1,813 @@
-# Architecture Patterns: Electron + Python Sidecar Desktop Apps
+# Architecture Patterns: Yama Conversational Agent (M5)
 
-**Domain:** Local-first desktop application with Electron frontend and Python sidecar backend
-**Researched:** 2026-01-23
-**Confidence:** MEDIUM (patterns well-documented but some configuration details vary by version)
+**Domain:** Conversational AI agent integration in existing Electron + React + Python sidecar app
+**Researched:** 2026-01-31
+**Overall confidence:** HIGH (based on direct codebase analysis of all main process modules)
+
+---
 
 ## Executive Summary
 
-Electron + Python sidecar architecture combines Electron's cross-platform UI capabilities with Python's rich ecosystem for heavy processing (PDF parsing, NLP). The recommended pattern spawns a bundled Python executable as a child process from Electron's main process, communicating via stdin/stdout JSON messages or a localhost HTTP server. For Samsara's use case (PDF processing, spaCy NLP, <2s response requirement), **python-shell with JSON mode** provides the best balance of simplicity, performance, and bundling ease.
+The Yama agent should live in the **Electron main process** as a new `AgentManager` singleton, mirroring the existing `QueueManager` pattern. It calls existing database and Python functions directly (no IPC round-trips for tool execution), streams responses to the renderer via `webContents.send()`, and stores conversations in the same SQLite database using the established migration pattern. The renderer gets a Zustand store and chat panel component. When disabled, zero code paths execute.
 
 ---
 
 ## Recommended Architecture
 
 ```
-+------------------------------------------------------------------+
-|                        ELECTRON APP                               |
-|                                                                   |
-|  +------------------+        IPC        +--------------------+    |
-|  |  Renderer        | <--------------->  |  Main Process      |    |
-|  |  (React/Vue/     |   ipcRenderer/     |  (Node.js)        |    |
-|  |   vanilla)       |   ipcMain          |                    |    |
-|  |                  |                    |  - Window mgmt     |    |
-|  |  - UI/UX         |                    |  - File dialogs    |    |
-|  |  - User input    |                    |  - Python spawn    |    |
-|  |  - Display       |                    |  - SQLite access   |    |
-|  +------------------+                    +--------------------+    |
-|                                                  |                 |
-|                                                  | child_process   |
-|                                                  | spawn + stdio   |
-|                                                  |                 |
-+--------------------------------------------------|-----------------+
-                                                   |
-                                                   v
-                                    +-----------------------------+
-                                    |      PYTHON SIDECAR         |
-                                    |      (Bundled Executable)    |
-                                    |                             |
-                                    |  - pdfplumber (PDF parsing) |
-                                    |  - spaCy (NLP extraction)   |
-                                    |  - Business logic           |
-                                    |  - JSON stdin/stdout        |
-                                    +-----------------------------+
-                                                   |
-                                                   v
-                                    +-----------------------------+
-                                    |         SQLite DB           |
-                                    |    (shared file access)     |
-                                    +-----------------------------+
++-------------------------------------------------------------------+
+|                        RENDERER (React)                            |
+|                                                                    |
+|  +------------------+     +-------------------+                    |
+|  | Existing UI      |     | ChatPanel (NEW)   |                    |
+|  | (projects, CVs,  |     | - message list    |                    |
+|  |  JDs, matching)  |     | - input box       |                    |
+|  |                  |     | - tool call cards  |                    |
+|  +------------------+     +-------------------+                    |
+|         |                        |                                 |
+|   existing stores          agentStore (NEW)                        |
+|         |                        |                                 |
++---------|------------------------|---------------------------------+
+          | ipcRenderer.invoke     | ipcRenderer.invoke('agent-chat')
+          | (existing handlers)    | ipcRenderer.on('agent-stream')
+          |                        |
++---------|------------------------|---------------------------------+
+|         v                        v           MAIN PROCESS          |
+|  +------------------+     +-------------------+                    |
+|  | Existing IPC     |     | Agent IPC (NEW)   |                    |
+|  | handlers (30+)   |     | 5 new handlers    |                    |
+|  +------------------+     +-------------------+                    |
+|         |                        |                                 |
+|  +------------------+     +-------------------+                    |
+|  | database.ts      |<----| AgentManager (NEW)|                    |
+|  | pythonManager.ts  |<----|  - agent loop     |                    |
+|  | queueManager.ts   |     |  - LLM client     |                    |
+|  | settings.ts       |     |  - tool dispatch   |                    |
+|  +------------------+     +-------------------+                    |
+|                                   |                                |
+|                                   | fetch() with streaming         |
++-----------------------------------|--------------------------------+
+                                    |
+                                    v
+                          +-------------------+
+                          | Cloud LLM API     |
+                          | (OpenAI / proxy)  |
+                          +-------------------+
 ```
 
 ### Component Boundaries
 
-| Component | Responsibility | Communicates With | Technology |
-|-----------|---------------|-------------------|------------|
-| **Renderer Process** | UI rendering, user interaction, display results | Main Process via ipcRenderer | HTML/CSS/JS, React/Vue |
-| **Main Process** | Window management, native OS features, Python lifecycle, database access | Renderer via ipcMain, Python via stdio | Node.js, Electron APIs |
-| **Python Sidecar** | PDF parsing, NLP processing, resume extraction logic | Main Process via stdin/stdout JSON | Python, pdfplumber, spaCy |
-| **SQLite Database** | Persistent storage for resumes, extracted data, settings | Main Process (better-sqlite3) | SQLite file |
-
-### Data Flow
-
-```
-User drops PDF file
-        |
-        v
-[Renderer] ---(ipcRenderer.invoke)--> [Main Process]
-                                            |
-                                            | Reads file from disk
-                                            | Spawns/sends to Python
-                                            v
-                              [Python Sidecar receives JSON via stdin]
-                                            |
-                                            | pdfplumber extracts text
-                                            | spaCy processes NLP
-                                            | Returns JSON via stdout
-                                            v
-                              [Main Process receives JSON result]
-                                            |
-                                            | Writes to SQLite
-                                            | Sends result to renderer
-                                            v
-                              [Renderer displays results]
-```
+| Component          | File                                | Responsibility                                                                    | New/Modified          |
+| ------------------ | ----------------------------------- | --------------------------------------------------------------------------------- | --------------------- |
+| `AgentManager`     | `src/main/agentManager.ts`          | Agent loop orchestration, LLM streaming client, tool dispatch, conversation state | **NEW**               |
+| `agentTools.ts`    | `src/main/agentTools.ts`            | Tool definitions wrapping existing database/Python functions as callable tools    | **NEW**               |
+| Agent DB functions | `src/main/database.ts`              | Conversation + message + feedback tables, migration v5                            | **MODIFIED** (append) |
+| Agent IPC handlers | `src/main/index.ts`                 | 5 new `ipcMain.handle()` registrations                                            | **MODIFIED** (append) |
+| Preload API        | `src/main/preload.ts`               | Expose agent methods + stream listener to renderer                                | **MODIFIED** (append) |
+| Settings           | `src/main/settings.ts`              | Add `agentEnabled`, `agentApiKey`, `agentModel`, `agentApiUrl`                    | **MODIFIED**          |
+| `agentStore.ts`    | `src/renderer/stores/agentStore.ts` | Zustand store for chat UI state, streaming accumulation                           | **NEW**               |
+| ChatPanel          | `src/renderer/components/agent/`    | Chat UI components (panel, messages, tool cards, input)                           | **NEW**               |
 
 ---
 
-## IPC Patterns: Electron to Python
+## Q1: Where Does Agent Logic Live?
 
-### Option 1: python-shell + JSON (RECOMMENDED)
+**Answer: Main process, as a new `AgentManager` singleton.**
 
-**Confidence:** HIGH (verified via npm documentation and multiple tutorials)
+Rationale based on codebase analysis:
 
-Use `python-shell` npm package for stdio-based communication with JSON serialization.
+1. **Direct function access.** The agent needs to call `getAllCVs()`, `getCVFull()`, `getJD()`, `getMatchResultsForJD()`, `sendToPython()`, etc. These are all exported functions in `database.ts` and `pythonManager.ts`. From main process, they are direct imports -- zero IPC overhead per tool call. From renderer, each tool call would require an `ipcRenderer.invoke()` round-trip.
 
-**Pros:**
-- Simple setup, minimal boilerplate
-- Efficient for request/response patterns
-- No network ports to manage
-- Easy error handling
-- Works well with PyInstaller bundles
+2. **Precedent: QueueManager.** The existing `QueueManager` class (in `src/main/queueManager.ts`) is a singleton in main process that orchestrates async work, pushes status updates to renderer via `mainWindow.webContents.send('queue-status-update', ...)`, and the renderer subscribes via `ipcRenderer.on()`. The agent follows this identical pattern.
 
-**Cons:**
-- Not ideal for streaming large data
-- Python process must be kept alive for multiple requests (or respawned)
+3. **API key security.** The LLM API key must stay in main process. The existing pattern (`settings.ts`) stores keys in `userData/settings.json` and only exposes `hasApiKey: boolean` to renderer via preload. Agent follows the same pattern.
 
-**Implementation Pattern:**
+4. **Streaming without blocking UI.** The agent loop (call LLM -> parse tool calls -> execute tools -> call LLM again) is async in main process. Each chunk is pushed to renderer immediately. Renderer never blocks.
 
-```javascript
-// main.js - Electron main process
-const { PythonShell } = require('python-shell');
-const path = require('path');
+**Alternatives considered and rejected:**
 
-function findPython() {
-  const possibilities = [
-    // Packaged app location
-    path.join(process.resourcesPath, 'python', 'samsara-backend.exe'),
-    path.join(process.resourcesPath, 'python', 'samsara-backend'),
-    // Development location
-    path.join(__dirname, 'python-dist', 'samsara-backend.exe'),
-    path.join(__dirname, 'python-dist', 'samsara-backend'),
-  ];
-
-  for (const p of possibilities) {
-    if (fs.existsSync(p)) return p;
-  }
-  // Fallback to system Python for development
-  return 'python';
-}
-
-const options = {
-  mode: 'json',
-  pythonPath: findPython(),
-  pythonOptions: ['-u'], // unbuffered output
-  scriptPath: path.join(__dirname, 'python-src'),
-};
-
-// For long-running Python process (connection pool pattern)
-let pyshell = null;
-
-function initPython() {
-  pyshell = new PythonShell('main.py', options);
-
-  pyshell.on('message', (message) => {
-    // Route response to appropriate handler based on message.id
-    handlePythonResponse(message);
-  });
-
-  pyshell.on('error', (err) => {
-    console.error('Python error:', err);
-  });
-}
-
-function sendToPython(request) {
-  return new Promise((resolve, reject) => {
-    const id = generateRequestId();
-    pendingRequests.set(id, { resolve, reject });
-    pyshell.send({ ...request, id });
-  });
-}
-```
-
-```python
-# main.py - Python sidecar entry point
-import sys
-import json
-from processor import ResumeProcessor
-
-processor = ResumeProcessor()
-
-def handle_request(request):
-    action = request.get('action')
-
-    if action == 'process_resume':
-        result = processor.process(request['file_path'])
-        return {'id': request['id'], 'success': True, 'data': result}
-
-    elif action == 'health_check':
-        return {'id': request['id'], 'success': True, 'status': 'healthy'}
-
-    return {'id': request['id'], 'success': False, 'error': 'Unknown action'}
-
-# Main loop - read JSON from stdin, write JSON to stdout
-for line in sys.stdin:
-    try:
-        request = json.loads(line)
-        response = handle_request(request)
-        print(json.dumps(response), flush=True)
-    except Exception as e:
-        print(json.dumps({'error': str(e)}), flush=True)
-```
-
-### Option 2: HTTP Localhost Server (Flask)
-
-**Confidence:** MEDIUM (well-documented but more complex setup)
-
-Python runs a Flask server on localhost; Electron makes HTTP requests.
-
-**Pros:**
-- Familiar REST API patterns
-- Easy debugging (can test with curl/Postman)
-- Supports concurrent requests naturally
-- Good for complex multi-endpoint APIs
-
-**Cons:**
-- Port management complexity
-- Firewall/antivirus may block localhost
-- Slower than stdio for small payloads
-- More complex bundling (Flask dependencies)
-
-**When to use:** Choose HTTP if you need multiple concurrent requests or complex API routing.
-
-### Option 3: ZeroRPC (NOT RECOMMENDED)
-
-**Confidence:** MEDIUM (documented but maintenance concerns)
-
-**Why not recommended:**
-- zerorpc-node library hasn't been updated significantly
-- Compatibility issues with newer Electron versions
-- More complex native module compilation
-- Smaller community, less support
+- **Renderer process:** API keys exposed, every tool call requires IPC round-trip, streaming complexity increases.
+- **Python sidecar:** Uses stdin/stdout JSON lines protocol (`pythonManager.ts` lines 108-148). Not designed for streaming. Would require rewriting the entire communication layer. Python sidecar should remain focused on NLP/parsing.
+- **Separate Node.js service:** Unnecessary complexity. Main process already has everything needed.
 
 ---
 
-## Bundling Strategy: Python with Electron
+## Q2: How Does the Agent Call Existing IPC Handlers as Tools?
 
-### Recommended Approach: PyInstaller + electron-builder extraResources
+**Answer: It does not call IPC handlers. It calls the underlying functions directly.**
 
-**Confidence:** HIGH (verified via official electron-builder docs and Simon Willison's detailed guide)
+The IPC handlers in `index.ts` are thin wrappers around imported functions. The agent bypasses IPC entirely:
 
-**Step 1: Create Python Executable with PyInstaller**
+```
+IPC handler (for renderer):
+  ipcMain.handle('get-all-cvs') --> calls getAllCVs() from database.ts
 
-```bash
-# From project root
-cd python-src
-
-pyinstaller --onedir --name samsara-backend main.py \
-    --hidden-import pdfplumber \
-    --hidden-import pdfminer.six \
-    --collect-all pdfplumber \
-    --collect-submodules spacy \
-    --collect-data spacy \
-    --collect-submodules en_core_web_sm \
-    --collect-data en_core_web_sm \
-    --copy-metadata en_core_web_sm
+Agent tool (same process):
+  agentTools['list_cvs'].execute() --> calls getAllCVs() from database.ts directly
 ```
 
-**Important PyInstaller Notes:**
-- Use `--onedir` not `--onefile` for faster startup (important for <2s requirement)
-- spaCy requires extensive hidden imports and data collection
-- Model files (en_core_web_sm) must be explicitly included
+### Tool Registry Design
 
-**Step 2: Configure electron-builder**
+```typescript
+// src/main/agentTools.ts
+import {
+  getAllCVs,
+  getCVFull,
+  getAllJDs,
+  getJD,
+  getMatchResultsForJD,
+} from "./database";
+import { sendToPython } from "./pythonManager";
 
-```json
-// package.json
-{
-  "build": {
-    "appId": "com.samsara.app",
-    "productName": "Samsara",
-    "extraResources": [
-      {
-        "from": "python-dist/samsara-backend",
-        "to": "python",
-        "filter": ["**/*"]
-      }
-    ],
-    "mac": {
-      "target": "dmg",
-      "extraResources": [
-        {
-          "from": "python-dist-mac/samsara-backend",
-          "to": "python",
-          "filter": ["**/*"]
-        }
-      ]
+// OpenAI function calling format
+export const TOOL_DEFINITIONS = [
+  {
+    type: "function",
+    function: {
+      name: "list_cvs",
+      description:
+        "List all CVs in a project. Returns summaries with id, name, confidence.",
+      parameters: {
+        type: "object",
+        properties: {
+          projectId: { type: "string", description: "Filter by project ID" },
+        },
+      },
     },
-    "win": {
-      "target": "nsis",
-      "extraResources": [
-        {
-          "from": "python-dist-win/samsara-backend",
-          "to": "python",
-          "filter": ["**/*"]
-        }
-      ]
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_cv_details",
+      description:
+        "Get full CV data including contact, skills, work history, education.",
+      parameters: {
+        type: "object",
+        properties: {
+          cvId: { type: "string" },
+        },
+        required: ["cvId"],
+      },
     },
-    "asar": true,
-    "asarUnpack": []
+  },
+  // ... more tools
+];
+
+export async function executeTool(
+  name: string,
+  args: Record<string, unknown>,
+): Promise<unknown> {
+  switch (name) {
+    case "list_cvs":
+      return getAllCVs(args.projectId as string | undefined);
+    case "get_cv_details":
+      return getCVFull(args.cvId as string);
+    case "list_jds":
+      return getAllJDs(args.projectId as string | undefined);
+    case "get_jd_details":
+      return getJD(args.jdId as string);
+    case "get_match_results":
+      return getMatchResultsForJD(args.jdId as string);
+    case "extract_jd":
+      return sendToPython({ action: "extract_jd", text: args.text }, 120000);
+    default:
+      throw new Error(`Unknown tool: ${name}`);
   }
 }
 ```
 
-**Key Configuration Points:**
+**Refactoring needed:** The CV-JD matching logic is currently inline in the `match-cvs-to-jd` IPC handler (index.ts lines 585-727). This should be extracted into a shared function in `database.ts` or a new `matching.ts` so both the IPC handler and agent tool can call it. This is a small, mechanical refactor.
 
-| Setting | Value | Reason |
-|---------|-------|--------|
-| `extraResources` | Python dist folder | Places Python outside asar archive for direct execution |
-| `asar` | `true` | Keeps Electron code in asar for performance |
-| Platform-specific `extraResources` | Different paths | PyInstaller output differs per platform |
+### Tool Safety: Read-Only + Create for V1
 
-**Step 3: Locate Python at Runtime**
+**Include as tools (v1):**
 
-```javascript
-// findPython.js
-const path = require('path');
-const fs = require('fs');
-const { app } = require('electron');
+- `list_cvs`, `get_cv_details` -- read
+- `list_jds`, `get_jd_details` -- read
+- `get_match_results` -- read
+- `match_cvs_to_jd` -- compute (non-destructive, creates match records)
+- `extract_jd` -- create (via Python sidecar)
+- `get_project`, `list_projects` -- read
 
-function findPython() {
-  const isPackaged = app.isPackaged;
-  const platform = process.platform;
-  const exeName = platform === 'win32' ? 'samsara-backend.exe' : 'samsara-backend';
+**Exclude from tools (v1):**
 
-  const locations = isPackaged
-    ? [path.join(process.resourcesPath, 'python', exeName)]
-    : [
-        path.join(__dirname, '..', 'python-dist', exeName),
-        path.join(__dirname, '..', 'python-dist', 'samsara-backend', exeName),
-      ];
-
-  for (const loc of locations) {
-    if (fs.existsSync(loc)) {
-      return loc;
-    }
-  }
-
-  throw new Error('Python backend not found');
-}
-
-module.exports = { findPython };
-```
-
-### Alternative: python-build-standalone
-
-**Confidence:** MEDIUM (documented by Simon Willison for Datasette Desktop)
-
-Instead of PyInstaller, bundle a complete Python interpreter with your scripts:
-
-**Pros:**
-- Can install pip packages at runtime
-- More flexible for plugin systems
-- Smaller initial bundle if not all packages are needed
-
-**Cons:**
-- Larger distribution size
-- More complex startup (must install deps)
-- Not suitable for Samsara (need everything pre-bundled)
+- `delete_cv`, `delete_jd`, `delete_project` -- destructive
+- `update_cv_field` -- mutation (add in v2 after trust is established)
+- `export_cv` -- file system side effect (add in v2)
+- Any settings mutations
 
 ---
 
-## SQLite Integration
+## Q3: How Does Streaming Flow Through Electron IPC?
 
-### Recommendation: better-sqlite3 in Main Process
+**Answer: `webContents.send()` push events from main to renderer, same as queue status updates.**
 
-**Confidence:** HIGH (verified performance claims via npm and dev.to documentation)
-
-```javascript
-// database.js - Main process only
-const Database = require('better-sqlite3');
-const path = require('path');
-const { app } = require('electron');
-
-const dbPath = path.join(app.getPath('userData'), 'samsara.db');
-const db = new Database(dbPath);
-
-// Enable WAL mode for better concurrent access
-db.pragma('journal_mode = WAL');
-
-// Create tables
-db.exec(`
-  CREATE TABLE IF NOT EXISTS resumes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    file_path TEXT NOT NULL,
-    file_name TEXT NOT NULL,
-    processed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    raw_text TEXT,
-    extracted_data JSON
-  );
-
-  CREATE INDEX IF NOT EXISTS idx_resumes_file_path ON resumes(file_path);
-`);
-
-module.exports = { db };
-```
-
-**Why better-sqlite3 over sql.js:**
-- 2-10x faster for most operations
-- Synchronous API is simpler and actually faster
-- SQLite runs in main process, not subject to renderer sandboxing
-
-**Important:** SQLite operations must run in Main Process. Use IPC to communicate with renderer:
-
-```javascript
-// main.js
-ipcMain.handle('db:insert-resume', async (event, data) => {
-  const stmt = db.prepare('INSERT INTO resumes (file_path, file_name, raw_text, extracted_data) VALUES (?, ?, ?, ?)');
-  const result = stmt.run(data.filePath, data.fileName, data.rawText, JSON.stringify(data.extractedData));
-  return result.lastInsertRowid;
-});
-
-ipcMain.handle('db:get-resumes', async () => {
-  return db.prepare('SELECT * FROM resumes ORDER BY processed_at DESC').all();
-});
-```
-
----
-
-## Process Lifecycle Management
-
-### Python Process Lifecycle
-
-**Confidence:** MEDIUM (documented patterns, but Windows-specific quirks exist)
-
-```javascript
-// pythonManager.js
-const { spawn } = require('child_process');
-const { app } = require('electron');
-const { findPython } = require('./findPython');
-
-let pythonProcess = null;
-
-function startPython() {
-  const pythonPath = findPython();
-
-  pythonProcess = spawn(pythonPath, [], {
-    stdio: ['pipe', 'pipe', 'pipe'],
-    windowsHide: true, // Hide console window on Windows
-  });
-
-  pythonProcess.stdout.on('data', handlePythonOutput);
-  pythonProcess.stderr.on('data', handlePythonError);
-
-  pythonProcess.on('exit', (code) => {
-    console.log(`Python exited with code ${code}`);
-    pythonProcess = null;
-  });
-}
-
-function stopPython() {
-  if (pythonProcess) {
-    // Send shutdown command first
-    pythonProcess.stdin.write(JSON.stringify({ action: 'shutdown' }) + '\n');
-
-    // Give it time to clean up, then force kill
-    setTimeout(() => {
-      if (pythonProcess) {
-        pythonProcess.kill('SIGTERM');
-        pythonProcess = null;
-      }
-    }, 1000);
-  }
-}
-
-// Lifecycle hooks
-app.on('ready', startPython);
-app.on('will-quit', stopPython);
-
-// Windows-specific: ensure Python dies with Electron
-if (process.platform === 'win32') {
-  app.on('before-quit', () => {
-    if (pythonProcess) {
-      // Use taskkill for reliable Windows termination
-      spawn('taskkill', ['/pid', pythonProcess.pid.toString(), '/f', '/t']);
-    }
-  });
-}
-```
-
-**Windows Gotcha:** On Windows, `process.kill()` may not kill child processes of the Python process. Use `taskkill /t` flag to kill the process tree.
-
----
-
-## Project Structure
-
-### Recommended Directory Layout
+### Streaming Data Flow
 
 ```
-samsara/
-├── package.json
-├── electron-builder.yml          # Build configuration
-├── src/
-│   ├── main/
-│   │   ├── main.js              # Electron main process entry
-│   │   ├── preload.js           # Preload script for renderer
-│   │   ├── pythonManager.js     # Python lifecycle management
-│   │   ├── database.js          # SQLite operations
-│   │   └── ipcHandlers.js       # IPC handler registration
-│   ├── renderer/
-│   │   ├── index.html
-│   │   ├── renderer.js          # or React/Vue app
-│   │   └── styles.css
-│   └── shared/
-│       └── types.js             # Shared type definitions
-├── python-src/
-│   ├── main.py                  # Python entry point
-│   ├── processor.py             # Resume processing logic
-│   ├── pdf_extractor.py         # pdfplumber wrapper
-│   ├── nlp_extractor.py         # spaCy NLP logic
-│   └── requirements.txt
-├── python-dist/                 # PyInstaller output (gitignored)
-├── scripts/
-│   ├── build-python.sh          # PyInstaller build script
-│   └── build-python.ps1         # Windows version
-└── test/
-    ├── electron/
-    └── python/
+Cloud LLM API
+    | SSE chunks (data: {"choices":[{"delta":{"content":"Hello"}}]})
+    v
+AgentManager (main process)
+    | Parses SSE, extracts delta content
+    | For each chunk:
+    v
+mainWindow.webContents.send('agent-stream', {
+    conversationId: 'conv-123',
+    type: 'text',           // 'text' | 'tool_call' | 'tool_result' | 'error' | 'done'
+    content: 'Hello',       // text delta
+})
+    |
+    v
+Renderer: ipcRenderer.on('agent-stream', callback)
+    |
+    v
+agentStore.appendStreamChunk(data)
+    | Zustand state update triggers React re-render
+    v
+ChatPanel displays accumulated text with typing indicator
 ```
 
----
+### Stream Event Types
 
-## Patterns to Follow
+| Type          | When                       | Payload                                        |
+| ------------- | -------------------------- | ---------------------------------------------- |
+| `text`        | LLM generating text        | `{ content: "partial text" }`                  |
+| `tool_call`   | LLM decided to call a tool | `{ toolName: "list_cvs", args: {...} }`        |
+| `tool_result` | Tool execution completed   | `{ toolName: "list_cvs", result: summarized }` |
+| `error`       | Something failed           | `{ error: "message" }`                         |
+| `done`        | Agent loop finished        | `{ totalTokens: 1234 }`                        |
 
-### Pattern 1: Request-Response with Correlation IDs
+### LLM Streaming Implementation
 
-**What:** Every message to Python includes a unique ID; responses echo it back.
-
-**Why:** Allows multiple in-flight requests without confusion.
-
-```javascript
-// Electron side
-const pendingRequests = new Map();
-
-function sendRequest(action, data) {
-  return new Promise((resolve, reject) => {
-    const id = crypto.randomUUID();
-    pendingRequests.set(id, { resolve, reject, timeout: setTimeout(() => {
-      pendingRequests.delete(id);
-      reject(new Error('Request timeout'));
-    }, 30000)});
-
-    pyshell.send({ id, action, ...data });
-  });
-}
-
-function handleResponse(message) {
-  const pending = pendingRequests.get(message.id);
-  if (pending) {
-    clearTimeout(pending.timeout);
-    pendingRequests.delete(message.id);
-
-    if (message.success) {
-      pending.resolve(message.data);
-    } else {
-      pending.reject(new Error(message.error));
-    }
-  }
-}
-```
-
-### Pattern 2: Health Check on Startup
-
-**What:** Verify Python backend is responsive before accepting user requests.
-
-```javascript
-async function initializePython() {
-  startPython();
-
-  // Wait for Python to be ready
-  const maxAttempts = 10;
-  for (let i = 0; i < maxAttempts; i++) {
-    try {
-      await sendRequest('health_check', {});
-      console.log('Python backend ready');
-      return;
-    } catch {
-      await sleep(500);
-    }
-  }
-
-  throw new Error('Python backend failed to start');
-}
-```
-
-### Pattern 3: Graceful Degradation
-
-**What:** Handle Python crashes without crashing Electron.
-
-```javascript
-pythonProcess.on('exit', (code, signal) => {
-  if (code !== 0) {
-    // Notify renderer of backend failure
-    mainWindow.webContents.send('backend:error', {
-      message: 'Processing backend crashed. Restarting...',
+```typescript
+// In AgentManager
+private async *streamFromLLM(messages: LLMMessage[]): AsyncGenerator<SSEChunk> {
+    const settings = loadSettings();
+    const response = await fetch(settings.agentApiUrl || 'https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${settings.agentApiKey}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            model: settings.agentModel || 'gpt-4o',
+            messages,
+            tools: TOOL_DEFINITIONS,
+            stream: true,
+        }),
     });
 
-    // Attempt restart
-    setTimeout(startPython, 2000);
-  }
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop()!; // Keep incomplete line in buffer
+
+        for (const line of lines) {
+            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+                yield JSON.parse(line.slice(6));
+            }
+        }
+    }
+}
+```
+
+### AbortController for Cancellation
+
+```typescript
+private abortControllers = new Map<string, AbortController>();
+
+async chat(message: string, conversationId: string): Promise<void> {
+    const controller = new AbortController();
+    this.abortControllers.set(conversationId, controller);
+
+    try {
+        const response = await fetch(url, {
+            ...options,
+            signal: controller.signal,
+        });
+        // ... process stream
+    } finally {
+        this.abortControllers.delete(conversationId);
+    }
+}
+
+cancel(conversationId: string): void {
+    this.abortControllers.get(conversationId)?.abort();
+}
+```
+
+---
+
+## Q4: Where Does Conversation History Get Stored?
+
+**Answer: Same SQLite database (`samsara.db`), new tables via migration v5.**
+
+### Schema Design
+
+```sql
+-- Migration version 5: Agent conversations
+
+CREATE TABLE IF NOT EXISTS agent_conversations (
+    id TEXT PRIMARY KEY,
+    project_id TEXT,
+    title TEXT,                    -- Auto-generated from first user message
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS agent_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    conversation_id TEXT NOT NULL,
+    role TEXT NOT NULL,            -- 'user' | 'assistant' | 'tool' | 'system'
+    content TEXT,                  -- Text content (null for tool_call-only messages)
+    tool_calls_json TEXT,          -- JSON: [{id, name, arguments}] when assistant calls tools
+    tool_call_id TEXT,             -- For role='tool': which tool_call this responds to
+    tool_name TEXT,                -- For role='tool': the function name
+    token_count INTEGER,           -- Tokens consumed by this message
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (conversation_id) REFERENCES agent_conversations(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_agent_messages_conv
+    ON agent_messages(conversation_id, id ASC);
+
+CREATE TABLE IF NOT EXISTS agent_feedback (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    message_id INTEGER NOT NULL,
+    rating INTEGER NOT NULL,       -- 1 = helpful, -1 = not helpful
+    comment TEXT,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (message_id) REFERENCES agent_messages(id) ON DELETE CASCADE
+);
+```
+
+### Why Same Database
+
+- **Foreign keys to projects.** Conversations belong to projects via `project_id`. Cascade delete works.
+- **Single backup.** One file to back up or move.
+- **Established migration pattern.** Database is currently at schema version 4 (line 366 of database.ts). Version 5 adds agent tables following the exact same pattern.
+- **WAL mode already enabled.** Concurrent reads from agent and existing queries are fine.
+- **No performance concern.** Conversation data is small (text). SQLite handles millions of rows trivially.
+
+### Token Usage Tracking
+
+Agent usage integrates with the existing `usage_events` table by adding a new event type:
+
+```typescript
+recordUsageEvent({
+  projectId: conversationProjectId || "default-project",
+  eventType: "agent_chat", // New event type alongside 'cv_extraction', 'jd_extraction'
+  promptTokens: usage.prompt_tokens,
+  completionTokens: usage.completion_tokens,
+  totalTokens: usage.total_tokens,
+  llmMode: "cloud", // Agent always uses cloud LLM
+  model: settings.agentModel,
 });
+```
+
+This automatically aggregates into `usage_daily` via the existing SQLite trigger (database.ts lines 336-346).
+
+---
+
+## Q5: How Does the LLM Proxy Connect?
+
+**Answer: Main process makes HTTPS `fetch()` calls directly to cloud LLM API.**
+
+```
+Renderer                    Main Process                   Cloud API
+   |                            |                              |
+   |--invoke('agent-chat')----->|                              |
+   |                            |--fetch(apiUrl, {stream})---->|
+   |                            |<----SSE chunks---------------|
+   |<--send('agent-stream')-----|                              |
+   |<--send('agent-stream')-----|                              |
+   |<--send('agent-stream')-----|                              |
+   |                            |                              |
+```
+
+### Why Main Process, Not Renderer
+
+1. **API key never reaches renderer.** Renderer only knows `hasAgentApiKey: boolean`.
+2. **No CORS issues.** Node.js `fetch()` in main process has no CORS restrictions.
+3. **Single point for rate limiting.** Can enforce token limits before making the call.
+4. **Consistent with existing pattern.** The Python sidecar already talks to OpenAI for extraction (via `OPENAI_API_KEY` env var). The agent uses the same key storage mechanism but calls the API directly from Node.js.
+
+### Configuration
+
+```typescript
+// In settings.ts AppSettings interface
+agentEnabled?: boolean;       // Default: false
+agentApiKey?: string;         // Separate from openaiApiKey (may differ)
+agentModel?: string;          // Default: 'gpt-4o'
+agentApiUrl?: string;         // Default: 'https://api.openai.com/v1/chat/completions'
+```
+
+Separate `agentApiKey` from `openaiApiKey` because:
+
+- User may want different API keys for extraction vs chat
+- Agent may use a different provider (Anthropic, Azure OpenAI, local proxy)
+- Configurable `agentApiUrl` supports corporate proxy or self-hosted LLM
+
+---
+
+## Q6: How Does the Agent's Iterative Loop Work?
+
+**Answer: While loop in `AgentManager.chat()` with max iteration cap.**
+
+### Flow Diagram
+
+```
+User sends: "Find me Java developers with 5+ years from my CVs"
+    |
+    v
+AgentManager.chat()
+    |
+    v
+[Iteration 1] Call LLM with system prompt + user message
+    |
+    LLM returns: tool_call("list_cvs", {projectId: "proj-123"})
+    |
+    Push to renderer: {type: 'tool_call', name: 'list_cvs'}
+    Execute: getAllCVs("proj-123") --> returns 15 CV summaries
+    Push to renderer: {type: 'tool_result', name: 'list_cvs', count: 15}
+    |
+    v
+[Iteration 2] Call LLM with tool result appended
+    |
+    LLM returns: tool_call("get_cv_details", {cvId: "cv-001"})
+                 tool_call("get_cv_details", {cvId: "cv-002"})
+                 ... (parallel tool calls)
+    |
+    Execute all tool calls, append results
+    |
+    v
+[Iteration 3] Call LLM with all tool results
+    |
+    LLM returns: text response "I found 4 Java developers with 5+ years..."
+    |
+    Stream text chunks to renderer
+    Push: {type: 'done'}
+    |
+    v
+Save full conversation to SQLite
+```
+
+### Implementation
+
+```typescript
+class AgentManager {
+  private static MAX_ITERATIONS = 10;
+
+  async chat(
+    message: string,
+    conversationId: string,
+    projectId?: string,
+  ): Promise<void> {
+    // 1. Load or create conversation
+    const messages = await this.loadConversationMessages(conversationId);
+
+    // 2. Append user message
+    messages.push({ role: "user", content: message });
+    this.saveMessage(conversationId, "user", message);
+
+    // 3. Iterative agent loop
+    let iterations = 0;
+    while (iterations < AgentManager.MAX_ITERATIONS) {
+      iterations++;
+
+      // Call LLM with streaming
+      const response = await this.callLLMStreaming(messages);
+
+      if (response.toolCalls && response.toolCalls.length > 0) {
+        // LLM wants to use tools
+        // Save assistant message with tool calls
+        this.saveMessage(
+          conversationId,
+          "assistant",
+          response.content,
+          response.toolCalls,
+        );
+
+        // Execute each tool call
+        for (const toolCall of response.toolCalls) {
+          this.pushToRenderer({
+            conversationId,
+            type: "tool_call",
+            toolName: toolCall.function.name,
+            args: JSON.parse(toolCall.function.arguments),
+          });
+
+          const result = await executeTool(
+            toolCall.function.name,
+            JSON.parse(toolCall.function.arguments),
+          );
+
+          // Summarize large results to avoid bloating context
+          const summarized = this.summarizeToolResult(result);
+
+          this.pushToRenderer({
+            conversationId,
+            type: "tool_result",
+            toolName: toolCall.function.name,
+            result: summarized,
+          });
+
+          // Append tool result for next LLM call
+          messages.push({
+            role: "tool",
+            tool_call_id: toolCall.id,
+            content: JSON.stringify(summarized),
+          });
+
+          this.saveMessage(
+            conversationId,
+            "tool",
+            JSON.stringify(summarized),
+            null,
+            toolCall.id,
+            toolCall.function.name,
+          );
+        }
+
+        // Loop continues: LLM will be called again with tool results
+      } else {
+        // Final text response -- save and finish
+        this.saveMessage(conversationId, "assistant", response.content);
+        this.pushToRenderer({ conversationId, type: "done" });
+        break;
+      }
+    }
+
+    if (iterations >= AgentManager.MAX_ITERATIONS) {
+      this.pushToRenderer({
+        conversationId,
+        type: "error",
+        error:
+          "Agent reached maximum iterations. Please try a more specific request.",
+      });
+    }
+  }
+}
+```
+
+### Tool Result Summarization
+
+Large tool results (e.g., 15 full CV objects) would blow up the context window. The agent should summarize:
+
+```typescript
+private summarizeToolResult(result: unknown): unknown {
+    const json = JSON.stringify(result);
+    if (json.length < 4000) return result; // Small enough, pass through
+
+    // For arrays, return count + first 3 items
+    if (Array.isArray(result)) {
+        return {
+            _summary: true,
+            totalCount: result.length,
+            items: result.slice(0, 3),
+            note: `Showing 3 of ${result.length}. Ask me to look at specific items.`,
+        };
+    }
+
+    // For large objects, truncate deep fields
+    return result; // TODO: smarter truncation
+}
+```
+
+---
+
+## Feature Flag: Zero-Impact When Disabled
+
+```typescript
+// In settings.ts
+interface AppSettings {
+  // ... existing fields
+  agentEnabled?: boolean; // Default: false (undefined = false)
+  agentApiKey?: string;
+  agentModel?: string;
+  agentApiUrl?: string;
+}
+```
+
+**When `agentEnabled` is falsy:**
+
+- **Main process:** Agent IPC handlers return early: `{ success: false, error: 'Agent not enabled' }`
+- **Renderer:** `ChatPanel` conditionally renders: `{settings.agentEnabled && <ChatPanel />}`
+- **No network calls:** `AgentManager` not instantiated, no fetch to LLM API
+- **No DB impact:** Agent tables exist in schema but are empty
+- **Zero performance overhead:** No listeners, no polling, no state updates
+
+---
+
+## New IPC Surface (5 handlers)
+
+```typescript
+// Append to src/main/index.ts
+
+ipcMain.handle(
+  "agent-chat",
+  async (
+    _event,
+    message: string,
+    conversationId?: string,
+    projectId?: string,
+  ) => {
+    // Returns { success: true, conversationId } immediately
+    // Streaming happens via webContents.send('agent-stream')
+  },
+);
+
+ipcMain.handle(
+  "agent-get-conversations",
+  async (_event, projectId?: string) => {
+    // Returns { success: true, data: ConversationSummary[] }
+  },
+);
+
+ipcMain.handle("agent-get-messages", async (_event, conversationId: string) => {
+  // Returns { success: true, data: AgentMessage[] }
+});
+
+ipcMain.handle("agent-cancel", async (_event, conversationId: string) => {
+  // Aborts in-progress LLM call via AbortController
+});
+
+ipcMain.handle(
+  "agent-feedback",
+  async (_event, messageId: number, rating: number, comment?: string) => {
+    // Stores feedback in agent_feedback table
+  },
+);
+```
+
+**Preload additions:**
+
+```typescript
+// Append to preload.ts contextBridge.exposeInMainWorld('api', { ... })
+agentChat: (message: string, conversationId?: string, projectId?: string) =>
+    ipcRenderer.invoke('agent-chat', message, conversationId, projectId),
+agentGetConversations: (projectId?: string) =>
+    ipcRenderer.invoke('agent-get-conversations', projectId),
+agentGetMessages: (conversationId: string) =>
+    ipcRenderer.invoke('agent-get-messages', conversationId),
+agentCancel: (conversationId: string) =>
+    ipcRenderer.invoke('agent-cancel', conversationId),
+agentFeedback: (messageId: number, rating: number, comment?: string) =>
+    ipcRenderer.invoke('agent-feedback', messageId, rating, comment),
+onAgentStream: (callback: (data: AgentStreamEvent) => void): void => {
+    ipcRenderer.on('agent-stream', (_event, data) => callback(data));
+},
+removeAgentStreamListener: (): void => {
+    ipcRenderer.removeAllListeners('agent-stream');
+},
+```
+
+---
+
+## Zustand Store Design
+
+```typescript
+// src/renderer/stores/agentStore.ts
+interface AgentMessage {
+  id: number;
+  role: "user" | "assistant" | "tool";
+  content: string | null;
+  toolCalls?: ToolCall[];
+  toolName?: string;
+  toolResult?: unknown;
+  createdAt: string;
+}
+
+interface AgentState {
+  // Visibility
+  isOpen: boolean;
+  toggle: () => void;
+
+  // Conversation
+  conversationId: string | null;
+  messages: AgentMessage[];
+  conversations: ConversationSummary[]; // sidebar list
+
+  // Streaming state
+  isStreaming: boolean;
+  streamingText: string; // Accumulates text chunks during streaming
+  pendingToolCalls: string[]; // Tool names currently executing
+
+  // Actions
+  sendMessage: (text: string, projectId?: string) => Promise<void>;
+  loadConversation: (id: string) => Promise<void>;
+  loadConversations: (projectId?: string) => Promise<void>;
+  newConversation: () => void;
+  cancel: () => void;
+  submitFeedback: (messageId: number, rating: number) => Promise<void>;
+
+  // Internal (called by stream listener)
+  _handleStreamEvent: (event: AgentStreamEvent) => void;
+}
 ```
 
 ---
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Running Python from Renderer Process
+### Anti-Pattern 1: Agent Logic in Renderer
 
-**What:** Spawning Python directly from renderer using remote module.
+**What:** Running the LLM call loop in React components or a renderer-side service.
+**Why bad:** API keys in renderer memory; every tool call requires IPC round-trip; complex state management for streaming + tool execution.
+**Instead:** Agent loop in main process. Renderer is purely a display layer for stream events.
 
-**Why bad:**
-- Security risk (renderer should be sandboxed)
-- Process lifecycle harder to manage
-- Can cause orphan processes
+### Anti-Pattern 2: Agent Logic in Python Sidecar
 
-**Instead:** All Python management goes through main process. Renderer uses IPC.
+**What:** Adding the agent orchestration to the Python backend.
+**Why bad:** The Python sidecar communicates via stdin/stdout JSON lines (see `pythonManager.ts`). This protocol has no concept of streaming -- it waits for a complete JSON response per request. Adding streaming would require rewriting the entire IPC protocol. The sidecar should remain focused on CPU-bound NLP tasks.
+**Instead:** Agent in main process (TypeScript/Node.js). Calls Python sidecar via existing `sendToPython()` when it needs NLP operations.
 
-### Anti-Pattern 2: Blocking Main Process with Sync Operations
+### Anti-Pattern 3: Unbounded Agent Loops
 
-**What:** Using synchronous file I/O or waiting for Python in main process event handlers.
+**What:** No iteration cap on tool call cycles.
+**Why bad:** Runaway API costs, confused users watching an infinite tool cycle, potential for stuck conversations.
+**Instead:** Hard cap at 10 iterations. Show each tool call in UI so user sees progress. Allow cancel via AbortController.
 
-**Why bad:** Blocks all window rendering, makes app feel frozen.
+### Anti-Pattern 4: Passing Full Tool Results to LLM
 
-**Instead:** Use async patterns with promises; show loading states in renderer.
+**What:** Sending the complete JSON of 50 CVs back to the LLM as tool output.
+**Why bad:** Context window explosion, high token costs, degraded LLM performance.
+**Instead:** Summarize tool results. Return counts + first N items. Let agent ask for specifics.
 
-### Anti-Pattern 3: Putting Python in ASAR Archive
+### Anti-Pattern 5: Separate Conversation Database
 
-**What:** Not excluding Python from asar packing.
-
-**Why bad:** Cannot execute files from inside asar.
-
-**Instead:** Use `extraResources` or `extraFiles` to place Python outside asar.
-
-### Anti-Pattern 4: Using zerorpc in 2025+
-
-**What:** Choosing zerorpc for new projects.
-
-**Why bad:** Library maintenance has stalled; compatibility issues with modern Electron.
-
-**Instead:** Use python-shell (stdio) or Flask HTTP server.
+**What:** Storing conversations in a separate JSON file or SQLite database.
+**Why bad:** Loses foreign key relationships to projects table, complicates backup/restore, diverges from established data patterns.
+**Instead:** Same `samsara.db` with migration v5.
 
 ---
 
-## Performance Considerations for <2s Processing
+## Suggested Build Order
 
-| Factor | Impact | Mitigation |
-|--------|--------|------------|
-| Python cold start | 1-3s | Keep Python running (don't restart per-request) |
-| PyInstaller --onefile | Slower startup (temp extraction) | Use --onedir instead |
-| spaCy model loading | 2-5s | Load model once at startup, reuse |
-| Large PDF parsing | Variable | Stream progress to UI, use worker pattern |
-| SQLite writes | <10ms | Use WAL mode, batch inserts |
+Based on dependency analysis:
 
-**Critical for 2s target:**
-1. Pre-warm Python on app startup (not on first request)
-2. Load spaCy model during initialization
-3. Use `--onedir` PyInstaller output
-4. Keep Python process alive between requests
+| Phase | What                                        | Depends On | Rationale                       |
+| ----- | ------------------------------------------- | ---------- | ------------------------------- |
+| 1     | DB schema (agent tables, migration v5)      | Nothing    | Purely additive to database.ts  |
+| 2     | Extract matching logic into shared function | Nothing    | Small refactor of index.ts      |
+| 3     | Agent tools registry (`agentTools.ts`)      | Phase 1, 2 | Wraps existing functions        |
+| 4     | `AgentManager` core (LLM client + loop)     | Phase 3    | The main new component          |
+| 5     | Agent IPC handlers + preload                | Phase 4    | Thin wrappers                   |
+| 6     | Agent settings (enable, API key, model)     | Phase 5    | Settings UI + backend           |
+| 7     | `agentStore` + basic ChatPanel              | Phase 5    | Frontend integration            |
+| 8     | Streaming UI (typing indicator, tool cards) | Phase 7    | Polish the chat experience      |
+| 9     | Conversation history (list, load, continue) | Phase 7    | Multi-conversation support      |
+| 10    | Feedback system (thumbs up/down)            | Phase 9    | After basic chat works          |
+| 11    | Usage tracking integration                  | Phase 4    | Wire into existing usage_events |
 
-```python
-# Preload expensive resources at startup
-import spacy
-nlp = spacy.load("en_core_web_sm")  # Load once
-
-def process_resume(text):
-    doc = nlp(text)  # Uses preloaded model
-    # ...
-```
+**Phases 1-5 are backend. Phases 6-10 are frontend. Phase 11 is integration.**
 
 ---
 
-## Build Order Dependencies
+## Security Considerations
 
-For roadmap phase planning, here's the dependency order:
+### API Key Management
 
-```
-1. Electron Shell (main process, window, basic IPC)
-   |
-   +--> 2. Python Sidecar (standalone, tested independently)
-   |        |
-   |        +--> 3. IPC Integration (python-shell communication)
-   |
-   +--> 2. SQLite Schema (database design)
-            |
-            +--> 3. Database Integration (better-sqlite3 + IPC)
+- `agentApiKey` stored in `userData/settings.json` (same as existing `openaiApiKey`)
+- Preload exposes only `hasAgentApiKey: boolean` to renderer
+- Key read by `AgentManager` in main process only
+- Separate from extraction API key -- user may use different providers
 
-4. Resume Processing (pdfplumber + spaCy in Python)
-   |
-   +--> 5. Full Pipeline (end-to-end file -> display)
+### Tool Execution Safety
 
-6. Bundling (PyInstaller + electron-builder)
-   |
-   +--> 7. Installer (NSIS for Windows, DMG for macOS)
-```
+- Tools are a **fixed whitelist** in `agentTools.ts` -- LLM cannot invent new tools
+- V1 tools are read-only + non-destructive create operations
+- No delete, no settings mutation, no file system writes via agent
+- Each tool validates inputs before calling underlying function
 
-**Phase ordering rationale:**
-- Electron shell and Python backend can be built in parallel
-- IPC integration requires both to be minimally functional
-- Bundling should be attempted early to catch platform-specific issues
-- Don't leave packaging until the end - it has surprises
+### Rate Limiting
+
+- Check `globalTokenLimit` from settings before each LLM call
+- Agent token usage recorded via existing `recordUsageEvent()` with `eventType: 'agent_chat'`
+- Existing `usage_daily` aggregation trigger handles rollup automatically
+
+### Network Security
+
+- HTTPS only (Node.js fetch defaults to HTTPS)
+- Configurable `agentApiUrl` for corporate proxy/VPN setups
+- No credentials sent to renderer process
 
 ---
 
 ## Sources
 
-### HIGH Confidence (Official Documentation)
-- [Electron Process Model](https://www.electronjs.org/docs/latest/tutorial/process-model)
-- [electron-builder Configuration](https://www.electron.build/configuration.html)
-- [PyInstaller Hooks Documentation](https://pyinstaller.org/en/stable/hooks.html)
-
-### MEDIUM Confidence (Detailed Tutorials, Verified Patterns)
-- [Bundling Python inside an Electron app - Simon Willison](https://til.simonwillison.net/electron/python-inside-electron)
-- [electron-python-example - fyears](https://github.com/fyears/electron-python-example)
-- [Building a deployable Python-Electron App - Andy Bulka](https://medium.com/@abulka/electron-python-4e8c807bfa5e)
-- [better-sqlite3 npm](https://www.npmjs.com/package/better-sqlite3)
-- [spaCy PyInstaller Discussion](https://github.com/explosion/spaCy/discussions/9205)
-
-### LOW Confidence (Community Patterns, May Need Validation)
-- [electron-builder extraResources issues](https://github.com/electron-userland/electron-builder/issues/2693)
-- [Electron Python IPC patterns - Python.org Discuss](https://discuss.python.org/t/how-to-communicate-between-electron-framework-and-python/48044)
+- Direct analysis: `src/main/index.ts` -- 30+ IPC handlers, matching logic inline at lines 585-727
+- Direct analysis: `src/main/pythonManager.ts` -- stdin/stdout JSON lines protocol, request-response with correlation IDs
+- Direct analysis: `src/main/queueManager.ts` -- push notification pattern via `webContents.send()`, singleton in main process
+- Direct analysis: `src/main/database.ts` -- SQLite schema at version 4, WAL mode, migration pattern
+- Direct analysis: `src/main/settings.ts` -- JSON file storage, API key pattern
+- Direct analysis: `src/main/preload.ts` -- contextBridge API surface, stream listener pattern (`onQueueStatusUpdate`)

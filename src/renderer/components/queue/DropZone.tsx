@@ -118,10 +118,18 @@ export function DropZone() {
   const handleClick = useCallback(async () => {
     const result = await window.api.selectCVFile();
 
-    if (result.success && result.filePath && result.fileName) {
+    if (!result.success) return;
+
+    // Multiple paths or folders selected — use batch enqueue
+    if (result.filePaths && result.filePaths.length > 1) {
+      await window.api.batchEnqueue(
+        result.filePaths,
+        activeProjectId || undefined,
+      );
+    } else if (result.filePath && result.fileName) {
       processFile(result.fileName, result.filePath);
     }
-  }, [processFile]);
+  }, [processFile, activeProjectId]);
 
   return (
     <div

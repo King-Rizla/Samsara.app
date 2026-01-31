@@ -256,17 +256,20 @@ ipcMain.handle("select-cv-file", async () => {
   const result = await dialog.showOpenDialog({
     title: "Select CV File",
     filters: [{ name: "CV Documents", extensions: ["pdf", "docx", "doc"] }],
-    properties: ["openFile"],
+    properties: ["openFile", "openDirectory", "multiSelections"],
   });
 
   if (result.canceled || result.filePaths.length === 0) {
     return { success: false, canceled: true };
   }
 
-  const filePath = result.filePaths[0];
-  const fileName = path.basename(filePath);
-
-  return { success: true, filePath, fileName };
+  return {
+    success: true,
+    filePaths: result.filePaths,
+    // Keep single-file compat
+    filePath: result.filePaths[0],
+    fileName: path.basename(result.filePaths[0]),
+  };
 });
 
 /**

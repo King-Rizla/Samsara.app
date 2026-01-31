@@ -7,22 +7,28 @@
  * - Starts timeout when processing begins, not on submission
  * - Pushes status updates to renderer via webContents.send
  */
-import { BrowserWindow } from 'electron';
+import { BrowserWindow } from "electron";
 import {
-  insertQueuedCV, updateCVStatus, completeCVProcessing,
-  getNextQueuedCV, resetProcessingCVs, ParsedCV,
+  insertQueuedCV,
+  updateCVStatus,
+  completeCVProcessing,
+  getNextQueuedCV,
+  resetProcessingCVs,
+  ParsedCV,
   recordUsageEvent,
-} from './database';
-import { extractCV } from './pythonManager';
-import { loadSettings } from './settings';
+} from "./database";
+import { extractCV } from "./pythonManager";
+import { loadSettings } from "./settings";
 
 export interface QueueStatusUpdate {
   id: string;
-  status: 'queued' | 'processing' | 'completed' | 'failed';
+  status: "queued" | "processing" | "completed" | "failed";
   data?: ParsedCV;
   error?: string;
   parseConfidence?: number;
   projectId?: string;
+  fileName?: string;
+  filePath?: string;
 }
 
 export interface EnqueueInput {
@@ -52,7 +58,7 @@ export class QueueManager {
     this.mainWindow = window;
 
     // Handle window close - clear reference
-    window.on('closed', () => {
+    window.on("closed", () => {
       this.mainWindow = null;
     });
   }
@@ -73,7 +79,13 @@ export class QueueManager {
     console.log(`QueueManager: Enqueued CV ${id} (${input.fileName})`);
 
     // 2. Notify UI
-    this.notifyStatus({ id, status: 'queued', projectId: input.projectId });
+    this.notifyStatus({
+      id,
+      status: "queued",
+      projectId: input.projectId,
+      fileName: input.fileName,
+      filePath: input.filePath,
+    });
 
     // 3. Trigger processing (async, don't await)
     this.processNext();
@@ -104,8 +116,8 @@ export class QueueManager {
 
     // Mark as processing in DB and notify UI
     const startedAt = new Date().toISOString();
-    updateCVStatus(id, 'processing', { startedAt });
-    this.notifyStatus({ id, status: 'processing', projectId: project_id });
+    updateCVStatus(id, "processing", { startedAt });
+    this.notifyStatus({ id, status: "processing", projectId: project_id });
 
     // Timeout will start when Python confirms processing has begun (ACK)
     // This ensures CVs waiting in queue get their full timeout window
@@ -113,13 +125,15 @@ export class QueueManager {
 
     try {
       // Pass callback to extractCV - timeout starts when Python ACKs
-      const result = await extractCV(file_path, () => {
+      const result = (await extractCV(file_path, () => {
         // Python has confirmed processing started - NOW start timeout
-        console.log(`QueueManager: Python ACK received for CV ${id}, starting ${this.timeoutMs}ms timeout`);
+        console.log(
+          `QueueManager: Python ACK received for CV ${id}, starting ${this.timeoutMs}ms timeout`,
+        );
         timeoutId = setTimeout(() => {
           this.handleTimeout(id, project_id);
         }, this.timeoutMs);
-      }) as ParsedCV & {
+      })) as ParsedCV & {
         token_usage?: {
           prompt_tokens: number;
           completion_tokens: number;
@@ -138,15 +152,17 @@ export class QueueManager {
       if (result.token_usage) {
         const settings = loadSettings();
         recordUsageEvent({
-          projectId: project_id || 'default-project',
-          eventType: 'cv_extraction',
+          projectId: project_id || "default-project",
+          eventType: "cv_extraction",
           promptTokens: result.token_usage.prompt_tokens || 0,
           completionTokens: result.token_usage.completion_tokens || 0,
           totalTokens: result.token_usage.total_tokens || 0,
           llmMode: settings.llmMode,
           model: result.token_usage.model,
         });
-        console.log(`QueueManager: Recorded ${result.token_usage.total_tokens} tokens for CV ${id}`);
+        console.log(
+          `QueueManager: Recorded ${result.token_usage.total_tokens} tokens for CV ${id}`,
+        );
       }
 
       console.log(`QueueManager: Completed CV ${id}`);
@@ -154,7 +170,7 @@ export class QueueManager {
       // Notify UI with result
       this.notifyStatus({
         id,
-        status: 'completed',
+        status: "completed",
         data: result,
         parseConfidence: result.parse_confidence,
         projectId: project_id,
@@ -163,16 +179,17 @@ export class QueueManager {
       // Clear timeout if set
       if (timeoutId) clearTimeout(timeoutId);
 
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       console.error(`QueueManager: Failed CV ${id}:`, errorMessage);
 
       // Mark as failed in DB
-      updateCVStatus(id, 'failed', { error: errorMessage });
+      updateCVStatus(id, "failed", { error: errorMessage });
 
       // Notify UI
       this.notifyStatus({
         id,
-        status: 'failed',
+        status: "failed",
         error: errorMessage,
         projectId: project_id,
       });
@@ -191,15 +208,16 @@ export class QueueManager {
   private handleTimeout(id: string, projectId?: string): void {
     console.warn(`QueueManager: Timeout for CV ${id}`);
 
-    const errorMessage = 'Extraction timed out. The LLM may be overloaded - try again.';
+    const errorMessage =
+      "Extraction timed out. The LLM may be overloaded - try again.";
 
     // Mark as failed in DB
-    updateCVStatus(id, 'failed', { error: errorMessage });
+    updateCVStatus(id, "failed", { error: errorMessage });
 
     // Notify UI
     this.notifyStatus({
       id,
-      status: 'failed',
+      status: "failed",
       error: errorMessage,
       projectId,
     });
@@ -213,7 +231,7 @@ export class QueueManager {
    */
   private notifyStatus(update: QueueStatusUpdate): void {
     if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-      this.mainWindow.webContents.send('queue-status-update', update);
+      this.mainWindow.webContents.send("queue-status-update", update);
     }
   }
 
@@ -245,7 +263,9 @@ export function createQueueManager(): QueueManager {
  */
 export function getQueueManager(): QueueManager {
   if (!queueManager) {
-    throw new Error('QueueManager not initialized. Call createQueueManager() first.');
+    throw new Error(
+      "QueueManager not initialized. Call createQueueManager() first.",
+    );
   }
   return queueManager;
 }

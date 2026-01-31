@@ -94,6 +94,8 @@ export interface QueueStatusUpdate {
   data?: ParsedCV;
   error?: string;
   parseConfidence?: number;
+  fileName?: string;
+  filePath?: string;
 }
 
 // Global window type declarations for Electron IPC API
@@ -110,9 +112,7 @@ declare global {
         totalTime?: number;
         error?: string;
       }>;
-      getAllCVs: (
-        projectId?: string,
-      ) => Promise<{
+      getAllCVs: (projectId?: string) => Promise<{
         success: boolean;
         data?: {
           id: string;
@@ -126,6 +126,7 @@ declare global {
       }>;
       selectCVFile: () => Promise<{
         success: boolean;
+        filePaths?: string[];
         filePath?: string;
         fileName?: string;
         canceled?: boolean;
@@ -154,9 +155,7 @@ declare global {
         paths: string[],
         projectId?: string,
       ) => Promise<{ success: boolean; fileCount?: number; error?: string }>;
-      getQueuedCVs: (
-        projectId?: string,
-      ) => Promise<{
+      getQueuedCVs: (projectId?: string) => Promise<{
         success: boolean;
         data?: {
           id: string;

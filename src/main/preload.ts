@@ -14,6 +14,7 @@ interface ExtractResult {
 
 interface SelectFileResult {
   success: boolean;
+  filePaths?: string[];
   filePath?: string;
   fileName?: string;
   canceled?: boolean;
@@ -99,6 +100,8 @@ interface QueueStatusUpdate {
   error?: string;
   parseConfidence?: number;
   projectId?: string;
+  fileName?: string;
+  filePath?: string;
 }
 
 interface QueuedCV {

@@ -24,8 +24,9 @@ Plans:
 
 - [x] 06-01-PLAN.md — Folder drag-drop with recursive scanning, batch IPC handler, confirmation dialog
 - [x] 06-02-PLAN.md — List virtualization, retry-all-failed, batch summary notification
+- [x] 06-03-PLAN.md — Folder drag-drop fix (gap closure: webkitGetAsEntry + single-folder click routing)
 
-**Phase 6 complete** (2026-01-31)
+**Phase 6 verified** (2026-01-31) — 5/5 must-haves passed
 
 _Note: OS context menu integration (right-click "Format with Samsara") deferred to future phase._
 

@@ -111,3 +111,12 @@
 *::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
 }
+
+/* Yama hub breathing pulse animation */
+@keyframes breathe {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+.yama-breathe {
+  animation: breathe 3.5s ease-in-out infinite;
+}

@@ -84,47 +84,47 @@ Deferred to post-M5 milestone.
 
 | Requirement | Phase | Status  |
 | ----------- | ----- | ------- |
-| CHAT-01     | —     | Pending |
-| CHAT-02     | —     | Pending |
-| CHAT-03     | —     | Pending |
-| CHAT-04     | —     | Pending |
-| CHAT-05     | —     | Pending |
-| CHAT-06     | —     | Pending |
-| CHAT-07     | —     | Pending |
-| CHAT-08     | —     | Pending |
-| OPS-01      | —     | Pending |
-| OPS-02      | —     | Pending |
-| OPS-03      | —     | Pending |
-| OPS-04      | —     | Pending |
-| OPS-05      | —     | Pending |
-| OPS-06      | —     | Pending |
-| OPS-07      | —     | Pending |
-| OPS-08      | —     | Pending |
-| SRCH-01     | —     | Pending |
-| SRCH-02     | —     | Pending |
-| SRCH-03     | —     | Pending |
-| LRNG-01     | —     | Pending |
-| LRNG-02     | —     | Pending |
-| LRNG-03     | —     | Pending |
-| LRNG-04     | —     | Pending |
-| PRXY-01     | —     | Pending |
-| PRXY-02     | —     | Pending |
-| PRXY-03     | —     | Pending |
-| PRXY-04     | —     | Pending |
-| PRXY-05     | —     | Pending |
-| PRXY-06     | —     | Pending |
-| SEC-01      | —     | Pending |
-| SEC-02      | —     | Pending |
-| SEC-03      | —     | Pending |
-| SEC-04      | —     | Pending |
+| SEC-01      | 8     | Pending |
+| SEC-02      | 8     | Pending |
+| SEC-03      | 8     | Pending |
+| SEC-04      | 8     | Pending |
+| CHAT-01     | 9     | Pending |
+| CHAT-02     | 9     | Pending |
+| CHAT-03     | 9     | Pending |
+| CHAT-04     | 9     | Pending |
+| CHAT-05     | 9     | Pending |
+| CHAT-06     | 9     | Pending |
+| CHAT-07     | 9     | Pending |
+| CHAT-08     | 9     | Pending |
+| OPS-01      | 10    | Pending |
+| OPS-02      | 10    | Pending |
+| OPS-03      | 10    | Pending |
+| OPS-04      | 10    | Pending |
+| OPS-05      | 10    | Pending |
+| OPS-06      | 10    | Pending |
+| OPS-07      | 10    | Pending |
+| OPS-08      | 10    | Pending |
+| SRCH-01     | 11    | Pending |
+| SRCH-02     | 11    | Pending |
+| SRCH-03     | 11    | Pending |
+| LRNG-01     | 12    | Pending |
+| LRNG-02     | 12    | Pending |
+| LRNG-03     | 12    | Pending |
+| LRNG-04     | 12    | Pending |
+| PRXY-01     | 13    | Pending |
+| PRXY-02     | 13    | Pending |
+| PRXY-03     | 13    | Pending |
+| PRXY-04     | 13    | Pending |
+| PRXY-05     | 13    | Pending |
+| PRXY-06     | 13    | Pending |
 
 **Coverage:**
 
 - M5 requirements: 33 total
-- Mapped to phases: 0
-- Unmapped: 33 (roadmap pending)
+- Mapped to phases: 33
+- Unmapped: 0
 
 ---
 
 _Requirements defined: 2026-01-31_
-_Last updated: 2026-01-31 after initial definition_
+_Last updated: 2026-01-31 after roadmap creation_

@@ -135,21 +135,8 @@ Future milestone plans are in `.planning/milestones/`:
 - `02-automated-outreach/ROADMAP-DRAFT.md`
 - `03-client-coordination/ROADMAP-DRAFT.md`
 - `04-intelligent-sourcing/ROADMAP-DRAFT.md`
-- `05-yama/` — Conversational AI agent (M5)
-
-## Current Milestone: M5 Yama
-
-**Goal:** Add a conversational AI agent as a power-user feature that orchestrates app operations, iteratively refines prompts and search strategies, and learns from recruiter feedback to improve over time.
-
-**Target features:**
-
-- Chat panel UI that invokes app operations via existing IPC handlers
-- Iterative prompt refinement — agent auto-improves JD matching and CV parsing results
-- Boolean search co-pilot — agent builds, tests, and refines sourcing search strings
-- Cross-session learning — local feedback storage that improves agent suggestions over time
-- Subscription-based LLM access via proxy backend
-- Opt-in anonymized feedback sync (deferred to future milestone — local learning only in M5)
+- `05-yama/ROADMAP-DRAFT.md` — Conversational AI agent (6 phases, 33 requirements)
 
 ---
 
-_Last updated: 2026-01-31 after M5 Yama milestone initialization_
+_Last updated: 2026-01-31 after M5 Yama draft and v1 Phase 6 completion_

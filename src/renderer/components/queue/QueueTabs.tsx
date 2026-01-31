@@ -91,22 +91,13 @@ export function QueueTabs() {
         </div>
 
         <div className="flex-1 min-h-0 overflow-hidden relative">
-          <TabsContent
-            value="completed"
-            className="absolute inset-0 m-0 p-0 overflow-y-auto"
-          >
+          <TabsContent value="completed" className="absolute inset-0 m-0 p-0">
             <QueueList status="completed" onExport={handleExport} />
           </TabsContent>
-          <TabsContent
-            value="submitted"
-            className="absolute inset-0 m-0 p-0 overflow-y-auto"
-          >
+          <TabsContent value="submitted" className="absolute inset-0 m-0 p-0">
             <QueueList status="submitted" />
           </TabsContent>
-          <TabsContent
-            value="failed"
-            className="absolute inset-0 m-0 p-0 overflow-y-auto"
-          >
+          <TabsContent value="failed" className="absolute inset-0 m-0 p-0">
             <QueueList status="failed" />
           </TabsContent>
         </div>

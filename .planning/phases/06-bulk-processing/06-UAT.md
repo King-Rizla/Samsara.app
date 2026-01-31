@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 06-bulk-processing
 source: 06-01-SUMMARY.md, 06-02-SUMMARY.md
 started: 2026-01-31T12:00:00Z
@@ -70,5 +70,13 @@ skipped: 1
   reason: "User reported: I drag in the folder and it fails and displays the folder name in the failed tab."
   severity: major
   test: 1
-  artifacts: []
-  missing: []
+  root_cause: "DropZone handleDrop folder detection heuristic fails — dataTransfer.files excludes folders in Chromium; needs webkitGetAsEntry() for directory detection. Also handleClick routes single folder to processFile instead of batchEnqueue (checks length > 1 but single folder = length 1)."
+  artifacts:
+  - path: "src/renderer/components/queue/DropZone.tsx"
+    issue: "handleDrop folder heuristic and handleClick single-folder routing"
+  - path: "src/main/index.ts"
+    issue: "enqueue-cv rejects folder paths due to missing extension"
+    missing:
+  - "Use webkitGetAsEntry() or dataTransfer.items for directory detection in handleDrop"
+  - "Check if single path is directory in handleClick before routing to processFile"
+    debug_session: ".planning/debug/folder-drag-drop.md"

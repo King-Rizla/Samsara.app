@@ -1,279 +1,483 @@
-# Technology Stack
+# Technology Stack: M2 Automated Outreach
 
-**Project:** Samsara - Sovereign Recruitment Suite
+**Project:** Samsara - Milestone 2
 **Researched:** 2026-01-31
-**Research Mode:** Ecosystem (Stack Dimension) -- M5 Agent Additions
-**Scope:** NEW additions only. Existing stack (Electron 40, React 19, TypeScript, Tailwind, Zustand, Python sidecar, better-sqlite3) is validated and unchanged.
+**Research Mode:** Ecosystem (Stack Dimension) -- M2 Additions Only
+**Overall confidence:** MEDIUM (web verification tools unavailable; versions based on training data cutoff May 2025 -- verify with `npm info` / `pip index versions` before installing)
 
 ---
 
 ## Executive Summary
 
-M5 adds a conversational AI agent to the existing Samsara desktop app. This requires additions in four areas: (1) chat UI components for streaming markdown, (2) an LLM integration layer for tool-use/function-calling, (3) a cloud proxy backend for subscription-based LLM access, and (4) local storage for conversation history and learned preferences.
+M2 transforms Samsara from a CV processing tool into an automated candidate engagement platform. This requires additions in seven areas: (1) a rich animated wheel navigation, (2) SMS sending, (3) email sending, (4) AI voice calling, (5) system audio recording, (6) call transcription, and (7) ATS browser automation.
 
-The recommended approach uses the **Vercel AI SDK** for the streaming/tool-use abstraction on the frontend, a lightweight **Hono + Cloudflare Workers** proxy backend, and extends the existing SQLite database for conversation storage. No new UI framework dependencies are needed -- Tailwind + Radix primitives handle the chat UI.
+The recommended approach uses **Motion** (formerly Framer Motion) for the wheel UI, **Twilio** for SMS, **Nodemailer** for universal email via SMTP, **Bland.ai REST API** for AI voice (no SDK), **Python sidecar with soundcard** for system audio capture, **faster-whisper** for local transcription, and the **already-installed Playwright** for ATS DOM automation. Template management needs no new dependencies.
+
+Total new npm packages: **3** (motion, twilio, nodemailer). Total new Python packages: **4** (soundcard, sounddevice, faster-whisper, pydub). One external binary to bundle: **ffmpeg**.
 
 ---
 
 ## Recommended Stack Additions
 
-### 1. LLM Integration & Streaming (Frontend)
+### 1. Samsara Wheel -- Circular Navigation Animation
 
-| Technology             | Version | Purpose                         | Confidence | Rationale                                                                                                                                                                                                              |
-| ---------------------- | ------- | ------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **ai (Vercel AI SDK)** | 4.x     | Streaming, tool-use abstraction | MEDIUM     | Provides `useChat` hook with built-in streaming, tool calling, and message management. Works with any LLM provider via adapters. Framework-agnostic core. Note: version based on training data, verify before install. |
-| **@ai-sdk/react**      | latest  | React hooks for chat UI         | MEDIUM     | `useChat` and `useCompletion` hooks handle SSE streaming, message state, loading states. Eliminates boilerplate for streaming chat.                                                                                    |
+| Technology                        | Version | Purpose                                                     | Why                                                                                                                                                          |
+| --------------------------------- | ------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `motion` (formerly framer-motion) | ^11.x   | Wheel animations: expand, rotate, pulse, radial transitions | Decision already made. Best React animation library -- spring physics, layout animations, gesture support, orchestrated sequences. Nothing else comes close. |
 
-**Why Vercel AI SDK over raw fetch/SSE:**
+**Confidence:** MEDIUM -- As of early 2025, Framer Motion was transitioning to `motion` on npm. Run `npm info motion` and `npm info framer-motion` to confirm which package name is current.
 
-- Built-in streaming protocol (handles chunked responses, backpressure)
-- Tool-use/function-calling abstraction maps cleanly to IPC handlers
-- Message history management built-in
-- Provider-agnostic: swap between OpenAI, Anthropic, local Ollama without code changes
-- Active maintenance, large community
+**Integration:** Pure React renderer addition. No IPC or Python involvement. Install alongside existing Radix UI components.
 
-**Alternative considered: LangChain.js** -- Rejected. Too heavy, too many abstractions for what is fundamentally "send messages, call tools, stream responses." Vercel AI SDK is lighter and more focused.
+**What NOT to use:**
 
-**Alternative considered: Raw EventSource/fetch** -- Viable but means reimplementing streaming, tool-call parsing, retry logic. Not worth it when AI SDK handles it.
+- `react-spring` -- less ergonomic for complex orchestrated sequences with staggered children
+- CSS-only animations -- insufficient for spring physics, radial layout transitions, gesture-driven interactions
+- GSAP -- commercial license concerns, React integration is bolted-on rather than native
 
-### 2. Chat UI Components (Frontend)
+---
 
-| Technology           | Version | Purpose                    | Confidence | Rationale                                                                                           |
-| -------------------- | ------- | -------------------------- | ---------- | --------------------------------------------------------------------------------------------------- |
-| **react-markdown**   | 9.x     | Markdown rendering in chat | HIGH       | Standard for rendering LLM markdown output. Supports GFM, syntax highlighting plugins. Lightweight. |
-| **remark-gfm**       | 4.x     | GitHub-flavored markdown   | HIGH       | Tables, strikethrough, task lists in LLM responses.                                                 |
-| **rehype-highlight** | 7.x     | Code syntax highlighting   | HIGH       | Highlight code blocks in agent responses. Uses highlight.js under the hood.                         |
+### 2. SMS Sending
+
+| Technology | Version | Purpose                    | Why                                                                                                   |
+| ---------- | ------- | -------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `twilio`   | ^5.x    | SMS sending via Twilio API | Industry standard, best documentation, highest deliverability, most recruiters already have accounts. |
+
+**Recommendation: Twilio over MessageBird/Bird**
+
+| Criterion             | Twilio                        | MessageBird (Bird)                      |
+| --------------------- | ----------------------------- | --------------------------------------- |
+| Node SDK quality      | Excellent, fully typed        | Adequate, less maintained since rebrand |
+| Documentation         | Best in class                 | Good but less comprehensive             |
+| Pricing               | ~$0.0079/SMS (US)             | ~$0.006/SMS (US)                        |
+| Deliverability        | Industry leading              | Good                                    |
+| Ecosystem             | Huge (Verify, Lookup, Studio) | Smaller                                 |
+| Recruiter familiarity | Very high                     | Lower                                   |
+
+MessageBird is marginally cheaper per message but Twilio wins on SDK quality, documentation, and ecosystem. Since users provide their own API keys, Twilio's ubiquity means they likely already have an account.
+
+**Confidence:** MEDIUM on exact version number. Twilio Node SDK v5 was current as of early 2025.
+
+**Integration:** Electron main process only. Credentials stored encrypted in SQLite. SMS sending must run in main process (not renderer) to avoid CORS issues and keep credentials secure.
+
+```
+Renderer -> IPC "sms:send" -> Main process -> Twilio SDK -> Twilio API
+                                    |
+                              SQLite: log message + delivery status
+```
+
+---
+
+### 3. Email Sending
+
+| Technology   | Version | Purpose                               | Why                                                                                                                  |
+| ------------ | ------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `nodemailer` | ^6.x    | Email sending via SMTP (any provider) | Universal SMTP support. Users can connect Gmail, Outlook, SendGrid, SES, or any provider. One dependency covers all. |
+
+**Recommendation: Nodemailer over dedicated provider SDKs**
+
+Do NOT install `@sendgrid/mail` or `@aws-sdk/client-ses`. Use Nodemailer with SMTP transport:
+
+| Approach              | Pros                    | Cons                         |
+| --------------------- | ----------------------- | ---------------------------- |
+| **Nodemailer + SMTP** | Works with ANY provider | Slightly more initial config |
+| `@sendgrid/mail`      | Simple API              | Locks to SendGrid only       |
+| `@aws-sdk/client-ses` | Direct SES access       | Locks to AWS, massive SDK    |
+
+For a local-first desktop app, users should configure their own SMTP credentials. Nodemailer handles SendGrid SMTP, SES SMTP, Gmail App Passwords, Outlook, and any other provider through a single unified interface.
+
+**Confidence:** HIGH -- Nodemailer is extremely stable. v6.x has been current for years and is the most downloaded email package on npm.
+
+**Integration:** Same pattern as SMS -- main process only, credentials encrypted in SQLite. Use `nodemailer.createTransport()` with user-configured SMTP settings.
+
+---
+
+### 4. AI Voice Calls
+
+| Technology                 | Purpose                | Why                                                                                                                          |
+| -------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Bland.ai REST API (no SDK) | AI pre-screening calls | Simplest API for outbound calling. Single POST initiates call with prompt + questions. Built-in recording and transcription. |
+
+**Comparison: Bland.ai vs Vapi vs Retell**
+
+| Criterion            | Bland.ai                      | Vapi                                     | Retell                      |
+| -------------------- | ----------------------------- | ---------------------------------------- | --------------------------- |
+| Primary use case     | Outbound calling automation   | Voice AI infrastructure                  | Conversational voice agents |
+| Outbound call API    | First-class, single REST call | Supported but requires agent setup first | Supported, agent-based      |
+| Pricing model        | ~$0.09/min all-inclusive      | ~$0.05/min base + LLM costs              | ~$0.07-0.10/min             |
+| Call recording       | Built-in, returns URL         | Built-in                                 | Built-in                    |
+| Transcript           | Built-in, structured JSON     | Built-in                                 | Built-in                    |
+| SDK needed           | No -- plain REST (fetch)      | `@vapi-ai/server-sdk`                    | `retell-ai-sdk`             |
+| Setup complexity     | Lowest                        | Medium                                   | Medium                      |
+| Script customization | Prompt + questions as JSON    | Full agent configuration                 | LLM-based agent config      |
+
+**Recommendation: Bland.ai** because:
+
+1. **Simplest API** -- single POST to `/v1/calls` with phone number, prompt, and questions array. No agent creation, no session management.
+2. **All-inclusive pricing** -- no surprise LLM costs on top. Vapi's base rate is lower but adds LLM inference costs that can match or exceed Bland.ai's total.
+3. **Built-in recording + transcription** -- eliminates needing separate transcription for AI calls.
+4. **No SDK dependency** -- use Node's native `fetch()` (available in Electron 40 / Node 20+).
+
+**Confidence:** LOW -- AI voice is the fastest-moving space in this stack. Pricing, API design, and even company viability may have changed since early 2025. **Verify current state of all three providers before committing.** Consider building an abstraction layer so providers can be swapped.
+
+**Integration:**
+
+```
+Renderer -> IPC "voice:initiate-call" -> Main process -> fetch() -> Bland.ai API
+                                              |
+                                        On webhook/poll completion:
+                                        - Download recording -> local encrypted storage
+                                        - Save transcript -> SQLite
+                                        - Update candidate status + screening outcome
+```
+
+**No npm package needed.** Store API key encrypted in SQLite settings table.
+
+---
+
+### 5. System Audio Recording
+
+This is the hardest capability in M2. System audio capture is OS-level with no clean cross-platform Node.js solution.
+
+**Recommended approach: Python sidecar extension**
+
+| Platform | Method                           | How It Works                                                                                                           |
+| -------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Windows  | WASAPI loopback capture          | Captures audio output device directly. Well-established Windows API. No user setup required.                           |
+| macOS    | Virtual audio device + CoreAudio | Requires user to install BlackHole (free, open source) as audio routing device. OS-level restriction -- no workaround. |
+
+| Technology             | Version | Purpose                                   | Why                                                                                   |
+| ---------------------- | ------- | ----------------------------------------- | ------------------------------------------------------------------------------------- |
+| `soundcard` (Python)   | ^0.4.x  | Cross-platform system audio capture       | Wraps WASAPI (Windows) and CoreAudio (macOS). Pure Python on Windows (uses comtypes). |
+| `sounddevice` (Python) | ^0.5.x  | Fallback audio capture via PortAudio      | More mature library. Backup if soundcard has issues on specific hardware.             |
+| `pydub` (Python)       | ^0.25.x | Audio format conversion (WAV to OGG/OPUS) | Lightweight wrapper around ffmpeg for compression.                                    |
+| `ffmpeg` (binary)      | 6.x+    | Audio encoding backend                    | Required by pydub. Must be bundled with PyInstaller distribution.                     |
+
+**Confidence:** HIGH for Windows (WASAPI loopback is rock-solid). LOW for macOS (virtual audio device requirement adds significant user friction).
+
+**Critical macOS limitation:** macOS does not allow applications to capture system audio output without a virtual audio device. This is an OS-level restriction enforced by SIP and audio sandboxing. Users must install BlackHole (free, open source) as a prerequisite. There is NO pure-software workaround. The app should detect this and guide users through setup.
+
+**Integration:**
+
+```
+Renderer -> IPC "recording:start" -> Main process -> Python sidecar command
+                                                          |
+                                                    soundcard: capture to WAV
+                                                          |
+                                                    pydub: compress to OGG
+                                                          |
+Renderer <- IPC "recording:status" <- Main process <- file path + duration
+```
+
+**Audio format strategy:** Record as WAV (lossless) during capture, then compress to OGG/OPUS for storage. WAV ensures no quality loss during recording; compression runs after recording stops.
+
+**What NOT to use:**
+
+- `desktopCapturer` (Electron) -- captures tab/window audio only, NOT system audio from external apps (Zoom, Teams, phone apps)
+- `node-audiorecorder` -- microphone input only, not system output loopback
+- Browser `MediaRecorder` API -- same limitation as desktopCapturer
+- `electron-media-service` -- media key integration, not audio capture
+
+---
+
+### 6. Call Transcription (Local)
+
+For recruiter call recordings. AI bot calls (Bland.ai) already return transcripts.
+
+| Technology                | Version | Purpose              | Why                                                                                                          |
+| ------------------------- | ------- | -------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `faster-whisper` (Python) | ^1.0.x  | Local speech-to-text | 4x faster than OpenAI Whisper on CPU. CTranslate2 backend. Privacy-preserving -- audio never leaves machine. |
+
+**Recommendation: faster-whisper over alternatives**
+
+| Option                       | Speed (CPU) | Quality   | Privacy             | Bundle Size                 |
+| ---------------------------- | ----------- | --------- | ------------------- | --------------------------- |
+| **faster-whisper** (local)   | Good        | Excellent | Full                | ~75-500MB (model dependent) |
+| `openai` Whisper API (cloud) | Fast        | Excellent | Audio sent to cloud | None                        |
+| `whisper` original (local)   | Slow        | Excellent | Full                | Heavy (PyTorch ~2GB)        |
+| `vosk` (local)               | Fast        | Good      | Full                | ~50MB                       |
+
+For a local-first recruitment app handling candidate PII, local transcription is the correct default. Offer cloud Whisper API as opt-in for users who prefer speed over privacy.
+
+**Confidence:** MEDIUM -- faster-whisper was actively maintained and widely used as of early 2025.
+
+**Model strategy:**
+
+- Bundle `tiny` model (~75MB) as default for quick previews
+- Auto-download `small` (~500MB) or `medium` (~1.5GB) on first use for production-quality transcription
+- Let user choose model size in settings (speed vs accuracy tradeoff)
+
+**Integration:** Fits existing Python sidecar pattern. Add to PyInstaller bundle. Transcription runs as background task with progress reporting via IPC.
+
+---
+
+### 7. ATS DOM Bridge
+
+| Technology        | Version | Purpose                                 | Why                                                                                                        |
+| ----------------- | ------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `playwright-core` | ^1.58.x | Browser automation for ATS form filling | Playwright already installed as devDependency. Use `playwright-core` (no bundled browsers) for production. |
+
+**Recommendation: Playwright over alternatives**
+
+| Option               | Pros                                                              | Cons                                                                     |
+| -------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **Playwright**       | Already in project, multi-browser, auto-wait, excellent selectors | Needs browser installed                                                  |
+| Chrome Extension     | No binary deps, user's auth session inherent                      | Complex to build, Chrome Web Store review, hard to control from Electron |
+| Puppeteer            | Similar to Playwright                                             | Chromium-only, Playwright is strictly superior                           |
+| Desktop RPA (UiPath) | Powerful                                                          | Heavy, expensive, massive overkill                                       |
+
+**Key insight:** Use `playwright-core` (not `playwright`) for production. Launch with `channel: 'chrome'` to use the user's installed Chrome browser, which:
+
+1. Preserves their ATS login sessions/cookies
+2. Avoids bundling 200MB+ Chromium binaries
+3. Uses familiar browser the user trusts
+
+**Confidence:** HIGH -- Playwright `^1.58.0` is already in `package.json` as `@playwright/test`.
+
+**Integration:**
+
+```
+Renderer -> IPC "ats:fill-form" -> Main process -> playwright-core
+                                                       |
+                                                  connectOverCDP or launch Chrome
+                                                  Navigate to ATS URL
+                                                  Fill fields per mapping config (SQLite)
+                                                  Screenshot each step for audit
+                                                  Report success/failure per field
+```
+
+**Install note:** Add `playwright-core` as production dependency (the core library without test runner or bundled browsers). Keep `@playwright/test` as devDependency for E2E tests.
+
+```bash
+npm install playwright-core
+```
+
+---
+
+### 8. Template Management
+
+**No new dependencies needed.**
+
+Use existing stack:
+
+- **SQLite** (better-sqlite3): Store templates with metadata, per-project scoping
+- **React + Radix UI + Tailwind**: Template editor UI
+- **Simple regex replacement**: `template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? '')`
+
+Variable system: `{{candidateName}}`, `{{roleName}}`, `{{companyName}}`, `{{interviewDate}}`, etc.
 
 **What NOT to add:**
 
-- **No chat UI component library** (e.g., chatscope, stream-chat-react). These are designed for multi-user messaging apps, not AI agent interfaces. Build the chat panel with existing Tailwind + Radix primitives. The UI is simple: message list + input box + streaming indicator.
-- **No rich text editor** for the input. Plain textarea or contenteditable div is sufficient. Recruiters type natural language, not formatted documents.
+- Handlebars / Mustache / EJS -- overkill for 5-10 variable substitutions
+- Rich text editor (TipTap, Slate, Draft.js) -- unnecessary for SMS templates and simple HTML emails
+- MJML -- email framework for complex marketing layouts, not simple recruitment outreach
+- i18n library -- templates ARE the localization (user writes them in whatever language they want)
 
-### 3. Tool-Use / Agent Architecture (Frontend + Main Process)
+---
 
-| Technology | Version | Purpose                | Confidence | Rationale                                                                                      |
-| ---------- | ------- | ---------------------- | ---------- | ---------------------------------------------------------------------------------------------- |
-| **zod**    | 3.x     | Tool parameter schemas | HIGH       | Already implicit via AI SDK dependency. Define tool schemas that map to existing IPC handlers. |
+## Full Stack Addition Summary
 
-**Architecture pattern:** The agent's "tools" are thin wrappers around existing `ipcRenderer.invoke` calls. No new IPC handlers needed for most operations.
+### npm packages (production dependencies)
 
-```
-Agent Tool Definition (renderer)
-    |
-    v
-Vercel AI SDK tool-call handler
-    |
-    v
-window.electronAPI.[existing method]  (preload bridge)
-    |
-    v
-ipcMain.handle (existing handlers)
+```bash
+npm install motion twilio nodemailer playwright-core
 ```
 
-The ~30 existing IPC handlers (get-all-cvs, get-jd, run matching, etc.) become the agent's tool catalog. Each tool definition needs:
+**Total: 4 new packages.**
 
-- A name matching the IPC channel
-- A zod schema for parameters
-- A description for the LLM
+### Python packages (sidecar -- add to requirements.txt)
 
-**No additional agent framework needed.** The Vercel AI SDK's `tools` parameter + existing IPC = complete agent loop.
+```
+soundcard>=0.4.0          # System audio capture (WASAPI/CoreAudio)
+sounddevice>=0.5.0        # Fallback audio capture (PortAudio)
+faster-whisper>=1.0.0     # Local speech-to-text transcription
+pydub>=0.25.1             # Audio format conversion
+```
 
-### 4. LLM Proxy Backend (Server-Side)
+**Total: 4 new Python packages.**
 
-| Technology                                  | Version | Purpose              | Confidence | Rationale                                                                                                                                                |
-| ------------------------------------------- | ------- | -------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Hono**                                    | 4.x     | HTTP framework       | MEDIUM     | Ultra-lightweight (14kb), runs on Cloudflare Workers, Vercel Edge, Node, Deno. Perfect for a proxy that adds auth + rate limiting + forwards to LLM API. |
-| **Cloudflare Workers**                      | -       | Hosting              | MEDIUM     | Free tier: 100K requests/day. Edge deployment = low latency globally. KV for rate limiting state. D1 for user/subscription data.                         |
-| **@ai-sdk/openai** or **@ai-sdk/anthropic** | latest  | LLM provider adapter | MEDIUM     | Server-side adapter for the actual LLM API call. Handles streaming response format.                                                                      |
-| **Stripe**                                  | latest  | Subscription billing | HIGH       | Industry standard for SaaS billing. Webhooks for subscription status.                                                                                    |
-| **better-auth** or **Lucia**                | latest  | Authentication       | LOW        | Lightweight auth for the proxy. Session-based. Verify current recommendations before choosing -- auth libraries churn fast.                              |
+### External binaries to bundle (PyInstaller)
 
-**Why Hono + Workers over Express/Next.js:**
+| Binary             | Purpose                          | Approx Size |
+| ------------------ | -------------------------------- | ----------- |
+| ffmpeg             | Audio encoding backend for pydub | ~80MB       |
+| Whisper tiny model | Default transcription model      | ~75MB       |
 
-- The proxy does three things: authenticate, rate-limit, forward. It does not need a full framework.
-- Hono is purpose-built for edge runtimes.
-- Cloudflare Workers pricing is usage-based (good for subscription SaaS).
-- Built-in KV/D1 eliminates need for external database for simple state.
+### No SDK needed (use native fetch)
 
-**Alternative considered: Supabase Edge Functions** -- Viable but ties you to Supabase ecosystem. Workers is more portable.
+| Service  | Why No SDK                                                                                                                            |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Bland.ai | Simple REST API. `fetch()` with JSON body is all you need. Adding an SDK creates a dependency on a startup's npm package maintenance. |
 
-**Alternative considered: Self-hosted Express on VPS** -- More ops burden, no edge distribution. Only choose this if you need GPU-local inference.
+---
 
-### 5. Conversation History & Preferences (Local Storage)
+## Technologies NOT Recommended
 
-| Technology                    | Version | Purpose              | Confidence | Rationale                                                                                                             |
-| ----------------------------- | ------- | -------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------- |
-| **better-sqlite3** (existing) | 12.6.x  | Conversation storage | HIGH       | Already in stack. Add tables for conversations, messages, tool calls, and user preferences. No new dependency needed. |
+| Technology                 | Why Avoid                                                                                                           |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `@sendgrid/mail`           | Vendor lock-in. Nodemailer covers SendGrid via SMTP plus every other provider.                                      |
+| `@aws-sdk/client-ses`      | Massive SDK (100+ packages), vendor lock-in. Nodemailer + SES SMTP is simpler.                                      |
+| `messagebird` / `bird` npm | Smaller ecosystem, less recruiter familiarity than Twilio.                                                          |
+| `@vapi-ai/server-sdk`      | More complex setup than Bland.ai for outbound-only use case. Consider if inbound/conversational voice needed later. |
+| `retell-ai-sdk`            | Mid-range complexity, no clear advantage over Bland.ai for outbound screening.                                      |
+| `openai` (for Whisper API) | Sends candidate call audio to cloud. Violates local-first principle. Offer as opt-in only.                          |
+| Electron `desktopCapturer` | Cannot capture system audio from external apps (Teams, Zoom). Only captures Electron window audio.                  |
+| Puppeteer                  | Chromium-only. Playwright supports all browsers and is already installed.                                           |
+| Chrome Extension (for ATS) | High dev cost, Chrome Web Store review delays, difficult Electron integration.                                      |
+| GSAP                       | Commercial license ($99+/yr), bolted-on React integration vs Motion's native approach.                              |
+| Handlebars/Mustache        | Template engines solving a problem that `String.replace()` handles in 2 lines.                                      |
+| `react-spring`             | Less capable than Motion for orchestrated multi-element sequences.                                                  |
 
-**New SQLite tables needed:**
+---
+
+## Integration Architecture
+
+All new capabilities follow the existing Electron IPC pattern. No architectural changes to the app structure.
+
+```
+[Renderer / React]
+      |
+      | IPC invoke (typed channels)
+      v
+[Electron Main Process]
+      |
+      |-- twilio SDK -----------> Twilio API ---------> SMS to candidate
+      |-- nodemailer ------------> SMTP server --------> Email to candidate
+      |-- fetch() ---------------> Bland.ai API -------> AI voice call
+      |-- playwright-core -------> Chrome browser -----> ATS form filling
+      |-- Python sidecar -------> soundcard ----------> System audio capture
+      |                     |---> faster-whisper ------> Transcription
+      |                     |---> pydub + ffmpeg ------> Audio compression
+      |
+      v
+[SQLite via better-sqlite3]
+  - API credentials (encrypted)
+  - Message templates (per-project)
+  - Outreach history (SMS, email, call logs)
+  - Call recordings (file paths to local encrypted storage)
+  - Transcripts (full text, searchable)
+  - ATS field mappings (per-vendor configs)
+  - Candidate status tracking
+```
+
+### Credential Security
+
+All API keys and SMTP credentials:
+
+- Stored encrypted in SQLite (use `crypto.createCipheriv` in main process)
+- Never exposed to renderer process via IPC
+- Main process acts as secure gateway for all external API calls
+- User configures credentials in settings UI; values sent via IPC to main for encryption + storage
+
+### New SQLite Tables Required
 
 ```sql
--- Conversation sessions
-CREATE TABLE conversations (
+-- Outreach templates
+CREATE TABLE templates (
   id TEXT PRIMARY KEY,
-  project_id TEXT REFERENCES projects(id),
-  title TEXT,
+  project_id TEXT,
+  type TEXT CHECK(type IN ('sms', 'email', 'call_script')),
+  name TEXT NOT NULL,
+  subject TEXT,              -- email subject (null for SMS)
+  body TEXT NOT NULL,         -- template with {{variables}}
+  variables TEXT,             -- JSON array of variable names
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))
 );
 
--- Individual messages
-CREATE TABLE messages (
+-- Outreach message log
+CREATE TABLE outreach_log (
   id TEXT PRIMARY KEY,
-  conversation_id TEXT REFERENCES conversations(id),
-  role TEXT CHECK(role IN ('user','assistant','system','tool')),
-  content TEXT,
-  tool_calls TEXT,       -- JSON array of tool invocations
-  tool_results TEXT,     -- JSON array of tool results
-  tokens_used INTEGER,
+  candidate_id TEXT NOT NULL,
+  project_id TEXT,
+  channel TEXT CHECK(channel IN ('sms', 'email', 'voice_call')),
+  template_id TEXT,
+  status TEXT,                -- sent, delivered, failed, replied
+  provider_id TEXT,           -- Twilio SID, Bland.ai call_id, etc.
+  content TEXT,               -- rendered message content
+  metadata TEXT,              -- JSON: delivery receipts, timestamps
   created_at TEXT DEFAULT (datetime('now'))
 );
 
--- Learned preferences (feedback across sessions)
-CREATE TABLE agent_preferences (
+-- Call recordings
+CREATE TABLE recordings (
   id TEXT PRIMARY KEY,
-  category TEXT,         -- e.g., 'matching_style', 'output_format'
-  key TEXT,
-  value TEXT,            -- JSON
-  confidence REAL,       -- 0.0 to 1.0, increases with repeated feedback
+  candidate_id TEXT,
+  type TEXT CHECK(type IN ('ai_screening', 'recruiter_call')),
+  file_path TEXT NOT NULL,    -- local encrypted file
+  duration_seconds INTEGER,
+  transcript TEXT,            -- full transcript text
+  transcript_segments TEXT,   -- JSON: timestamped segments
+  consent_captured INTEGER DEFAULT 0,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- ATS field mappings
+CREATE TABLE ats_mappings (
+  id TEXT PRIMARY KEY,
+  ats_vendor TEXT NOT NULL,   -- bullhorn, jobadder, vincere, etc.
+  field_name TEXT NOT NULL,   -- ATS form field identifier
+  source_field TEXT NOT NULL, -- Samsara data field (cv.name, cv.email, etc.)
+  selector TEXT,              -- DOM selector for Playwright
+  field_type TEXT,            -- text, dropdown, checkbox, date
+  metadata TEXT,              -- JSON: dropdown options, validation rules
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Provider credentials (encrypted)
+CREATE TABLE credentials (
+  id TEXT PRIMARY KEY,
+  provider TEXT NOT NULL,     -- twilio, smtp, bland_ai
+  key_name TEXT NOT NULL,     -- account_sid, auth_token, api_key, etc.
+  encrypted_value TEXT NOT NULL,
   created_at TEXT DEFAULT (datetime('now')),
   updated_at TEXT DEFAULT (datetime('now'))
 );
 ```
 
-**No vector database needed.** Preferences are key-value pairs with confidence scores, not embeddings. Conversation history is retrieved by conversation_id, not semantic search. Keep it simple.
-
 ---
 
-## Full Addition Summary
+## Phase-Specific Stack Usage
 
-### npm install (new dependencies)
-
-```bash
-# Core agent
-npm install ai @ai-sdk/react react-markdown remark-gfm rehype-highlight
-
-# Dev (types if needed)
-# ai SDK includes its own types
-```
-
-**Total new dependencies: 5 packages.** Minimal footprint.
-
-### Proxy backend (separate repo/directory)
-
-```bash
-# Initialize proxy project
-npm init -y
-npm install hono @ai-sdk/openai @ai-sdk/anthropic @hono/zod-validator zod stripe
-npm install -D wrangler typescript @types/node
-
-# Or with Anthropic as primary provider:
-npm install hono @ai-sdk/anthropic @hono/zod-validator zod stripe
-```
-
----
-
-## What NOT to Add
-
-| Technology                              | Why Avoid                                                                                                                                            |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **LangChain.js**                        | Over-engineered for this use case. Adds massive dependency tree for abstractions you don't need. AI SDK's tool-calling is sufficient.                |
-| **chatscope/stream-chat-react**         | Multi-user chat libraries. Wrong abstraction for single-user AI agent. Build with Tailwind.                                                          |
-| **ChromaDB / Pinecone / any vector DB** | No semantic search needed. Preferences are structured key-value. Conversations retrieved by ID. SQLite is enough.                                    |
-| **Socket.io / WebSocket library**       | SSE (Server-Sent Events) is sufficient for LLM streaming. AI SDK handles this. WebSockets add complexity for no benefit in unidirectional streaming. |
-| **Redis**                               | For the proxy rate limiting, Cloudflare KV is sufficient. Only add Redis if self-hosting.                                                            |
-| **Prisma / Drizzle (for proxy)**        | Cloudflare D1 with raw SQL or Hono's built-in D1 bindings is enough for user/subscription tables.                                                    |
-| **NextAuth**                            | Designed for Next.js. Use a lighter auth solution for the Hono proxy.                                                                                |
-
----
-
-## Integration Points with Existing Stack
-
-### How Agent Connects to Existing App
-
-| Existing Component | Agent Integration                                            | Change Required                       |
-| ------------------ | ------------------------------------------------------------ | ------------------------------------- |
-| IPC handlers (30+) | Exposed as agent tools via schema definitions                | None -- handlers stay as-is           |
-| Preload bridge     | Agent calls same `window.electronAPI.*` methods              | May need to expose additional methods |
-| Zustand stores     | Chat panel uses new `useChatStore` alongside existing stores | New store, no changes to existing     |
-| SQLite database    | New tables added via migration                               | Migration script only                 |
-| Python sidecar     | Agent triggers Python operations via existing IPC            | None                                  |
-| React Router       | New `/chat` or sidebar panel route                           | Add route                             |
-| Tailwind           | Chat UI styled with existing Tailwind config                 | None                                  |
-
-### Streaming Architecture in Electron
-
-```
-[Renderer: Chat Panel]
-    |
-    | useChat() hook (AI SDK)
-    |
-    v
-[Renderer: Proxy Client]
-    |
-    | fetch() with streaming (SSE)
-    | Via Electron's net module or direct HTTPS
-    |
-    v
-[Cloud: Hono Proxy on Workers]
-    |
-    | Auth check, rate limit, forward
-    |
-    v
-[LLM Provider API: Anthropic/OpenAI]
-    |
-    | Streaming response (SSE)
-    |
-    v
-[Back through proxy -> renderer -> UI update per token]
-```
-
-**Key consideration:** Electron's CSP may block direct fetch to external APIs from the renderer. Two options:
-
-1. **Proxy through main process** -- renderer sends to main via IPC, main makes HTTPS request. Safer, more control.
-2. **Direct from renderer** -- Configure CSP to allow the proxy domain. Simpler but less secure.
-
-**Recommendation:** Proxy through main process for auth token security. Store the subscription API key in main process, never expose to renderer.
-
----
-
-## Alternatives Considered
-
-| Category             | Recommended                  | Alternative              | Why Not                                                                |
-| -------------------- | ---------------------------- | ------------------------ | ---------------------------------------------------------------------- |
-| LLM SDK              | Vercel AI SDK                | LangChain.js             | LangChain too heavy, too many abstractions for proxy+tool-call pattern |
-| LLM SDK              | Vercel AI SDK                | Raw fetch+SSE            | Works but reimplements streaming, tool parsing, retry logic            |
-| Markdown             | react-markdown               | marked + DOMPurify       | react-markdown integrates better with React, handles XSS by default    |
-| Proxy hosting        | Cloudflare Workers           | Vercel Edge / AWS Lambda | Workers has best free tier and built-in KV/D1                          |
-| Proxy framework      | Hono                         | Express                  | Express too heavy for edge, Hono purpose-built for Workers             |
-| Conversation storage | SQLite (existing)            | IndexedDB in renderer    | SQLite already in stack, accessed from main process, more reliable     |
-| Preferences          | SQLite key-value             | Separate JSON files      | SQLite is transactional, queryable. JSON files risk corruption.        |
-| Auth                 | TBD (verify before choosing) | Firebase Auth            | Firebase adds cloud dependency. Keep auth lightweight.                 |
+| M2 Phase                              | Stack Additions Used                                                       |
+| ------------------------------------- | -------------------------------------------------------------------------- |
+| Phase 1: Communication Infrastructure | twilio, nodemailer, SQLite tables (templates, credentials, outreach_log)   |
+| Phase 2: Outreach Workflow Engine     | No new deps -- workflow logic in TypeScript, uses Phase 1 infrastructure   |
+| Phase 3: AI Voice Integration         | fetch() to Bland.ai, SQLite tables (recordings)                            |
+| Phase 4: Recruiter Scheduling Bot     | No new deps -- NLP via existing LLM integration or simple intent matching  |
+| Phase 5: Call Recording               | soundcard, sounddevice, pydub, ffmpeg (Python sidecar)                     |
+| Phase 6: Call Transcription           | faster-whisper (Python sidecar)                                            |
+| Phase 7: ATS DOM Bridge               | playwright-core, SQLite tables (ats_mappings)                              |
+| Phase 8: Client Submission            | No new deps -- uses existing email (nodemailer) + PDF generation (from M1) |
+| Samsara Wheel (UI)                    | motion -- can be implemented in any phase, independent of backend          |
 
 ---
 
 ## Confidence Assessment
 
-| Area                                | Confidence | Notes                                                                                                                         |
-| ----------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Chat UI (react-markdown + Tailwind) | HIGH       | Stable, well-known libraries. No version uncertainty.                                                                         |
-| Vercel AI SDK                       | MEDIUM     | Confident in approach but version (4.x) unverified against current release. API may have changed. Verify before implementing. |
-| Hono + Cloudflare Workers           | MEDIUM     | Architecture is sound. Specific Hono middleware for auth/rate-limiting needs verification at implementation time.             |
-| SQLite for conversations            | HIGH       | Proven pattern, already in stack.                                                                                             |
-| Tool-use via IPC mapping            | HIGH       | Architectural pattern, no library dependency. Just schema definitions.                                                        |
-| Auth library choice                 | LOW        | Auth ecosystem churns rapidly. Research specific options at implementation time.                                              |
-| Stripe integration                  | HIGH       | Stable API, well-documented.                                                                                                  |
+| Area                                 | Confidence | Notes                                                                                                  |
+| ------------------------------------ | ---------- | ------------------------------------------------------------------------------------------------------ |
+| Motion for wheel animation           | HIGH       | Consensus best React animation library. Verify package name (motion vs framer-motion).                 |
+| Twilio for SMS                       | HIGH       | Industry standard, stable SDK.                                                                         |
+| Nodemailer for email                 | HIGH       | Extremely stable, universal SMTP support.                                                              |
+| Bland.ai for AI voice                | LOW        | Fast-moving space. Verify pricing, API, and company status before committing. Build abstraction layer. |
+| soundcard for system audio (Windows) | MEDIUM     | WASAPI loopback is proven. Verify soundcard library maintenance status.                                |
+| soundcard for system audio (macOS)   | LOW        | Requires BlackHole virtual device. User friction is high. May need dedicated macOS research.           |
+| faster-whisper for transcription     | MEDIUM     | Was actively maintained. Verify current version and CTranslate2 compatibility.                         |
+| Playwright for ATS bridge            | HIGH       | Already installed. Well-documented `channel: 'chrome'` feature.                                        |
+| Template management (no deps)        | HIGH       | Simple string replacement, no library needed.                                                          |
 
 ---
 
 ## Open Questions for Phase-Specific Research
 
-1. **Vercel AI SDK version:** Verify current stable version and confirm `useChat` + `tools` API shape before implementation.
-2. **Electron CSP for streaming:** Test whether SSE from renderer to external proxy works with default Electron CSP, or if main-process proxying is required.
-3. **Auth library:** Evaluate better-auth vs Lucia vs custom JWT at proxy implementation time. This space moves fast.
-4. **LLM provider choice:** Anthropic Claude vs OpenAI GPT for tool-use quality. AI SDK supports both -- can A/B test. Anthropic's tool-use is generally stronger as of early 2025 training data.
-5. **Token budget management:** How to handle conversation context windows. May need summarization strategy for long conversations.
-6. **Offline fallback:** When proxy is unreachable, can agent fall back to local Ollama/Qwen for basic operations? AI SDK supports Ollama adapter.
+1. **Motion package name:** Is it `motion` or still `framer-motion` on npm? Verify with `npm info motion` before install.
+2. **Bland.ai current state:** Verify API, pricing, and availability. Also check if Vapi or Retell have improved their outbound-calling simplicity.
+3. **macOS audio capture:** Investigate alternatives to BlackHole. Is there a way to streamline the setup? Consider whether macOS recording is MVP or deferred.
+4. **faster-whisper model bundling:** How to bundle CTranslate2 models with PyInstaller without bloating the installer? On-demand download may be better.
+5. **ffmpeg bundling:** Size impact on PyInstaller distribution. Consider ffmpeg-python vs subprocess calls.
+6. **Playwright browser detection:** Verify that `channel: 'chrome'` reliably finds user's Chrome installation on both Windows and macOS.
+7. **Credential encryption:** Choose encryption approach -- Node `crypto` module with device-bound key, or OS keychain (Keytar/electron-keychain)?
 
 ---
 
@@ -281,18 +485,20 @@ npm install hono @ai-sdk/anthropic @hono/zod-validator zod stripe
 
 ### High Confidence (verified from project)
 
-- Existing IPC handlers: `src/main/index.ts` (~30 handlers verified)
-- Existing dependencies: `package.json` (React 19, Electron 40, better-sqlite3 12.6.2, Zustand 5.x)
+- `package.json`: Electron 40, React 19.2, Playwright ^1.58.0 already installed
+- `.planning/milestones/02-automated-outreach/ROADMAP-DRAFT.md`: Phase structure and requirements
 
-### Medium Confidence (training data, verify before use)
+### Medium Confidence (training data, stable libraries)
 
-- Vercel AI SDK: https://sdk.vercel.ai/docs
-- Hono framework: https://hono.dev/
-- Cloudflare Workers: https://developers.cloudflare.com/workers/
-- react-markdown: https://github.com/remarkjs/react-markdown
+- Nodemailer: https://nodemailer.com/ -- extremely stable, unlikely to have changed
+- Twilio Node SDK: https://www.twilio.com/docs/libraries/node
+- Playwright: https://playwright.dev/docs/api/class-browsertype#browser-type-launch
+- faster-whisper: https://github.com/SYSTRAN/faster-whisper
+- soundcard: https://github.com/bastibe/SoundCard
 
-### Low Confidence (needs verification at implementation time)
+### Low Confidence (training data, fast-moving space -- verify before use)
 
-- Auth library recommendations (ecosystem churn)
-- Exact Vercel AI SDK 4.x API surface
-- Cloudflare D1 pricing for subscription data storage
+- Bland.ai: https://docs.bland.ai/ -- API and pricing may have changed
+- Vapi: https://docs.vapi.ai/ -- may have improved since training data
+- Retell: https://docs.retellai.com/ -- may have improved since training data
+- Motion (framer-motion): https://motion.dev/ -- package name transition status unclear

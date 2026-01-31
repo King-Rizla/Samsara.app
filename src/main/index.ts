@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import path from "node:path";
 import * as fs from "fs";
+import * as fsPromises from "fs/promises";
 import started from "electron-squirrel-startup";
 import {
   initDatabase,
@@ -1027,6 +1028,122 @@ ipcMain.handle(
       return {
         success: false,
         error: error instanceof Error ? error.message : "Failed to enqueue CV",
+      };
+    }
+  },
+);
+
+/**
+ * Batch-enqueue files/folders for processing.
+ * Accepts an array of paths (files or directories).
+ * Directories are scanned recursively for .pdf, .docx, .doc files.
+ * Shows a confirmation dialog before enqueuing.
+ * Enqueues in chunks of 25 with 50ms delays so files trickle into the UI.
+ */
+ipcMain.handle(
+  "batch-enqueue",
+  async (_event, paths: string[], projectId?: string) => {
+    try {
+      if (!Array.isArray(paths) || paths.length === 0) {
+        return { success: false, error: "No paths provided" };
+      }
+
+      const validExtensions = [".pdf", ".docx", ".doc"];
+      const discoveredFiles: { fileName: string; filePath: string }[] = [];
+
+      for (const p of paths) {
+        if (typeof p !== "string") continue;
+
+        let stat: fs.Stats;
+        try {
+          stat = await fsPromises.stat(p);
+        } catch {
+          // Path doesn't exist, skip
+          continue;
+        }
+
+        if (stat.isDirectory()) {
+          // Recursively scan directory
+          const entries = await fsPromises.readdir(p, {
+            recursive: true,
+            withFileTypes: true,
+          });
+          for (const entry of entries) {
+            if (!entry.isFile()) continue;
+            const ext = path.extname(entry.name).toLowerCase();
+            if (!validExtensions.includes(ext)) continue;
+            // Node 20+: entry.parentPath is available; fallback to entry.path
+            const parentDir =
+              (entry as unknown as { parentPath?: string }).parentPath ??
+              (entry as unknown as { path: string }).path;
+            const fullPath = path.join(parentDir, entry.name);
+            discoveredFiles.push({ fileName: entry.name, filePath: fullPath });
+          }
+        } else if (stat.isFile()) {
+          const ext = path.extname(p).toLowerCase();
+          if (validExtensions.includes(ext)) {
+            discoveredFiles.push({
+              fileName: path.basename(p),
+              filePath: p,
+            });
+          }
+        }
+      }
+
+      if (discoveredFiles.length === 0) {
+        return {
+          success: false,
+          error: "No supported files found (.pdf, .docx, .doc)",
+        };
+      }
+
+      // Show confirmation dialog
+      let message = `Found ${discoveredFiles.length} CV${discoveredFiles.length === 1 ? "" : "s"} (.pdf, .docx, .doc). Process all?`;
+      if (discoveredFiles.length >= 200) {
+        message += "\n\nThis may take a while.";
+      }
+
+      const parentWindow = BrowserWindow.getFocusedWindow();
+      const dialogOptions: Electron.MessageBoxOptions = {
+        type: "question",
+        buttons: ["OK", "Cancel"],
+        defaultId: 0,
+        cancelId: 1,
+        title: "Batch Process CVs",
+        message,
+      };
+      const dialogResult = parentWindow
+        ? await dialog.showMessageBox(parentWindow, dialogOptions)
+        : await dialog.showMessageBox(dialogOptions);
+
+      if (dialogResult.response !== 0) {
+        return { success: false, error: "Cancelled by user" };
+      }
+
+      // Enqueue in chunks of 25 with 50ms delays
+      const chunkSize = 25;
+      for (let i = 0; i < discoveredFiles.length; i += chunkSize) {
+        const chunk = discoveredFiles.slice(i, i + chunkSize);
+        for (const file of chunk) {
+          getQueueManager().enqueue({
+            fileName: file.fileName,
+            filePath: file.filePath,
+            projectId,
+          });
+        }
+        // Delay between chunks to let IPC flush to renderer
+        if (i + chunkSize < discoveredFiles.length) {
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+      }
+
+      return { success: true, fileCount: discoveredFiles.length };
+    } catch (error) {
+      console.error("Failed to batch enqueue:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to batch enqueue",
       };
     }
   },

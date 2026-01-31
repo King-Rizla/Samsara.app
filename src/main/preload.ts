@@ -1,7 +1,7 @@
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
 
-import { contextBridge, ipcRenderer, webUtils } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from "electron";
 
 // Type definitions for better TypeScript support
 interface ExtractResult {
@@ -36,7 +36,7 @@ interface GetAllCVsResult {
 
 interface GetCVResult {
   success: boolean;
-  data?: unknown;  // ParsedCV
+  data?: unknown; // ParsedCV
   error?: string;
 }
 
@@ -94,8 +94,8 @@ interface EnqueueResult {
 
 interface QueueStatusUpdate {
   id: string;
-  status: 'queued' | 'processing' | 'completed' | 'failed';
-  data?: unknown;  // ParsedCV
+  status: "queued" | "processing" | "completed" | "failed";
+  data?: unknown; // ParsedCV
   error?: string;
   parseConfidence?: number;
   projectId?: string;
@@ -134,15 +134,15 @@ interface UsageStatsResult {
 }
 
 interface BooleanSyntaxSettings {
-  andOperator: 'AND' | '&&' | '+';
-  orOperator: 'OR' | '||' | ',';
-  notOperator: 'NOT' | '-' | '!';
+  andOperator: "AND" | "&&" | "+";
+  orOperator: "OR" | "||" | ",";
+  notOperator: "NOT" | "-" | "!";
   phraseDelimiter: '"' | "'";
-  groupingStyle: 'parentheses' | 'none';
+  groupingStyle: "parentheses" | "none";
 }
 
 interface AppSettingsData {
-  llmMode: 'local' | 'cloud';
+  llmMode: "local" | "cloud";
   hasApiKey: boolean;
   globalTokenLimit?: number;
   warningThreshold: number;
@@ -185,14 +185,14 @@ interface RecruiterSettingsResult {
  * Expose protected methods to the renderer process.
  * This maintains security by using contextBridge instead of nodeIntegration.
  */
-contextBridge.exposeInMainWorld('api', {
+contextBridge.exposeInMainWorld("api", {
   /**
    * Extract CV from a file path.
    * Optionally associate with a project.
    * Returns { success: boolean, data?: ParsedCV, id?: string, error?: string }
    */
   extractCV: (filePath: string, projectId?: string): Promise<ExtractResult> =>
-    ipcRenderer.invoke('extract-cv', filePath, projectId),
+    ipcRenderer.invoke("extract-cv", filePath, projectId),
 
   /**
    * Get all stored CVs (summary info).
@@ -200,44 +200,52 @@ contextBridge.exposeInMainWorld('api', {
    * Returns { success: boolean, data?: CVSummary[], error?: string }
    */
   getAllCVs: (projectId?: string): Promise<GetAllCVsResult> =>
-    ipcRenderer.invoke('get-all-cvs', projectId),
+    ipcRenderer.invoke("get-all-cvs", projectId),
 
   /**
    * Open native file dialog to select a CV file.
    * Returns { success: boolean, filePath?: string, fileName?: string, canceled?: boolean }
    */
   selectCVFile: (): Promise<SelectFileResult> =>
-    ipcRenderer.invoke('select-cv-file'),
+    ipcRenderer.invoke("select-cv-file"),
 
   /**
    * Get full CV data by ID.
    * Returns { success: boolean, data?: ParsedCV, error?: string }
    */
   getCV: (cvId: string): Promise<GetCVResult> =>
-    ipcRenderer.invoke('get-cv', cvId),
+    ipcRenderer.invoke("get-cv", cvId),
 
   /**
    * Update a specific field in a CV.
    * fieldPath format: "contact.email", "work_history[0].company"
    * Returns { success: boolean, error?: string }
    */
-  updateCVField: (cvId: string, fieldPath: string, value: unknown): Promise<UpdateFieldResult> =>
-    ipcRenderer.invoke('update-cv-field', cvId, fieldPath, value),
+  updateCVField: (
+    cvId: string,
+    fieldPath: string,
+    value: unknown,
+  ): Promise<UpdateFieldResult> =>
+    ipcRenderer.invoke("update-cv-field", cvId, fieldPath, value),
 
   /**
    * Delete a CV by ID.
    * Returns { success: boolean, error?: string }
    */
   deleteCV: (cvId: string): Promise<DeleteResult> =>
-    ipcRenderer.invoke('delete-cv', cvId),
+    ipcRenderer.invoke("delete-cv", cvId),
 
   /**
    * Reprocess a CV (retry extraction).
    * Optionally associate with a project.
    * Returns { success: boolean, data?: ParsedCV, error?: string }
    */
-  reprocessCV: (filePath: string, projectId?: string, existingCvId?: string): Promise<ExtractResult> =>
-    ipcRenderer.invoke('reprocess-cv', filePath, projectId, existingCvId),
+  reprocessCV: (
+    filePath: string,
+    projectId?: string,
+    existingCvId?: string,
+  ): Promise<ExtractResult> =>
+    ipcRenderer.invoke("reprocess-cv", filePath, projectId, existingCvId),
 
   // JD (Job Description) operations
 
@@ -246,30 +254,37 @@ contextBridge.exposeInMainWorld('api', {
    * Optionally associate with a project.
    * Returns { success: boolean, data?: JobDescription, error?: string }
    */
-  extractJD: (text: string, projectId?: string): Promise<{ success: boolean; data?: unknown; error?: string }> =>
-    ipcRenderer.invoke('extract-jd', text, projectId),
+  extractJD: (
+    text: string,
+    projectId?: string,
+  ): Promise<{ success: boolean; data?: unknown; error?: string }> =>
+    ipcRenderer.invoke("extract-jd", text, projectId),
 
   /**
    * Get all stored JDs (summary info).
    * Optionally filter by projectId.
    * Returns { success: boolean, data?: JDSummary[], error?: string }
    */
-  getAllJDs: (projectId?: string): Promise<{ success: boolean; data?: unknown[]; error?: string }> =>
-    ipcRenderer.invoke('get-all-jds', projectId),
+  getAllJDs: (
+    projectId?: string,
+  ): Promise<{ success: boolean; data?: unknown[]; error?: string }> =>
+    ipcRenderer.invoke("get-all-jds", projectId),
 
   /**
    * Get full JD data by ID.
    * Returns { success: boolean, data?: JobDescription, error?: string }
    */
-  getJD: (jdId: string): Promise<{ success: boolean; data?: unknown; error?: string }> =>
-    ipcRenderer.invoke('get-jd', jdId),
+  getJD: (
+    jdId: string,
+  ): Promise<{ success: boolean; data?: unknown; error?: string }> =>
+    ipcRenderer.invoke("get-jd", jdId),
 
   /**
    * Delete a JD by ID.
    * Returns { success: boolean, error?: string }
    */
   deleteJD: (jdId: string): Promise<{ success: boolean; error?: string }> =>
-    ipcRenderer.invoke('delete-jd', jdId),
+    ipcRenderer.invoke("delete-jd", jdId),
 
   // Match operations
 
@@ -277,15 +292,20 @@ contextBridge.exposeInMainWorld('api', {
    * Match CVs against a JD.
    * Returns { success: boolean, results?: MatchResult[], error?: string }
    */
-  matchCVsToJD: (jdId: string, cvIds: string[]): Promise<{ success: boolean; results?: unknown[]; error?: string }> =>
-    ipcRenderer.invoke('match-cvs-to-jd', jdId, cvIds),
+  matchCVsToJD: (
+    jdId: string,
+    cvIds: string[],
+  ): Promise<{ success: boolean; results?: unknown[]; error?: string }> =>
+    ipcRenderer.invoke("match-cvs-to-jd", jdId, cvIds),
 
   /**
    * Get match results for a JD.
    * Returns { success: boolean, data?: MatchResult[], error?: string }
    */
-  getMatchResults: (jdId: string): Promise<{ success: boolean; data?: unknown[]; error?: string }> =>
-    ipcRenderer.invoke('get-match-results', jdId),
+  getMatchResults: (
+    jdId: string,
+  ): Promise<{ success: boolean; data?: unknown[]; error?: string }> =>
+    ipcRenderer.invoke("get-match-results", jdId),
 
   // Settings API
 
@@ -293,15 +313,24 @@ contextBridge.exposeInMainWorld('api', {
    * Get current LLM settings.
    * Returns { success: boolean, data?: { llmMode: string, hasApiKey: boolean }, error?: string }
    */
-  getLLMSettings: (): Promise<{ success: boolean; data?: { llmMode: string; hasApiKey: boolean }; error?: string }> =>
-    ipcRenderer.invoke('get-llm-settings'),
+  getLLMSettings: (): Promise<{
+    success: boolean;
+    data?: { llmMode: string; hasApiKey: boolean };
+    error?: string;
+  }> => ipcRenderer.invoke("get-llm-settings"),
 
   /**
    * Set LLM mode and optionally API key. Restarts Python sidecar.
    * Returns { success: boolean, data?: { llmMode: string, hasApiKey: boolean }, error?: string }
    */
-  setLLMSettings: (mode: 'local' | 'cloud', apiKey?: string): Promise<{ success: boolean; data?: { llmMode: string; hasApiKey: boolean }; error?: string }> =>
-    ipcRenderer.invoke('set-llm-settings', mode, apiKey),
+  setLLMSettings: (
+    mode: "local" | "cloud",
+    apiKey?: string,
+  ): Promise<{
+    success: boolean;
+    data?: { llmMode: string; hasApiKey: boolean };
+    error?: string;
+  }> => ipcRenderer.invoke("set-llm-settings", mode, apiKey),
 
   // Project operations
 
@@ -310,42 +339,50 @@ contextBridge.exposeInMainWorld('api', {
    * Returns { success: boolean, data?: ProjectSummary, error?: string }
    */
   createProject: (input: CreateProjectInput): Promise<ProjectResult> =>
-    ipcRenderer.invoke('create-project', input),
+    ipcRenderer.invoke("create-project", input),
 
   /**
    * Get all projects with CV/JD counts.
    * Returns { success: boolean, data?: ProjectSummary[], error?: string }
    */
   getAllProjects: (includeArchived?: boolean): Promise<ProjectsResult> =>
-    ipcRenderer.invoke('get-all-projects', includeArchived),
+    ipcRenderer.invoke("get-all-projects", includeArchived),
 
   /**
    * Get a single project by ID.
    * Returns { success: boolean, data?: ProjectSummary, error?: string }
    */
   getProject: (id: string): Promise<ProjectResult> =>
-    ipcRenderer.invoke('get-project', id),
+    ipcRenderer.invoke("get-project", id),
 
   /**
    * Update a project.
    * Returns { success: boolean, error?: string }
    */
-  updateProject: (id: string, updates: { name?: string; client_name?: string; description?: string; is_archived?: boolean }): Promise<{ success: boolean; error?: string }> =>
-    ipcRenderer.invoke('update-project', id, updates),
+  updateProject: (
+    id: string,
+    updates: {
+      name?: string;
+      client_name?: string;
+      description?: string;
+      is_archived?: boolean;
+    },
+  ): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke("update-project", id, updates),
 
   /**
    * Delete a project and all its data.
    * Returns { success: boolean, error?: string }
    */
   deleteProject: (id: string): Promise<{ success: boolean; error?: string }> =>
-    ipcRenderer.invoke('delete-project', id),
+    ipcRenderer.invoke("delete-project", id),
 
   /**
    * Get aggregate stats across all projects.
    * Returns { success: boolean, data?: { total_cvs, total_jds }, error?: string }
    */
   getAggregateStats: (): Promise<AggregateStatsResult> =>
-    ipcRenderer.invoke('get-aggregate-stats'),
+    ipcRenderer.invoke("get-aggregate-stats"),
 
   // Queue operations
 
@@ -354,22 +391,39 @@ contextBridge.exposeInMainWorld('api', {
    * Immediately persists to database with status='queued'.
    * Returns { success: boolean, id?: string, error?: string }
    */
-  enqueueCV: (fileName: string, filePath: string, projectId?: string): Promise<EnqueueResult> =>
-    ipcRenderer.invoke('enqueue-cv', fileName, filePath, projectId),
+  enqueueCV: (
+    fileName: string,
+    filePath: string,
+    projectId?: string,
+  ): Promise<EnqueueResult> =>
+    ipcRenderer.invoke("enqueue-cv", fileName, filePath, projectId),
+
+  /**
+   * Batch-enqueue files/folders for processing.
+   * Directories are scanned recursively for CV files.
+   * Shows confirmation dialog before processing.
+   */
+  batchEnqueue: (
+    paths: string[],
+    projectId?: string,
+  ): Promise<{ success: boolean; fileCount?: number; error?: string }> =>
+    ipcRenderer.invoke("batch-enqueue", paths, projectId),
 
   /**
    * Get all queued/processing CVs for a project.
    * Returns { success: boolean, data?: QueuedCV[], error?: string }
    */
   getQueuedCVs: (projectId?: string): Promise<GetQueuedCVsResult> =>
-    ipcRenderer.invoke('get-queued-cvs', projectId),
+    ipcRenderer.invoke("get-queued-cvs", projectId),
 
   /**
    * Subscribe to queue status updates from main process.
    * Called when CV status changes (queued -> processing -> completed/failed).
    */
-  onQueueStatusUpdate: (callback: (update: QueueStatusUpdate) => void): void => {
-    ipcRenderer.on('queue-status-update', (_event, update) => callback(update));
+  onQueueStatusUpdate: (
+    callback: (update: QueueStatusUpdate) => void,
+  ): void => {
+    ipcRenderer.on("queue-status-update", (_event, update) => callback(update));
   },
 
   /**
@@ -377,7 +431,7 @@ contextBridge.exposeInMainWorld('api', {
    * Call in cleanup/useEffect return to prevent memory leaks.
    */
   removeQueueStatusListener: (): void => {
-    ipcRenderer.removeAllListeners('queue-status-update');
+    ipcRenderer.removeAllListeners("queue-status-update");
   },
 
   // Usage tracking (Phase 4.7)
@@ -387,28 +441,33 @@ contextBridge.exposeInMainWorld('api', {
    * Returns global and per-project token counts.
    */
   getUsageStats: (): Promise<UsageStatsResult> =>
-    ipcRenderer.invoke('get-usage-stats'),
+    ipcRenderer.invoke("get-usage-stats"),
 
   // Project pinning operations (Phase 4.7)
 
   /**
    * Pin or unpin a project for quick sidebar access.
    */
-  setPinnedProject: (projectId: string, isPinned: boolean): Promise<{ success: boolean; error?: string }> =>
-    ipcRenderer.invoke('set-pinned-project', projectId, isPinned),
+  setPinnedProject: (
+    projectId: string,
+    isPinned: boolean,
+  ): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke("set-pinned-project", projectId, isPinned),
 
   /**
    * Get all pinned projects in order.
    */
   getPinnedProjects: (): Promise<PinnedProjectsResult> =>
-    ipcRenderer.invoke('get-pinned-projects'),
+    ipcRenderer.invoke("get-pinned-projects"),
 
   /**
    * Reorder pinned projects after drag-drop.
    * @param projectIds - Array of project IDs in new order
    */
-  reorderPinnedProjects: (projectIds: string[]): Promise<{ success: boolean; error?: string }> =>
-    ipcRenderer.invoke('reorder-pinned-projects', projectIds),
+  reorderPinnedProjects: (
+    projectIds: string[],
+  ): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke("reorder-pinned-projects", projectIds),
 
   // App Settings (extended) (Phase 4.7)
 
@@ -416,13 +475,17 @@ contextBridge.exposeInMainWorld('api', {
    * Get all app settings including usage limits.
    */
   getAppSettings: (): Promise<AppSettingsResult> =>
-    ipcRenderer.invoke('get-app-settings'),
+    ipcRenderer.invoke("get-app-settings"),
 
   /**
    * Update app settings (excluding API key - use setLLMSettings for that).
    */
-  updateAppSettings: (updates: { globalTokenLimit?: number; warningThreshold?: number; booleanSyntax?: BooleanSyntaxSettings }): Promise<AppSettingsResult> =>
-    ipcRenderer.invoke('update-app-settings', updates),
+  updateAppSettings: (updates: {
+    globalTokenLimit?: number;
+    warningThreshold?: number;
+    booleanSyntax?: BooleanSyntaxSettings;
+  }): Promise<AppSettingsResult> =>
+    ipcRenderer.invoke("update-app-settings", updates),
 
   // CV Export operations (Phase 5)
 
@@ -435,8 +498,13 @@ contextBridge.exposeInMainWorld('api', {
    * includeBlindProfile: Whether to prepend one-page summary (default: true)
    * Returns { success: boolean, outputPath?: string, error?: string }
    */
-  exportCV: (cvId: string, mode: 'full' | 'client' | 'punt', outputDir?: string, includeBlindProfile?: boolean): Promise<ExportCVResult> =>
-    ipcRenderer.invoke('export-cv', cvId, mode, outputDir, includeBlindProfile),
+  exportCV: (
+    cvId: string,
+    mode: "full" | "client" | "punt",
+    outputDir?: string,
+    includeBlindProfile?: boolean,
+  ): Promise<ExportCVResult> =>
+    ipcRenderer.invoke("export-cv", cvId, mode, outputDir, includeBlindProfile),
 
   // Recruiter settings operations (Phase 5)
 
@@ -445,21 +513,23 @@ contextBridge.exposeInMainWorld('api', {
    * Returns { success: boolean, data?: RecruiterSettings, error?: string }
    */
   getRecruiterSettings: (): Promise<RecruiterSettingsResult> =>
-    ipcRenderer.invoke('get-recruiter-settings'),
+    ipcRenderer.invoke("get-recruiter-settings"),
 
   /**
    * Set recruiter settings for blind profile footer.
    * Returns { success: boolean, error?: string }
    */
-  setRecruiterSettings: (settings: RecruiterSettings): Promise<{ success: boolean; error?: string }> =>
-    ipcRenderer.invoke('set-recruiter-settings', settings),
+  setRecruiterSettings: (
+    settings: RecruiterSettings,
+  ): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke("set-recruiter-settings", settings),
 
   /**
    * Open folder selection dialog for bulk export.
    * Returns { canceled: boolean, path?: string }
    */
   selectFolder: (): Promise<{ canceled: boolean; path?: string }> =>
-    ipcRenderer.invoke('select-folder'),
+    ipcRenderer.invoke("select-folder"),
 });
 
 /**
@@ -467,7 +537,7 @@ contextBridge.exposeInMainWorld('api', {
  * This must be separate from the api object because File objects cannot be
  * serialized through contextBridge. We expose it on a separate namespace.
  */
-contextBridge.exposeInMainWorld('electronFile', {
+contextBridge.exposeInMainWorld("electronFile", {
   /**
    * Get the file system path for a File object from drag-drop.
    * Only works in Electron, not in a browser.

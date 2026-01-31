@@ -4,7 +4,7 @@
 
 **Delivered:** Local-first desktop CV formatter with parsing, JD matching, anonymization, branding, and multi-project management — replacing $30k+ cloud SaaS tools.
 
-**Phases completed:** 1-7 (14 phases, 44 plans total)
+**Phases completed:** 1-7 + Phase 6 (14 phases + bulk processing, 47 plans total)
 
 **Key accomplishments:**
 
@@ -14,17 +14,18 @@
 - JD matching with expanded skill variants, boolean search generation, and search tools
 - Multi-project dashboard with drag-drop sidebar pinning and usage tracking
 - PDF redaction, blind profiles, and branded export with recruiter settings
+- Bulk processing: folder drag-drop, virtualized queue, batch IPC with chunking
 - Comprehensive quality gates: pre-commit hooks, unit tests, security audit
 
 **Stats:**
 
-- 25,058 lines of code (14,153 TypeScript/CSS + 10,905 Python)
-- 14 phases, 44 plans
-- 205 commits
-- 7 days from init to ship (2026-01-23 to 2026-01-30)
+- 25,501 lines of code (14,596 TypeScript/CSS + 10,905 Python)
+- 14 phases, 47 plans
+- 230 commits
+- 9 days from init to completion (2026-01-23 to 2026-01-31)
 
-**Git range:** `9d55056` (init) to `c68de0a` (phase 7 complete)
+**Audit:** 12/12 requirements satisfied, 5/5 E2E flows verified, 7 tech debt items ([full report](milestones/v1-MILESTONE-AUDIT.md))
 
-**What's next:** Phase 6 (Bulk Processing & OS Integration) for 100+ file handling and right-click context menu, then Milestone 2 (Automated Outreach).
+**What's next:** Milestone 2 (Automated Outreach) — SMS/email, AI pre-screening, ATS integration.
 
 ---

@@ -1,8 +1,8 @@
 # Milestone v1: The Sovereign Formatter
 
-**Status:** SHIPPED 2026-01-30
-**Phases:** 1-7 (14 phases, including decimal and test phases)
-**Total Plans:** 44
+**Status:** SHIPPED 2026-01-30 (Phase 6 completed 2026-01-31)
+**Phases:** 1-7 (14 phases, including decimal and test phases) + Phase 6 (bulk processing)
+**Total Plans:** 47
 
 ## Overview
 
@@ -176,7 +176,26 @@ Plans:
 
 ## Milestone Summary
 
-**Execution Order:** 1 -> 2 -> 2.1 -> 3 -> 3.T -> 4 -> 4.T -> 4.5 -> 4.6 -> 4.7 -> 4.8 -> 5 -> 7
+### Phase 6: Bulk Processing & OS Integration
+
+**Goal**: Process 100+ CVs simultaneously via folder drag-drop with batch IPC and virtualized queue UI
+**Depends on**: Phase 7 (complete)
+**Requirements**: F-01a, F-01b
+**Plans**: 3 plans in 2 waves
+
+Plans:
+
+- [x] 06-01-PLAN.md — Folder drag-drop with recursive scanning, batch IPC handler, confirmation dialog
+- [x] 06-02-PLAN.md — List virtualization, retry-all-failed, batch summary notification
+- [x] 06-03-PLAN.md — Folder drag-drop fix (gap closure: webkitGetAsEntry + single-folder click routing)
+
+**Phase 6 verified** (2026-01-31) — 5/5 must-haves passed
+
+---
+
+## Milestone Summary
+
+**Execution Order:** 1 -> 2 -> 2.1 -> 3 -> 3.T -> 4 -> 4.T -> 4.5 -> 4.6 -> 4.7 -> 4.8 -> 5 -> 7 -> 6
 
 **Decimal Phases:**
 
@@ -224,3 +243,4 @@ Plans:
 
 _For current project status, see .planning/ROADMAP.md_
 _Archived: 2026-01-30_
+_Updated: 2026-01-31 (Phase 6 added, milestone audit completed)_

@@ -26,8 +26,8 @@ We attack the "Admin Bottleneck" (Category 1) first.
 
 ## Current State
 
-**Shipped:** v1 The Sovereign Formatter (2026-01-30)
-**Codebase:** 25,058 LOC (14,153 TypeScript/CSS + 10,905 Python)
+**Shipped:** v1 The Sovereign Formatter (2026-01-30, completed 2026-01-31)
+**Codebase:** 25,501 LOC (14,596 TypeScript/CSS + 10,905 Python)
 **Architecture:** Electron + React + Tailwind + Zustand | Python sidecar (PyInstaller) | SQLite (better-sqlite3)
 
 **Capabilities delivered:**
@@ -150,4 +150,4 @@ Future milestone plans are in `.planning/milestones/`:
 
 ---
 
-_Last updated: 2026-01-31 after M2 Automated Outreach milestone start_
+_Last updated: 2026-01-31 after v1 milestone completion and archive_

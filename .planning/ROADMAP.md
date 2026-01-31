@@ -2,34 +2,8 @@
 
 ## Milestones
 
-- **v1 The Sovereign Formatter** -- Phases 1-7, 14 phases, 44 plans (shipped 2026-01-30) -> [Archive](milestones/v1-ROADMAP.md)
-- **M2 Automated Outreach** -- Phases 8-13 (in progress)
-
-## Remaining v1 Work
-
-### Phase 6: Bulk Processing & OS Integration
-
-**Goal**: Process 100+ CVs simultaneously via folder drag-drop with batch IPC and virtualized queue UI
-**Depends on**: Phase 7 (complete)
-**Requirements**: F-01a, F-01b
-**Success Criteria** (what must be TRUE):
-
-1. User can drag-and-drop a folder containing 100+ PDF/DOCX files and see queue progress
-2. Bulk processing completes 100 CVs without memory growth or crashes
-3. Individual file failures do not stop the batch (error logged, processing continues)
-4. Batch IPC sends file paths in chunks (not one-by-one)
-5. QueueList is virtualized for smooth scrolling at 100+ items
-   **Plans**: 2 plans in 2 waves
-
-Plans:
-
-- [x] 06-01-PLAN.md -- Folder drag-drop with recursive scanning, batch IPC handler, confirmation dialog
-- [x] 06-02-PLAN.md -- List virtualization, retry-all-failed, batch summary notification
-- [x] 06-03-PLAN.md -- Folder drag-drop fix (gap closure: webkitGetAsEntry + single-folder click routing)
-
-**Phase 6 verified** (2026-01-31) -- 5/5 must-haves passed
-
----
+- **v1 The Sovereign Formatter** — Phases 1-7 + Phase 6, 47 plans (shipped 2026-01-30, completed 2026-01-31) → [Archive](milestones/v1-ROADMAP.md) | [Audit](milestones/v1-MILESTONE-AUDIT.md)
+- **M2 Automated Outreach** — Phases 8-13 (in progress)
 
 ## M2 Automated Outreach
 
@@ -173,15 +147,14 @@ Milestone drafts in `.planning/milestones/`:
 
 **Execution Order:** Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13
 
-| Phase                           | Milestone | Plans Complete | Status      | Completed  |
-| ------------------------------- | --------- | -------------- | ----------- | ---------- |
-| 6. Bulk Processing              | v1        | 3/3            | Complete    | 2026-01-31 |
-| 8. Samsara Wheel & Foundation   | M2        | 0/3            | Not started | -          |
-| 9. Communication Infrastructure | M2        | 0/3            | Not started | -          |
-| 10. Outreach Workflow Engine    | M2        | 0/3            | Not started | -          |
-| 11. AI Voice Screening          | M2        | 0/3            | Not started | -          |
-| 12. Recording & Transcription   | M2        | 0/2            | Not started | -          |
-| 13. ATS Integration             | M2        | 0/3            | Not started | -          |
+| Phase                           | Milestone | Plans Complete | Status      | Completed |
+| ------------------------------- | --------- | -------------- | ----------- | --------- |
+| 8. Samsara Wheel & Foundation   | M2        | 0/3            | Not started | -         |
+| 9. Communication Infrastructure | M2        | 0/3            | Not started | -         |
+| 10. Outreach Workflow Engine    | M2        | 0/3            | Not started | -         |
+| 11. AI Voice Screening          | M2        | 0/3            | Not started | -         |
+| 12. Recording & Transcription   | M2        | 0/2            | Not started | -         |
+| 13. ATS Integration             | M2        | 0/3            | Not started | -         |
 
 ---
 

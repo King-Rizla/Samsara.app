@@ -22,13 +22,13 @@
 4. Each wheel section shows live status indicators (pipeline count, response rate placeholders)
 5. Yama hub displays as a visual placeholder with eye icon and "coming soon" label
 
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
 
-- [ ] 08-01: Nested routing refactor (ProjectLayout + Outlet), CVSection extraction from ProjectView
-- [ ] 08-02: SamsaraWheel component with Framer Motion animations, section navigation
-- [ ] 08-03: SQLite migration v3 (all M2 tables), status indicator wiring, Yama placeholder
+- [ ] 08-01-PLAN.md — Nested routing refactor (ProjectLayout + Outlet), CandidateSearchSection extraction, motion install
+- [ ] 08-02-PLAN.md — SamsaraWheel SVG component with Motion animations, 5 wedges, Yama hub, section navigation
+- [ ] 08-03-PLAN.md — SQLite migration v5 (7 M2 outreach tables)
 
 ### Phase 9: Communication Infrastructure
 

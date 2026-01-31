@@ -67,7 +67,20 @@ export function DropZone() {
 
       const validExtensions = [".pdf", ".docx", ".doc"];
 
-      // Collect all paths
+      // Detect directories using the File and Directory Entries API
+      // dataTransfer.files excludes folders in Chromium, but
+      // dataTransfer.items + webkitGetAsEntry() can detect them
+      let hasDirectory = false;
+      const items = e.dataTransfer.items;
+      for (let i = 0; i < items.length; i++) {
+        const entry = items[i].webkitGetAsEntry?.();
+        if (entry?.isDirectory) {
+          hasDirectory = true;
+          break;
+        }
+      }
+
+      // Collect all paths from dataTransfer.files
       const allPaths: string[] = [];
       for (const file of files) {
         const filePath = window.electronFile.getPath(file);
@@ -76,19 +89,16 @@ export function DropZone() {
         }
       }
 
-      if (allPaths.length === 0) return;
+      // For directories, the path comes from items since files may be empty
+      // Electron populates dataTransfer.files with folder entries that have path
+      if (allPaths.length === 0 && !hasDirectory) return;
 
-      // Determine if any dropped item could be a folder (no file extension)
-      // or if multiple files were dropped — use batchEnqueue for both cases
-      const hasFolder = files.some((f) => !f.name.includes("."));
-      const isMultiFile = files.length > 1;
-
-      if (hasFolder || isMultiFile) {
+      if (hasDirectory || allPaths.length > 1) {
         // Send all paths to main process — it handles folder detection,
         // recursive scanning, confirmation dialog, and chunked enqueuing
         await window.api.batchEnqueue(allPaths, activeProjectId || undefined);
         // Status updates arrive via push notifications (queue-status-update)
-      } else {
+      } else if (allPaths.length === 1) {
         // Single file with extension — use existing per-file flow
         const file = files[0];
         const ext = "." + file.name.split(".").pop()?.toLowerCase();
@@ -96,8 +106,7 @@ export function DropZone() {
           console.warn(`Skipping unsupported file: ${file.name}`);
           return;
         }
-        const filePath = allPaths[0];
-        await processFile(file.name, filePath);
+        await processFile(file.name, allPaths[0]);
       }
     },
     [processFile, activeProjectId],
@@ -120,14 +129,13 @@ export function DropZone() {
 
     if (!result.success) return;
 
-    // Multiple paths or folders selected — use batch enqueue
-    if (result.filePaths && result.filePaths.length > 1) {
+    // Route all selections (single file, single folder, multiple) through batchEnqueue
+    // The main process batch-enqueue handler handles folder scanning, confirmation, and enqueuing
+    if (result.filePaths && result.filePaths.length >= 1) {
       await window.api.batchEnqueue(
         result.filePaths,
         activeProjectId || undefined,
       );
-    } else if (result.filePath && result.fileName) {
-      processFile(result.fileName, result.filePath);
     }
   }, [processFile, activeProjectId]);
 

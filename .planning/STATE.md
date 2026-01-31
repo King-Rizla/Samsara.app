@@ -5,16 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Architecture as the Advantage - Zero Latency, Zero Egress, Zero Per-Seat Tax
-**Current focus:** v1 complete. Next active milestone: M2 (Automated Outreach)
+**Current focus:** M2 Automated Outreach — Samsara Wheel + outreach + AI screening + recording + ATS
 
 ## Current Position
 
-Phase: v1 complete (Phase 6 done)
+Phase: Not started (defining requirements)
 Plan: —
-Status: Ready for next milestone
-Last activity: 2026-01-31 — Phase 6 complete, M5 Yama drafted
-
-Progress: ████████████████████████████████████████████████ 100% (46/46 plans)
+Status: Defining requirements
+Last activity: 2026-01-31 — Milestone M2 started
 
 ## Performance Metrics
 
@@ -59,11 +57,10 @@ Resume file: None
 
 ## Next Steps
 
-**Next active milestone:** `/gsd:new-milestone` for M2 (Automated Outreach)
+**Current:** Define M2 requirements → create roadmap → `/gsd:plan-phase [N]`
 
 **Future milestones drafted:**
 
-- M2: Automated Outreach — `.planning/milestones/02-automated-outreach/ROADMAP-DRAFT.md`
 - M3: Client Coordination — `.planning/milestones/03-client-coordination/ROADMAP-DRAFT.md`
 - M4: Intelligent Sourcing — `.planning/milestones/04-intelligent-sourcing/ROADMAP-DRAFT.md`
 - M5: Yama (Agent) — `.planning/milestones/05-yama/ROADMAP-DRAFT.md`

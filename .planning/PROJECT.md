@@ -76,10 +76,18 @@ We attack the "Admin Bottleneck" (Category 1) first.
 - ✓ M-01d: Ranked CV results — v1
 - ✓ M-01e: Highlighted matching skills — v1
 
-### Active
+### Active — M2: Automated Outreach
 
-- [ ] F-01a: Drag-and-drop queue handles 100+ files simultaneously
-- [ ] F-01b: OS right-click context menu integration (Windows/macOS)
+- [ ] NAV-01: Samsara Wheel navigation component with 5 sections + Yama hub
+- [ ] NAV-02: Migrate M1 features into Candidate Search wheel section
+- [ ] OUT-01: SMS/email automated outreach on candidate approval
+- [ ] OUT-02: AI voice pre-screening (3-5 qualification questions)
+- [ ] OUT-03: Outreach workflow engine (30 min timeout, reply handling)
+- [ ] REC-01: System audio recording with toggle control
+- [ ] REC-02: Call transcription for AI and recruiter calls
+- [ ] ATS-01: ATS field mapping from CV + transcript data
+- [ ] ATS-02: ATS DOM bridge (tested against mock ATS)
+- [ ] SUB-01: Client submission (branded CV + front sheet + data)
 
 ### Out of Scope
 
@@ -107,6 +115,9 @@ We attack the "Admin Bottleneck" (Category 1) first.
 | **Agent as power-user feature**  | Agent orchestrates existing IPC handlers; app works fully without it. Subscription tier for LLM access. | — Pending |
 | **Agent local-first learning**   | Local feedback storage by default; opt-in anonymized sync in future milestone.                          | — Pending |
 | **IPC handlers as tool defs**    | Keep IPC handlers granular and self-describing — they become agent tools in M5.                         | ✓ Good    |
+| **Samsara Wheel navigation**     | Circular project-level nav (Bhavachakra-inspired) with 5 sections + Yama hub. Sections = milestones.    | ✓ Good    |
+| **Framer Motion**                | Rich wheel animations for reasonable memory cost (~32kb); reusable across future milestones.            | ✓ Good    |
+| **System audio capture**         | Record recruiter calls via system audio toggle, not bot. Reusable for BD/sales in future.               | ✓ Good    |
 
 ## Product Vision
 
@@ -117,7 +128,7 @@ Samsara automates the complete candidate recruitment flow from initial sourcing 
 | Milestone                       | Scope                                                                                           | Status     |
 | ------------------------------- | ----------------------------------------------------------------------------------------------- | ---------- |
 | **M1: The Sovereign Formatter** | CV parsing, JD matching, branding, bulk processing                                              | Shipped v1 |
-| **M2: Automated Outreach**      | SMS/email, AI pre-screening, ATS integration                                                    | Draft      |
+| **M2: Automated Outreach**      | Samsara Wheel nav, SMS/email, AI pre-screening, call recording, ATS integration                 | Active     |
 | **M3: Client Coordination**     | Feedback portal, interview scheduling                                                           | Draft      |
 | **M4: Intelligent Sourcing**    | Call transcription, boolean search, CV library connectors                                       | Draft      |
 | **M5: Yama**                    | Conversational AI agent — iterative refinement, boolean search co-pilot, cross-session learning | Draft      |
@@ -139,4 +150,4 @@ Future milestone plans are in `.planning/milestones/`:
 
 ---
 
-_Last updated: 2026-01-31 after M5 Yama draft and v1 Phase 6 completion_
+_Last updated: 2026-01-31 after M2 Automated Outreach milestone start_

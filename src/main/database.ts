@@ -1,7 +1,7 @@
-import Database from 'better-sqlite3';
-import { app } from 'electron';
-import * as path from 'path';
-import * as crypto from 'crypto';
+import Database from "better-sqlite3";
+import { app } from "electron";
+import * as path from "path";
+import * as crypto from "crypto";
 
 let db: Database.Database | null = null;
 
@@ -96,7 +96,7 @@ export interface ProjectRecord {
   name: string;
   client_name: string | null;
   description: string | null;
-  is_archived: number;  // SQLite stores as 0/1
+  is_archived: number; // SQLite stores as 0/1
   created_at: string;
   updated_at: string;
 }
@@ -125,11 +125,11 @@ export interface CreateProjectInput {
 
 export interface UsageEventInput {
   projectId: string;
-  eventType: 'cv_extraction' | 'jd_extraction';
+  eventType: "cv_extraction" | "jd_extraction";
   promptTokens: number;
   completionTokens: number;
   totalTokens: number;
-  llmMode: 'local' | 'cloud';
+  llmMode: "local" | "cloud";
   model?: string;
 }
 
@@ -147,16 +147,16 @@ export function initDatabase(): Database.Database {
   if (db) return db;
 
   try {
-    const dbPath = path.join(app.getPath('userData'), 'samsara.db');
-    console.log('Initializing database at:', dbPath);
+    const dbPath = path.join(app.getPath("userData"), "samsara.db");
+    console.log("Initializing database at:", dbPath);
     db = new Database(dbPath);
 
     // Enable WAL mode for better concurrent access
-    db.pragma('journal_mode = WAL');
-    db.pragma('synchronous = NORMAL');
+    db.pragma("journal_mode = WAL");
+    db.pragma("synchronous = NORMAL");
 
     // Enable foreign keys (must be set per connection)
-    db.pragma('foreign_keys = ON');
+    db.pragma("foreign_keys = ON");
 
     // Initialize schema
     db.exec(`
@@ -228,10 +228,10 @@ export function initDatabase(): Database.Database {
     `);
 
     // Schema versioning and migrations
-    const version = db.pragma('user_version', { simple: true }) as number;
+    const version = db.pragma("user_version", { simple: true }) as number;
 
     if (version < 1) {
-      console.log('Migrating database to version 1 (projects)...');
+      console.log("Migrating database to version 1 (projects)...");
 
       // Projects table
       db.exec(`
@@ -249,59 +249,85 @@ export function initDatabase(): Database.Database {
       // Add project_id to cvs (nullable for existing data migration)
       // SQLite doesn't support adding FK constraints via ALTER TABLE, so we add nullable column
       // Check if column exists first to avoid error on re-run
-      const cvColumns = db.prepare("PRAGMA table_info(cvs)").all() as { name: string }[];
-      if (!cvColumns.some(col => col.name === 'project_id')) {
+      const cvColumns = db.prepare("PRAGMA table_info(cvs)").all() as {
+        name: string;
+      }[];
+      if (!cvColumns.some((col) => col.name === "project_id")) {
         db.exec(`ALTER TABLE cvs ADD COLUMN project_id TEXT`);
       }
 
-      const jdColumns = db.prepare("PRAGMA table_info(job_descriptions)").all() as { name: string }[];
-      if (!jdColumns.some(col => col.name === 'project_id')) {
+      const jdColumns = db
+        .prepare("PRAGMA table_info(job_descriptions)")
+        .all() as { name: string }[];
+      if (!jdColumns.some((col) => col.name === "project_id")) {
         db.exec(`ALTER TABLE job_descriptions ADD COLUMN project_id TEXT`);
       }
 
       // Create indexes for project filtering
       db.exec(`CREATE INDEX IF NOT EXISTS idx_cvs_project ON cvs(project_id)`);
-      db.exec(`CREATE INDEX IF NOT EXISTS idx_jds_project ON job_descriptions(project_id)`);
+      db.exec(
+        `CREATE INDEX IF NOT EXISTS idx_jds_project ON job_descriptions(project_id)`,
+      );
 
       // Create Default Project for orphaned data
-      const defaultProjectId = 'default-project';
+      const defaultProjectId = "default-project";
       const now = new Date().toISOString();
-      db.prepare(`
+      db.prepare(
+        `
         INSERT OR IGNORE INTO projects (id, name, client_name, description, is_archived, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(defaultProjectId, 'Default Project', null, 'Auto-created for existing CVs and JDs', 0, now, now);
+      `,
+      ).run(
+        defaultProjectId,
+        "Default Project",
+        null,
+        "Auto-created for existing CVs and JDs",
+        0,
+        now,
+        now,
+      );
 
       // Migrate existing CVs/JDs to Default Project
-      db.exec(`UPDATE cvs SET project_id = 'default-project' WHERE project_id IS NULL`);
-      db.exec(`UPDATE job_descriptions SET project_id = 'default-project' WHERE project_id IS NULL`);
+      db.exec(
+        `UPDATE cvs SET project_id = 'default-project' WHERE project_id IS NULL`,
+      );
+      db.exec(
+        `UPDATE job_descriptions SET project_id = 'default-project' WHERE project_id IS NULL`,
+      );
 
-      db.pragma('user_version = 1');
-      console.log('Database migrated to version 1');
+      db.pragma("user_version = 1");
+      console.log("Database migrated to version 1");
     }
 
     if (version < 2) {
-      console.log('Migrating database to version 2 (queue status)...');
+      console.log("Migrating database to version 2 (queue status)...");
 
       // Check if columns exist before adding
-      const cvColumns = db.prepare("PRAGMA table_info(cvs)").all() as { name: string }[];
+      const cvColumns = db.prepare("PRAGMA table_info(cvs)").all() as {
+        name: string;
+      }[];
 
-      if (!cvColumns.some(col => col.name === 'status')) {
-        db.exec(`ALTER TABLE cvs ADD COLUMN status TEXT NOT NULL DEFAULT 'completed'`);
+      if (!cvColumns.some((col) => col.name === "status")) {
+        db.exec(
+          `ALTER TABLE cvs ADD COLUMN status TEXT NOT NULL DEFAULT 'completed'`,
+        );
       }
-      if (!cvColumns.some(col => col.name === 'error_message')) {
+      if (!cvColumns.some((col) => col.name === "error_message")) {
         db.exec(`ALTER TABLE cvs ADD COLUMN error_message TEXT`);
       }
-      if (!cvColumns.some(col => col.name === 'processing_started_at')) {
+      if (!cvColumns.some((col) => col.name === "processing_started_at")) {
         db.exec(`ALTER TABLE cvs ADD COLUMN processing_started_at TEXT`);
       }
 
       db.exec(`CREATE INDEX IF NOT EXISTS idx_cvs_status ON cvs(status)`);
-      db.pragma('user_version = 2');
-      console.log('Database migrated to version 2');
+      db.pragma("user_version = 2");
+      console.log("Database migrated to version 2");
     }
 
     if (version < 3) {
-      console.log('Migrating database to version 3 (usage tracking + pinning)...');
+      console.log(
+        "Migrating database to version 3 (usage tracking + pinning)...",
+      );
 
       // Create usage_events table for raw token usage per LLM call
       db.exec(`
@@ -346,57 +372,205 @@ export function initDatabase(): Database.Database {
       `);
 
       // Create indexes for performance
-      db.exec(`CREATE INDEX IF NOT EXISTS idx_usage_events_project ON usage_events(project_id)`);
-      db.exec(`CREATE INDEX IF NOT EXISTS idx_usage_daily_project_date ON usage_daily(project_id, date)`);
+      db.exec(
+        `CREATE INDEX IF NOT EXISTS idx_usage_events_project ON usage_events(project_id)`,
+      );
+      db.exec(
+        `CREATE INDEX IF NOT EXISTS idx_usage_daily_project_date ON usage_daily(project_id, date)`,
+      );
 
       // Add pinning columns to projects table
-      const projectColumns = db.prepare("PRAGMA table_info(projects)").all() as { name: string }[];
+      const projectColumns = db
+        .prepare("PRAGMA table_info(projects)")
+        .all() as { name: string }[];
 
-      if (!projectColumns.some(col => col.name === 'is_pinned')) {
-        db.exec(`ALTER TABLE projects ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0`);
+      if (!projectColumns.some((col) => col.name === "is_pinned")) {
+        db.exec(
+          `ALTER TABLE projects ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0`,
+        );
       }
-      if (!projectColumns.some(col => col.name === 'pin_order')) {
-        db.exec(`ALTER TABLE projects ADD COLUMN pin_order INTEGER NOT NULL DEFAULT 0`);
+      if (!projectColumns.some((col) => col.name === "pin_order")) {
+        db.exec(
+          `ALTER TABLE projects ADD COLUMN pin_order INTEGER NOT NULL DEFAULT 0`,
+        );
       }
 
-      db.pragma('user_version = 3');
-      console.log('Database migrated to version 3');
+      db.pragma("user_version = 3");
+      console.log("Database migrated to version 3");
     }
 
     if (version < 4) {
-      console.log('Migrating database to version 4 (matching metadata)...');
+      console.log("Migrating database to version 4 (matching metadata)...");
 
       // Check if column exists before adding (idempotent migration)
-      const jdColumns4 = db.prepare("PRAGMA table_info(job_descriptions)").all() as { name: string }[];
+      const jdColumns4 = db
+        .prepare("PRAGMA table_info(job_descriptions)")
+        .all() as { name: string }[];
 
-      if (!jdColumns4.some(col => col.name === 'matching_metadata_json')) {
-        db.exec(`ALTER TABLE job_descriptions ADD COLUMN matching_metadata_json TEXT`);
+      if (!jdColumns4.some((col) => col.name === "matching_metadata_json")) {
+        db.exec(
+          `ALTER TABLE job_descriptions ADD COLUMN matching_metadata_json TEXT`,
+        );
       }
 
-      db.pragma('user_version = 4');
-      console.log('Database migrated to version 4');
+      db.pragma("user_version = 4");
+      console.log("Database migrated to version 4");
+    }
+
+    if (version < 5) {
+      console.log("Migrating database to version 5 (M2 outreach tables)...");
+
+      db.exec(`
+        -- Messages (SMS + email)
+        CREATE TABLE IF NOT EXISTS messages (
+          id TEXT PRIMARY KEY,
+          project_id TEXT NOT NULL,
+          cv_id TEXT,
+          type TEXT NOT NULL,
+          direction TEXT NOT NULL,
+          status TEXT NOT NULL,
+          from_address TEXT,
+          to_address TEXT NOT NULL,
+          subject TEXT,
+          body TEXT NOT NULL,
+          template_id TEXT,
+          provider_message_id TEXT,
+          error_message TEXT,
+          sent_at TEXT,
+          delivered_at TEXT,
+          created_at TEXT NOT NULL,
+          FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+          FOREIGN KEY (cv_id) REFERENCES cvs(id) ON DELETE SET NULL
+        );
+
+        -- Call records
+        CREATE TABLE IF NOT EXISTS call_records (
+          id TEXT PRIMARY KEY,
+          project_id TEXT NOT NULL,
+          cv_id TEXT,
+          type TEXT NOT NULL,
+          status TEXT NOT NULL,
+          provider_call_id TEXT,
+          phone_number TEXT NOT NULL,
+          duration_seconds INTEGER,
+          screening_outcome TEXT,
+          screening_confidence REAL,
+          recording_path TEXT,
+          started_at TEXT,
+          ended_at TEXT,
+          created_at TEXT NOT NULL,
+          FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+          FOREIGN KEY (cv_id) REFERENCES cvs(id) ON DELETE SET NULL
+        );
+
+        -- Transcripts
+        CREATE TABLE IF NOT EXISTS transcripts (
+          id TEXT PRIMARY KEY,
+          call_id TEXT NOT NULL,
+          project_id TEXT NOT NULL,
+          raw_text TEXT NOT NULL,
+          segments_json TEXT,
+          summary TEXT,
+          created_at TEXT NOT NULL,
+          FOREIGN KEY (call_id) REFERENCES call_records(id) ON DELETE CASCADE,
+          FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+        );
+
+        -- Outreach templates
+        CREATE TABLE IF NOT EXISTS outreach_templates (
+          id TEXT PRIMARY KEY,
+          project_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          type TEXT NOT NULL,
+          subject TEXT,
+          body TEXT NOT NULL,
+          variables_json TEXT,
+          is_default INTEGER DEFAULT 0,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+        );
+
+        -- Outreach sequences
+        CREATE TABLE IF NOT EXISTS outreach_sequences (
+          id TEXT PRIMARY KEY,
+          project_id TEXT NOT NULL,
+          cv_id TEXT NOT NULL,
+          status TEXT NOT NULL,
+          current_step INTEGER DEFAULT 0,
+          steps_json TEXT NOT NULL,
+          started_at TEXT,
+          completed_at TEXT,
+          created_at TEXT NOT NULL,
+          FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+          FOREIGN KEY (cv_id) REFERENCES cvs(id) ON DELETE CASCADE
+        );
+
+        -- Provider credentials (encrypted via safeStorage)
+        CREATE TABLE IF NOT EXISTS provider_credentials (
+          id TEXT PRIMARY KEY,
+          project_id TEXT,
+          provider TEXT NOT NULL,
+          credential_type TEXT NOT NULL,
+          encrypted_value TEXT NOT NULL,
+          label TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+        );
+
+        -- ATS field mappings
+        CREATE TABLE IF NOT EXISTS ats_mappings (
+          id TEXT PRIMARY KEY,
+          project_id TEXT NOT NULL,
+          ats_vendor TEXT NOT NULL,
+          mapping_json TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+        );
+
+        -- Indexes for common queries
+        CREATE INDEX IF NOT EXISTS idx_messages_project ON messages(project_id);
+        CREATE INDEX IF NOT EXISTS idx_messages_cv ON messages(cv_id);
+        CREATE INDEX IF NOT EXISTS idx_call_records_project ON call_records(project_id);
+        CREATE INDEX IF NOT EXISTS idx_call_records_cv ON call_records(cv_id);
+        CREATE INDEX IF NOT EXISTS idx_transcripts_call ON transcripts(call_id);
+        CREATE INDEX IF NOT EXISTS idx_transcripts_project ON transcripts(project_id);
+        CREATE INDEX IF NOT EXISTS idx_outreach_templates_project ON outreach_templates(project_id);
+        CREATE INDEX IF NOT EXISTS idx_outreach_sequences_project ON outreach_sequences(project_id);
+        CREATE INDEX IF NOT EXISTS idx_outreach_sequences_cv ON outreach_sequences(cv_id);
+        CREATE INDEX IF NOT EXISTS idx_provider_credentials_project ON provider_credentials(project_id);
+        CREATE INDEX IF NOT EXISTS idx_ats_mappings_project ON ats_mappings(project_id);
+      `);
+
+      db.pragma("user_version = 5");
+      console.log("Database migrated to version 5");
     }
 
     // Store init timestamp
-    const stmt = db.prepare('INSERT OR REPLACE INTO app_meta (key, value) VALUES (?, ?)');
-    stmt.run('initialized_at', new Date().toISOString());
+    const stmt = db.prepare(
+      "INSERT OR REPLACE INTO app_meta (key, value) VALUES (?, ?)",
+    );
+    stmt.run("initialized_at", new Date().toISOString());
 
-    console.log('Database initialized successfully with WAL mode');
+    console.log("Database initialized successfully with WAL mode");
     return db;
   } catch (error) {
-    console.error('Failed to initialize database:', error);
+    console.error("Failed to initialize database:", error);
     throw error;
   }
 }
 
 export function getDatabase(): Database.Database {
-  if (!db) throw new Error('Database not initialized. Call initDatabase() first.');
+  if (!db)
+    throw new Error("Database not initialized. Call initDatabase() first.");
   return db;
 }
 
 export function closeDatabase(): void {
   if (db) {
-    console.log('Closing database connection');
+    console.log("Closing database connection");
     db.close();
     db = null;
   }
@@ -422,7 +596,11 @@ function calculateContactConfidence(contact: ContactInfo): number {
  * Insert or replace a CV record in the database.
  * Returns the generated ID.
  */
-export function insertCV(cv: ParsedCV, filePath: string, projectId?: string): string {
+export function insertCV(
+  cv: ParsedCV,
+  filePath: string,
+  projectId?: string,
+): string {
   const database = getDatabase();
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
@@ -459,7 +637,7 @@ export function insertCV(cv: ParsedCV, filePath: string, projectId?: string): st
     cv.parse_confidence,
     cv.warnings ? JSON.stringify(cv.warnings) : null,
     cv.extract_time_ms || null,
-    projectId || null
+    projectId || null,
   );
 
   console.log(`Inserted CV with ID: ${id}`);
@@ -472,7 +650,7 @@ export function insertCV(cv: ParsedCV, filePath: string, projectId?: string): st
  */
 export function getCV(id: string): CVRecord | null {
   const database = getDatabase();
-  const stmt = database.prepare('SELECT * FROM cvs WHERE id = ?');
+  const stmt = database.prepare("SELECT * FROM cvs WHERE id = ?");
   const row = stmt.get(id) as CVRecord | undefined;
   return row || null;
 }
@@ -496,14 +674,16 @@ export function getAllCVs(projectId?: string): CVSummary[] {
 
   const params: unknown[] = [];
   if (projectId) {
-    query += ' AND project_id = ?';
+    query += " AND project_id = ?";
     params.push(projectId);
   }
 
-  query += ' ORDER BY created_at DESC';
+  query += " ORDER BY created_at DESC";
 
   const stmt = database.prepare(query);
-  return params.length ? stmt.all(...params) as CVSummary[] : stmt.all() as CVSummary[];
+  return params.length
+    ? (stmt.all(...params) as CVSummary[])
+    : (stmt.all() as CVSummary[]);
 }
 
 /**
@@ -512,7 +692,7 @@ export function getAllCVs(projectId?: string): CVSummary[] {
  */
 export function deleteCV(id: string): boolean {
   const database = getDatabase();
-  const stmt = database.prepare('DELETE FROM cvs WHERE id = ?');
+  const stmt = database.prepare("DELETE FROM cvs WHERE id = ?");
   const result = stmt.run(id);
   return result.changes > 0;
 }
@@ -521,23 +701,29 @@ export function deleteCV(id: string): boolean {
  * Update a specific field in a CV record.
  * fieldPath format: "contact.email", "work_history[0].company", etc.
  */
-export function updateCVField(id: string, fieldPath: string, value: unknown): boolean {
+export function updateCVField(
+  id: string,
+  fieldPath: string,
+  value: unknown,
+): boolean {
   const database = getDatabase();
   const now = new Date().toISOString();
 
-  const cv = database.prepare('SELECT * FROM cvs WHERE id = ?').get(id) as CVRecord | undefined;
+  const cv = database.prepare("SELECT * FROM cvs WHERE id = ?").get(id) as
+    | CVRecord
+    | undefined;
   if (!cv) return false;
 
   // Parse field path to determine which JSON column to update
-  const [section, ...rest] = fieldPath.split('.');
+  const [section, ...rest] = fieldPath.split(".");
   const columnMap: Record<string, string> = {
-    contact: 'contact_json',
-    work_history: 'work_history_json',
-    education: 'education_json',
-    skills: 'skills_json',
-    certifications: 'certifications_json',
-    languages: 'languages_json',
-    other_sections: 'other_sections_json',
+    contact: "contact_json",
+    work_history: "work_history_json",
+    education: "education_json",
+    skills: "skills_json",
+    certifications: "certifications_json",
+    languages: "languages_json",
+    other_sections: "other_sections_json",
   };
 
   const column = columnMap[section];
@@ -548,19 +734,23 @@ export function updateCVField(id: string, fieldPath: string, value: unknown): bo
 
   try {
     // Parse existing JSON
-    const currentData = JSON.parse(cv[column as keyof CVRecord] as string || '{}');
+    const currentData = JSON.parse(
+      (cv[column as keyof CVRecord] as string) || "{}",
+    );
 
     // Apply update using nested path
     applyNestedUpdate(currentData, rest, value);
 
     // Save back to database
-    const stmt = database.prepare(`UPDATE cvs SET ${column} = ?, updated_at = ? WHERE id = ?`);
+    const stmt = database.prepare(
+      `UPDATE cvs SET ${column} = ?, updated_at = ? WHERE id = ?`,
+    );
     stmt.run(JSON.stringify(currentData), now, id);
 
     console.log(`Updated CV ${id} field ${fieldPath}`);
     return true;
   } catch (error) {
-    console.error('Failed to update CV field:', error);
+    console.error("Failed to update CV field:", error);
     return false;
   }
 }
@@ -569,7 +759,11 @@ export function updateCVField(id: string, fieldPath: string, value: unknown): bo
  * Helper to apply updates to nested object paths including array indices.
  * Handles paths like: "email", "name", "[0].company", "[1].position"
  */
-function applyNestedUpdate(obj: unknown, pathParts: string[], value: unknown): void {
+function applyNestedUpdate(
+  obj: unknown,
+  pathParts: string[],
+  value: unknown,
+): void {
   if (pathParts.length === 0) {
     // Direct section replacement (e.g., entire contact object)
     Object.assign(obj as object, value);
@@ -607,22 +801,24 @@ function applyNestedUpdate(obj: unknown, pathParts: string[], value: unknown): v
  */
 export function getCVFull(id: string): ParsedCV | null {
   const database = getDatabase();
-  const cv = database.prepare('SELECT * FROM cvs WHERE id = ?').get(id) as CVRecord | undefined;
+  const cv = database.prepare("SELECT * FROM cvs WHERE id = ?").get(id) as
+    | CVRecord
+    | undefined;
 
   if (!cv) return null;
 
   return {
-    contact: JSON.parse(cv.contact_json || '{}'),
-    work_history: JSON.parse(cv.work_history_json || '[]'),
-    education: JSON.parse(cv.education_json || '[]'),
-    skills: JSON.parse(cv.skills_json || '[]'),
-    certifications: JSON.parse(cv.certifications_json || '[]'),
-    languages: JSON.parse(cv.languages_json || '[]'),
-    other_sections: JSON.parse(cv.other_sections_json || '{}'),
-    raw_text: cv.raw_text || '',
-    section_order: JSON.parse(cv.section_order_json || '[]'),
+    contact: JSON.parse(cv.contact_json || "{}"),
+    work_history: JSON.parse(cv.work_history_json || "[]"),
+    education: JSON.parse(cv.education_json || "[]"),
+    skills: JSON.parse(cv.skills_json || "[]"),
+    certifications: JSON.parse(cv.certifications_json || "[]"),
+    languages: JSON.parse(cv.languages_json || "[]"),
+    other_sections: JSON.parse(cv.other_sections_json || "{}"),
+    raw_text: cv.raw_text || "",
+    section_order: JSON.parse(cv.section_order_json || "[]"),
     parse_confidence: cv.parse_confidence,
-    warnings: JSON.parse(cv.warnings_json || '[]'),
+    warnings: JSON.parse(cv.warnings_json || "[]"),
     extract_time_ms: cv.parse_time_ms || undefined,
   };
 }
@@ -633,7 +829,7 @@ export function getCVFull(id: string): ParsedCV | null {
 
 export interface SkillRequirement {
   skill: string;
-  importance: 'required' | 'preferred' | 'nice-to-have';
+  importance: "required" | "preferred" | "nice-to-have";
   category?: string;
 }
 
@@ -714,7 +910,7 @@ export function insertJD(jd: ParsedJD, projectId?: string): string {
     jd.matching_metadata ? JSON.stringify(jd.matching_metadata) : null,
     now,
     now,
-    projectId || null
+    projectId || null,
   );
 
   console.log(`Inserted JD with ID: ${id}`);
@@ -727,7 +923,9 @@ export function insertJD(jd: ParsedJD, projectId?: string): string {
  */
 export function getJD(id: string): FullJD | null {
   const database = getDatabase();
-  const row = database.prepare('SELECT * FROM job_descriptions WHERE id = ?').get(id) as (JDRecord & { matching_metadata_json?: string }) | undefined;
+  const row = database
+    .prepare("SELECT * FROM job_descriptions WHERE id = ?")
+    .get(id) as (JDRecord & { matching_metadata_json?: string }) | undefined;
 
   if (!row) return null;
 
@@ -736,13 +934,15 @@ export function getJD(id: string): FullJD | null {
     title: row.title,
     company: row.company || undefined,
     raw_text: row.raw_text,
-    required_skills: JSON.parse(row.required_skills_json || '[]'),
-    preferred_skills: JSON.parse(row.preferred_skills_json || '[]'),
+    required_skills: JSON.parse(row.required_skills_json || "[]"),
+    preferred_skills: JSON.parse(row.preferred_skills_json || "[]"),
     experience_min: row.experience_min ?? undefined,
     experience_max: row.experience_max ?? undefined,
     education_level: row.education_level || undefined,
-    certifications: JSON.parse(row.certifications_json || '[]'),
-    matching_metadata: row.matching_metadata_json ? JSON.parse(row.matching_metadata_json) : undefined,
+    certifications: JSON.parse(row.certifications_json || "[]"),
+    matching_metadata: row.matching_metadata_json
+      ? JSON.parse(row.matching_metadata_json)
+      : undefined,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -763,18 +963,23 @@ export function getAllJDs(projectId?: string): JDSummary[] {
 
   const params: unknown[] = [];
   if (projectId) {
-    query += ' WHERE project_id = ?';
+    query += " WHERE project_id = ?";
     params.push(projectId);
   }
 
-  query += ' ORDER BY created_at DESC';
+  query += " ORDER BY created_at DESC";
 
   const stmt = database.prepare(query);
-  const rows = (params.length ? stmt.all(...params) : stmt.all()) as (JDRecord & { required_skills_json: string | null; preferred_skills_json: string | null })[];
+  const rows = (
+    params.length ? stmt.all(...params) : stmt.all()
+  ) as (JDRecord & {
+    required_skills_json: string | null;
+    preferred_skills_json: string | null;
+  })[];
 
-  return rows.map(row => {
-    const requiredSkills = JSON.parse(row.required_skills_json || '[]');
-    const preferredSkills = JSON.parse(row.preferred_skills_json || '[]');
+  return rows.map((row) => {
+    const requiredSkills = JSON.parse(row.required_skills_json || "[]");
+    const preferredSkills = JSON.parse(row.preferred_skills_json || "[]");
 
     return {
       id: row.id,
@@ -793,7 +998,7 @@ export function getAllJDs(projectId?: string): JDSummary[] {
  */
 export function deleteJD(id: string): boolean {
   const database = getDatabase();
-  const stmt = database.prepare('DELETE FROM job_descriptions WHERE id = ?');
+  const stmt = database.prepare("DELETE FROM job_descriptions WHERE id = ?");
   const result = stmt.run(id);
   return result.changes > 0;
 }
@@ -843,7 +1048,7 @@ export function insertMatchResult(result: MatchResultInput): void {
     JSON.stringify(result.matched_skills),
     JSON.stringify(result.missing_required),
     JSON.stringify(result.missing_preferred),
-    result.calculated_at
+    result.calculated_at,
   );
 }
 
@@ -867,14 +1072,17 @@ export function getMatchResultsForJD(jdId: string): MatchResultRecord[] {
  */
 export function deleteMatchResultsForJD(jdId: string): void {
   const database = getDatabase();
-  const stmt = database.prepare('DELETE FROM cv_jd_matches WHERE jd_id = ?');
+  const stmt = database.prepare("DELETE FROM cv_jd_matches WHERE jd_id = ?");
   stmt.run(jdId);
 }
 
 /**
  * Get match result for a specific CV-JD pair.
  */
-export function getMatchResult(cvId: string, jdId: string): MatchResultRecord | null {
+export function getMatchResult(
+  cvId: string,
+  jdId: string,
+): MatchResultRecord | null {
   const database = getDatabase();
   const stmt = database.prepare(`
     SELECT * FROM cv_jd_matches
@@ -900,7 +1108,14 @@ export function createProject(input: CreateProjectInput): ProjectRecord {
     INSERT INTO projects (id, name, client_name, description, is_archived, created_at, updated_at)
     VALUES (?, ?, ?, ?, 0, ?, ?)
   `);
-  stmt.run(id, input.name, input.client_name || null, input.description || null, now, now);
+  stmt.run(
+    id,
+    input.name,
+    input.client_name || null,
+    input.description || null,
+    now,
+    now,
+  );
 
   console.log(`Created project with ID: ${id}`);
   return {
@@ -921,7 +1136,7 @@ export function createProject(input: CreateProjectInput): ProjectRecord {
 export function getAllProjects(includeArchived = false): ProjectSummary[] {
   const database = getDatabase();
 
-  const whereClause = includeArchived ? '' : 'WHERE p.is_archived = 0';
+  const whereClause = includeArchived ? "" : "WHERE p.is_archived = 0";
 
   const stmt = database.prepare(`
     SELECT
@@ -933,9 +1148,12 @@ export function getAllProjects(includeArchived = false): ProjectSummary[] {
     ORDER BY p.updated_at DESC
   `);
 
-  const rows = stmt.all() as (ProjectRecord & { cv_count: number; jd_count: number })[];
+  const rows = stmt.all() as (ProjectRecord & {
+    cv_count: number;
+    jd_count: number;
+  })[];
 
-  return rows.map(row => ({
+  return rows.map((row) => ({
     ...row,
     is_archived: Boolean(row.is_archived),
   }));
@@ -947,14 +1165,20 @@ export function getAllProjects(includeArchived = false): ProjectSummary[] {
 export function getProject(id: string): ProjectSummary | null {
   const database = getDatabase();
 
-  const row = database.prepare(`
+  const row = database
+    .prepare(
+      `
     SELECT
       p.id, p.name, p.client_name, p.description, p.is_archived, p.created_at, p.updated_at,
       (SELECT COUNT(*) FROM cvs WHERE project_id = p.id) as cv_count,
       (SELECT COUNT(*) FROM job_descriptions WHERE project_id = p.id) as jd_count
     FROM projects p
     WHERE p.id = ?
-  `).get(id) as (ProjectRecord & { cv_count: number; jd_count: number }) | undefined;
+  `,
+    )
+    .get(id) as
+    | (ProjectRecord & { cv_count: number; jd_count: number })
+    | undefined;
 
   if (!row) return null;
 
@@ -967,33 +1191,38 @@ export function getProject(id: string): ProjectSummary | null {
 /**
  * Update a project.
  */
-export function updateProject(id: string, updates: Partial<CreateProjectInput & { is_archived: boolean }>): boolean {
+export function updateProject(
+  id: string,
+  updates: Partial<CreateProjectInput & { is_archived: boolean }>,
+): boolean {
   const database = getDatabase();
   const now = new Date().toISOString();
 
-  const fields: string[] = ['updated_at = ?'];
+  const fields: string[] = ["updated_at = ?"];
   const values: unknown[] = [now];
 
   if (updates.name !== undefined) {
-    fields.push('name = ?');
+    fields.push("name = ?");
     values.push(updates.name);
   }
   if (updates.client_name !== undefined) {
-    fields.push('client_name = ?');
+    fields.push("client_name = ?");
     values.push(updates.client_name);
   }
   if (updates.description !== undefined) {
-    fields.push('description = ?');
+    fields.push("description = ?");
     values.push(updates.description);
   }
   if (updates.is_archived !== undefined) {
-    fields.push('is_archived = ?');
+    fields.push("is_archived = ?");
     values.push(updates.is_archived ? 1 : 0);
   }
 
   values.push(id);
 
-  const stmt = database.prepare(`UPDATE projects SET ${fields.join(', ')} WHERE id = ?`);
+  const stmt = database.prepare(
+    `UPDATE projects SET ${fields.join(", ")} WHERE id = ?`,
+  );
   const result = stmt.run(...values);
 
   return result.changes > 0;
@@ -1007,13 +1236,13 @@ export function deleteProject(id: string): boolean {
   const database = getDatabase();
 
   // First delete all CVs (cascades to cv_jd_matches)
-  database.prepare('DELETE FROM cvs WHERE project_id = ?').run(id);
+  database.prepare("DELETE FROM cvs WHERE project_id = ?").run(id);
 
   // Delete all JDs (cascades to cv_jd_matches)
-  database.prepare('DELETE FROM job_descriptions WHERE project_id = ?').run(id);
+  database.prepare("DELETE FROM job_descriptions WHERE project_id = ?").run(id);
 
   // Delete the project
-  const result = database.prepare('DELETE FROM projects WHERE id = ?').run(id);
+  const result = database.prepare("DELETE FROM projects WHERE id = ?").run(id);
 
   return result.changes > 0;
 }
@@ -1024,8 +1253,12 @@ export function deleteProject(id: string): boolean {
 export function getAggregateStats(): { total_cvs: number; total_jds: number } {
   const database = getDatabase();
 
-  const cvCount = database.prepare('SELECT COUNT(*) as count FROM cvs').get() as { count: number };
-  const jdCount = database.prepare('SELECT COUNT(*) as count FROM job_descriptions').get() as { count: number };
+  const cvCount = database
+    .prepare("SELECT COUNT(*) as count FROM cvs")
+    .get() as { count: number };
+  const jdCount = database
+    .prepare("SELECT COUNT(*) as count FROM job_descriptions")
+    .get() as { count: number };
 
   return {
     total_cvs: cvCount.count,
@@ -1060,7 +1293,14 @@ export function insertQueuedCV(input: QueuedCVInput): string {
     ) VALUES (?, ?, ?, ?, ?, '{}', 0, 0, 'queued', ?)
   `);
 
-  stmt.run(id, input.filePath, input.fileName, now, now, input.projectId || null);
+  stmt.run(
+    id,
+    input.filePath,
+    input.fileName,
+    now,
+    now,
+    input.projectId || null,
+  );
   console.log(`Inserted queued CV with ID: ${id}`);
   return id;
 }
@@ -1070,25 +1310,25 @@ export function insertQueuedCV(input: QueuedCVInput): string {
  */
 export function updateCVStatus(
   id: string,
-  status: 'queued' | 'processing' | 'completed' | 'failed',
-  options?: { error?: string; startedAt?: string }
+  status: "queued" | "processing" | "completed" | "failed",
+  options?: { error?: string; startedAt?: string },
 ): boolean {
   const database = getDatabase();
   const now = new Date().toISOString();
 
-  let query = 'UPDATE cvs SET status = ?, updated_at = ?';
+  let query = "UPDATE cvs SET status = ?, updated_at = ?";
   const params: unknown[] = [status, now];
 
   if (options?.error !== undefined) {
-    query += ', error_message = ?';
+    query += ", error_message = ?";
     params.push(options.error);
   }
   if (options?.startedAt !== undefined) {
-    query += ', processing_started_at = ?';
+    query += ", processing_started_at = ?";
     params.push(options.startedAt);
   }
 
-  query += ' WHERE id = ?';
+  query += " WHERE id = ?";
   params.push(id);
 
   const result = database.prepare(query).run(...params);
@@ -1140,7 +1380,7 @@ export function completeCVProcessing(id: string, cv: ParsedCV): boolean {
     cv.parse_confidence,
     cv.warnings ? JSON.stringify(cv.warnings) : null,
     cv.extract_time_ms || null,
-    id
+    id,
   );
 
   return result.changes > 0;
@@ -1200,28 +1440,30 @@ export function getQueuedCVsByProject(projectId?: string): Array<{
 
   const params: unknown[] = [];
   if (projectId) {
-    query += ' AND project_id = ?';
+    query += " AND project_id = ?";
     params.push(projectId);
   }
 
-  query += ' ORDER BY created_at ASC';
+  query += " ORDER BY created_at ASC";
 
   const stmt = database.prepare(query);
-  return params.length ? stmt.all(...params) as Array<{
-    id: string;
-    file_name: string;
-    file_path: string;
-    status: string;
-    error_message: string | null;
-    created_at: string;
-  }> : stmt.all() as Array<{
-    id: string;
-    file_name: string;
-    file_path: string;
-    status: string;
-    error_message: string | null;
-    created_at: string;
-  }>;
+  return params.length
+    ? (stmt.all(...params) as Array<{
+        id: string;
+        file_name: string;
+        file_path: string;
+        status: string;
+        error_message: string | null;
+        created_at: string;
+      }>)
+    : (stmt.all() as Array<{
+        id: string;
+        file_name: string;
+        file_path: string;
+        status: string;
+        error_message: string | null;
+        created_at: string;
+      }>);
 }
 
 /**
@@ -1230,10 +1472,14 @@ export function getQueuedCVsByProject(projectId?: string): Array<{
  */
 export function resetProcessingCVs(): number {
   const database = getDatabase();
-  const result = database.prepare(`
+  const result = database
+    .prepare(
+      `
     UPDATE cvs SET status = 'queued', processing_started_at = NULL
     WHERE status = 'processing'
-  `).run();
+  `,
+    )
+    .run();
 
   if (result.changes > 0) {
     console.log(`Reset ${result.changes} processing CVs to queued state`);
@@ -1268,10 +1514,10 @@ export function recordUsageEvent(input: UsageEventInput): void {
     input.totalTokens,
     input.llmMode,
     input.model || null,
-    now
+    now,
   );
 
-  console.log('[DB] Recorded usage event:', {
+  console.log("[DB] Recorded usage event:", {
     projectId: input.projectId,
     eventType: input.eventType,
     totalTokens: input.totalTokens,
@@ -1285,13 +1531,19 @@ export function recordUsageEvent(input: UsageEventInput): void {
 export function getUsageStatsByProject(projectId: string): UsageStats {
   const database = getDatabase();
 
-  const result = database.prepare(`
+  const result = database
+    .prepare(
+      `
     SELECT
       COALESCE(SUM(total_tokens), 0) as totalTokens,
       COALESCE(SUM(request_count), 0) as requestCount
     FROM usage_daily
     WHERE project_id = ? AND date >= strftime('%Y-%m-01', 'now')
-  `).get(projectId) as { totalTokens: number; requestCount: number } | undefined;
+  `,
+    )
+    .get(projectId) as
+    | { totalTokens: number; requestCount: number }
+    | undefined;
 
   return {
     totalTokens: result?.totalTokens ?? 0,
@@ -1305,13 +1557,17 @@ export function getUsageStatsByProject(projectId: string): UsageStats {
 export function getGlobalUsageStats(): UsageStats {
   const database = getDatabase();
 
-  const result = database.prepare(`
+  const result = database
+    .prepare(
+      `
     SELECT
       COALESCE(SUM(total_tokens), 0) as totalTokens,
       COALESCE(SUM(request_count), 0) as requestCount
     FROM usage_daily
     WHERE date >= strftime('%Y-%m-01', 'now')
-  `).get() as { totalTokens: number; requestCount: number } | undefined;
+  `,
+    )
+    .get() as { totalTokens: number; requestCount: number } | undefined;
 
   return {
     totalTokens: result?.totalTokens ?? 0,
@@ -1327,7 +1583,9 @@ export function getAllUsageStats(): ProjectUsageStats {
 
   const global = getGlobalUsageStats();
 
-  const projectRows = database.prepare(`
+  const projectRows = database
+    .prepare(
+      `
     SELECT
       project_id as projectId,
       COALESCE(SUM(total_tokens), 0) as totalTokens,
@@ -1335,7 +1593,13 @@ export function getAllUsageStats(): ProjectUsageStats {
     FROM usage_daily
     WHERE date >= strftime('%Y-%m-01', 'now')
     GROUP BY project_id
-  `).all() as Array<{ projectId: string; totalTokens: number; requestCount: number }>;
+  `,
+    )
+    .all() as Array<{
+    projectId: string;
+    totalTokens: number;
+    requestCount: number;
+  }>;
 
   const byProject: Record<string, UsageStats> = {};
   for (const row of projectRows) {
@@ -1357,28 +1621,43 @@ export function getAllUsageStats(): ProjectUsageStats {
  * When pinning, assigns the next available pin_order.
  * When unpinning, resets is_pinned and pin_order to 0.
  */
-export function updateProjectPinned(projectId: string, isPinned: boolean): boolean {
+export function updateProjectPinned(
+  projectId: string,
+  isPinned: boolean,
+): boolean {
   const database = getDatabase();
   const now = new Date().toISOString();
 
   if (isPinned) {
     // Get max pin_order from currently pinned projects
-    const maxOrder = database.prepare(`
+    const maxOrder = database
+      .prepare(
+        `
       SELECT COALESCE(MAX(pin_order), 0) as maxOrder
       FROM projects WHERE is_pinned = 1
-    `).get() as { maxOrder: number };
+    `,
+      )
+      .get() as { maxOrder: number };
 
     const newOrder = maxOrder.maxOrder + 1;
 
-    const result = database.prepare(`
+    const result = database
+      .prepare(
+        `
       UPDATE projects SET is_pinned = 1, pin_order = ?, updated_at = ? WHERE id = ?
-    `).run(newOrder, now, projectId);
+    `,
+      )
+      .run(newOrder, now, projectId);
 
     return result.changes > 0;
   } else {
-    const result = database.prepare(`
+    const result = database
+      .prepare(
+        `
       UPDATE projects SET is_pinned = 0, pin_order = 0, updated_at = ? WHERE id = ?
-    `).run(now, projectId);
+    `,
+      )
+      .run(now, projectId);
 
     return result.changes > 0;
   }
@@ -1400,9 +1679,12 @@ export function getPinnedProjects(): ProjectSummary[] {
     ORDER BY p.pin_order ASC
   `);
 
-  const rows = stmt.all() as (ProjectRecord & { cv_count: number; jd_count: number })[];
+  const rows = stmt.all() as (ProjectRecord & {
+    cv_count: number;
+    jd_count: number;
+  })[];
 
-  return rows.map(row => ({
+  return rows.map((row) => ({
     ...row,
     is_archived: Boolean(row.is_archived),
   }));
@@ -1427,5 +1709,5 @@ export function reorderPinnedProjects(projectIds: string[]): void {
   });
 
   reorder();
-  console.log('[DB] Reordered pinned projects:', projectIds);
+  console.log("[DB] Reordered pinned projects:", projectIds);
 }

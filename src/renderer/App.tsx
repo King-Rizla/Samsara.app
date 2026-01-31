@@ -21,6 +21,9 @@ import {
 import { AppSidebar } from "./components/sidebar/AppSidebar";
 import { Dashboard } from "./routes/Dashboard";
 import { ProjectView } from "./routes/ProjectView";
+import { ProjectLayout } from "./routes/ProjectLayout";
+import { CandidateSearchSection } from "./components/sections/CandidateSearchSection";
+import { PlaceholderSection } from "./components/sections/PlaceholderSection";
 import { Settings } from "./routes/Settings";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { useQueueStore } from "./stores/queueStore";
@@ -172,7 +175,30 @@ export function App() {
                 </header>
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
-                  <Route path="/project/:id" element={<ProjectView />} />
+                  <Route path="/project/:id" element={<ProjectLayout />}>
+                    <Route index element={<ProjectView />} />
+                    <Route path="search" element={<CandidateSearchSection />} />
+                    <Route
+                      path="outreach"
+                      element={<PlaceholderSection name="Candidate Outreach" />}
+                    />
+                    <Route
+                      path="coordination"
+                      element={
+                        <PlaceholderSection name="Client Coordination" />
+                      }
+                    />
+                    <Route
+                      path="data-entry"
+                      element={<PlaceholderSection name="Data Entry" />}
+                    />
+                    <Route
+                      path="business-dev"
+                      element={
+                        <PlaceholderSection name="Business Development" />
+                      }
+                    />
+                  </Route>
                   <Route path="/settings" element={<Settings />} />
                 </Routes>
               </SidebarInset>

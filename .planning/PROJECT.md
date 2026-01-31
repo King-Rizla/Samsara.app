@@ -92,18 +92,21 @@ We attack the "Admin Bottleneck" (Category 1) first.
 
 ## Key Decisions
 
-| Decision                         | Rationale                                                                   | Outcome |
-| -------------------------------- | --------------------------------------------------------------------------- | ------- |
-| **Formatter First**              | Highest friction point; easiest ROI to prove ("4 hours to 4 minutes").      | ✓ Final |
-| **Local Processing**             | Eliminates server COGS; enables "Zero Latency" bulk actions.                | ✓ Final |
-| **No Bots**                      | "Listeners" must record system audio, not join calls as a bot.              | ✓ Final |
-| **DOM Bridge**                   | Integration via browser DOM (Frontend) rather than expensive API (Backend). | ✓ Final |
-| **PyInstaller --onedir**         | Faster startup than --onefile for spaCy model loading.                      | ✓ Good  |
-| **Qwen 2.5 7B default**          | Qwen3 breaks JSON with thinking tags. Reliable structured output.           | ✓ Good  |
-| **Single unified LLM call**      | 1 API call vs 4 separate for cost + speed efficiency.                       | ✓ Good  |
-| **ACK timeout pattern**          | Python sends ACK before extraction; timeout starts on ACK not submission.   | ✓ Good  |
-| **Phase 7 replaces test phases** | E2E tests fragile; comprehensive quality gates more effective.              | ✓ Good  |
-| **Terminal dark mode only**      | Simpler theming, matches target audience aesthetic.                         | ✓ Good  |
+| Decision                         | Rationale                                                                                               | Outcome   |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------- | --------- |
+| **Formatter First**              | Highest friction point; easiest ROI to prove ("4 hours to 4 minutes").                                  | ✓ Final   |
+| **Local Processing**             | Eliminates server COGS; enables "Zero Latency" bulk actions.                                            | ✓ Final   |
+| **No Bots**                      | "Listeners" must record system audio, not join calls as a bot.                                          | ✓ Final   |
+| **DOM Bridge**                   | Integration via browser DOM (Frontend) rather than expensive API (Backend).                             | ✓ Final   |
+| **PyInstaller --onedir**         | Faster startup than --onefile for spaCy model loading.                                                  | ✓ Good    |
+| **Qwen 2.5 7B default**          | Qwen3 breaks JSON with thinking tags. Reliable structured output.                                       | ✓ Good    |
+| **Single unified LLM call**      | 1 API call vs 4 separate for cost + speed efficiency.                                                   | ✓ Good    |
+| **ACK timeout pattern**          | Python sends ACK before extraction; timeout starts on ACK not submission.                               | ✓ Good    |
+| **Phase 7 replaces test phases** | E2E tests fragile; comprehensive quality gates more effective.                                          | ✓ Good    |
+| **Terminal dark mode only**      | Simpler theming, matches target audience aesthetic.                                                     | ✓ Good    |
+| **Agent as power-user feature**  | Agent orchestrates existing IPC handlers; app works fully without it. Subscription tier for LLM access. | — Pending |
+| **Agent local-first learning**   | Local feedback storage by default; opt-in anonymized sync in future milestone.                          | — Pending |
+| **IPC handlers as tool defs**    | Keep IPC handlers granular and self-describing — they become agent tools in M5.                         | ✓ Good    |
 
 ## Product Vision
 
@@ -111,12 +114,13 @@ Samsara automates the complete candidate recruitment flow from initial sourcing 
 
 ### Milestone Roadmap
 
-| Milestone                       | Scope                                                     | Status     |
-| ------------------------------- | --------------------------------------------------------- | ---------- |
-| **M1: The Sovereign Formatter** | CV parsing, JD matching, branding, bulk processing        | Shipped v1 |
-| **M2: Automated Outreach**      | SMS/email, AI pre-screening, ATS integration              | Draft      |
-| **M3: Client Coordination**     | Feedback portal, interview scheduling                     | Draft      |
-| **M4: Intelligent Sourcing**    | Call transcription, boolean search, CV library connectors | Draft      |
+| Milestone                       | Scope                                                                                           | Status     |
+| ------------------------------- | ----------------------------------------------------------------------------------------------- | ---------- |
+| **M1: The Sovereign Formatter** | CV parsing, JD matching, branding, bulk processing                                              | Shipped v1 |
+| **M2: Automated Outreach**      | SMS/email, AI pre-screening, ATS integration                                                    | Draft      |
+| **M3: Client Coordination**     | Feedback portal, interview scheduling                                                           | Draft      |
+| **M4: Intelligent Sourcing**    | Call transcription, boolean search, CV library connectors                                       | Draft      |
+| **M5: Yama**                    | Conversational AI agent — iterative refinement, boolean search co-pilot, cross-session learning | Draft      |
 
 ### Candidate Flow Stages
 
@@ -131,7 +135,21 @@ Future milestone plans are in `.planning/milestones/`:
 - `02-automated-outreach/ROADMAP-DRAFT.md`
 - `03-client-coordination/ROADMAP-DRAFT.md`
 - `04-intelligent-sourcing/ROADMAP-DRAFT.md`
+- `05-yama/` — Conversational AI agent (M5)
+
+## Current Milestone: M5 Yama
+
+**Goal:** Add a conversational AI agent as a power-user feature that orchestrates app operations, iteratively refines prompts and search strategies, and learns from recruiter feedback to improve over time.
+
+**Target features:**
+
+- Chat panel UI that invokes app operations via existing IPC handlers
+- Iterative prompt refinement — agent auto-improves JD matching and CV parsing results
+- Boolean search co-pilot — agent builds, tests, and refines sourcing search strings
+- Cross-session learning — local feedback storage that improves agent suggestions over time
+- Subscription-based LLM access via proxy backend
+- Opt-in anonymized feedback sync (deferred to future milestone — local learning only in M5)
 
 ---
 
-_Last updated: 2026-01-30 after v1 milestone completion_
+_Last updated: 2026-01-31 after M5 Yama milestone initialization_

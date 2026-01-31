@@ -22,12 +22,26 @@
 
 Plans:
 
-- [ ] 06-01-PLAN.md — Folder drag-drop with recursive scanning, batch IPC handler, confirmation dialog
-- [ ] 06-02-PLAN.md — List virtualization, retry-all-failed, batch summary notification
+- [x] 06-01-PLAN.md — Folder drag-drop with recursive scanning, batch IPC handler, confirmation dialog
+- [x] 06-02-PLAN.md — List virtualization, retry-all-failed, batch summary notification
+
+**Phase 6 complete** (2026-01-31)
 
 _Note: OS context menu integration (right-click "Format with Samsara") deferred to future phase._
 
 ---
 
+## Future Milestones
+
+Milestone drafts in `.planning/milestones/`:
+
+- `02-automated-outreach/ROADMAP-DRAFT.md` — SMS/email, AI pre-screening, ATS integration
+- `03-client-coordination/ROADMAP-DRAFT.md` — Feedback portal, interview scheduling
+- `04-intelligent-sourcing/ROADMAP-DRAFT.md` — Call transcription, boolean search, CV library connectors
+- `05-yama/ROADMAP-DRAFT.md` — Conversational AI agent (6 phases, 33 requirements)
+
+---
+
 _Roadmap created: 2026-01-23_
 _v1 archived: 2026-01-30_
+_M5 Yama draft created: 2026-01-31_

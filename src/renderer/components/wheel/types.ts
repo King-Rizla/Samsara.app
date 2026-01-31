@@ -23,7 +23,7 @@ export const WHEEL_SECTIONS: WheelSectionDef[] = [
     name: "Candidate Search",
     route: "search",
     icon: Search,
-    color: "hsl(210, 60%, 70%)",
+    color: "hsl(270, 80%, 65%)",
     comingSoon: false,
     stats: [
       { label: "Pipeline", value: "0" },
@@ -35,7 +35,7 @@ export const WHEEL_SECTIONS: WheelSectionDef[] = [
     name: "Candidate Outreach",
     route: "outreach",
     icon: Phone,
-    color: "hsl(160, 50%, 65%)",
+    color: "hsl(255, 70%, 60%)",
     comingSoon: true,
     stats: [
       { label: "Pipeline", value: "0" },
@@ -47,7 +47,7 @@ export const WHEEL_SECTIONS: WheelSectionDef[] = [
     name: "Client Coordination",
     route: "coordination",
     icon: Users,
-    color: "hsl(35, 60%, 70%)",
+    color: "hsl(290, 75%, 55%)",
     comingSoon: true,
     stats: [
       { label: "Active clients", value: "0" },
@@ -59,7 +59,7 @@ export const WHEEL_SECTIONS: WheelSectionDef[] = [
     name: "Data Entry",
     route: "data-entry",
     icon: Database,
-    color: "hsl(180, 50%, 65%)",
+    color: "hsl(240, 65%, 60%)",
     comingSoon: true,
     stats: [
       { label: "Records", value: "0" },
@@ -71,7 +71,7 @@ export const WHEEL_SECTIONS: WheelSectionDef[] = [
     name: "Business Development",
     route: "business-dev",
     icon: TrendingUp,
-    color: "hsl(340, 50%, 70%)",
+    color: "hsl(310, 70%, 55%)",
     comingSoon: true,
     stats: [
       { label: "Leads", value: "0" },
@@ -80,9 +80,9 @@ export const WHEEL_SECTIONS: WheelSectionDef[] = [
   },
 ];
 
-export const INNER_RADIUS = 80;
-export const OUTER_RADIUS = 220;
-export const VIEWBOX = "-260 -260 520 520";
+export const INNER_RADIUS = 100;
+export const OUTER_RADIUS = 280;
+export const VIEWBOX = "-320 -320 640 640";
 
 const SECTION_COUNT = WHEEL_SECTIONS.length;
 const ANGLE_PER_SECTION = (2 * Math.PI) / SECTION_COUNT;

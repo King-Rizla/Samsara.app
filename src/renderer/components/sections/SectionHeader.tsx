@@ -18,7 +18,7 @@ export function SectionHeader({ title }: SectionHeaderProps) {
         onClick={() => navigate(`/project/${id}`)}
       >
         <ArrowLeft className="h-4 w-4 mr-1" />
-        Wheel
+        Project Home
       </Button>
       <div className="h-4 w-px bg-border" />
       <span className="font-medium text-sm">{title}</span>

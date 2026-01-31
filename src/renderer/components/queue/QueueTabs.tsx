@@ -1,4 +1,5 @@
-import { useMemo, useCallback, useState } from "react";
+import { useMemo, useCallback, useState, useRef, useEffect } from "react";
+import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { useQueueStore } from "../../stores/queueStore";
 import { QueueList } from "./QueueList";
@@ -28,6 +29,31 @@ export function QueueTabs() {
     }),
     [items],
   );
+
+  // Batch completion detection
+  // Track when submitted count was above threshold, then drops to 0
+  const prevSubmittedRef = useRef(counts.submitted);
+  const batchActiveRef = useRef(false);
+
+  useEffect(() => {
+    const prev = prevSubmittedRef.current;
+    const curr = counts.submitted;
+
+    // Batch becomes active when 5+ items are in progress
+    if (curr >= 5) {
+      batchActiveRef.current = true;
+    }
+
+    // Batch completes when active batch drops to 0
+    if (batchActiveRef.current && prev > 0 && curr === 0) {
+      batchActiveRef.current = false;
+      const succeeded = counts.completed;
+      const failed = counts.failed;
+      toast.success(`Batch complete: ${succeeded} succeeded, ${failed} failed`);
+    }
+
+    prevSubmittedRef.current = curr;
+  }, [counts.submitted, counts.completed, counts.failed]);
 
   // Clear selection when switching tabs
   const handleTabChange = useCallback(() => {

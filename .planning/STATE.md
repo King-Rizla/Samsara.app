@@ -5,20 +5,22 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Architecture as the Advantage - Zero Latency, Zero Egress, Zero Per-Seat Tax
-**Current focus:** M2 Automated Outreach — Samsara Wheel + outreach + AI screening + recording + ATS
+**Current focus:** M2 Automated Outreach -- Phase 8 Samsara Wheel & Foundation
 
 ## Current Position
 
-Phase: 06 of 06 (bulk-processing) — VERIFIED
-Plan: 03 of 03
-Status: Phase 06 verified (5/5 must-haves passed)
-Last activity: 2026-01-31 — Phase 06 verified, gap closure complete
+Phase: 08 of 13 (samsara-wheel-foundation) -- NOT STARTED
+Plan: 0 of 3
+Status: Ready to plan
+Last activity: 2026-01-31 -- M2 roadmap created (6 phases, 30 requirements)
+
+Progress: [==================] v1 done | M2 [░░░░░░░░░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 47
+- Total plans completed: 47 (v1: 44, post-v1: 3)
 - Average duration: 11 min
 - Total execution time: ~6.9 hours
 
@@ -28,15 +30,17 @@ Last activity: 2026-01-31 — Phase 06 verified, gap closure complete
 
 Full decision log in PROJECT.md Key Decisions table.
 
-**M5 Yama (draft — future milestone):**
+**M2 architectural decisions:**
 
-- Agent logic lives in Electron main process as AgentManager singleton (mirrors QueueManager)
-- Tools call existing functions directly (not through IPC)
-- Streaming uses webContents.send() (same pattern as queue-status-update)
-- Conversations stored in SQLite via migration v5
-- LLM proxy: Hono + Cloudflare Workers + Stripe
-- New dependencies: ai, @ai-sdk/react, react-markdown, remark-gfm, rehype-highlight
-- PII boundary must be established before any data reaches cloud LLM
+- Polling-first for SMS/email/voice status (no webhooks -- desktop app constraint)
+- XState for outreach workflow state machine
+- ElevenLabs Conversational AI + Twilio SIP for voice screening
+- System audio capture via Windows WASAPI (macOS deferred)
+- Local transcription via faster-whisper (Python sidecar)
+- Chrome extension for ATS DOM bridge
+- Framer Motion for wheel animations
+- safeStorage (Electron) for credential encryption
+- DAT requirements distributed across phases (no separate data-only phase)
 
 ### Pending Todos
 
@@ -48,19 +52,15 @@ Full decision log in PROJECT.md Key Decisions table.
 
 - PDF parsing may fail on 30-40% of real resumes
 - macOS Gatekeeper rejects unsigned Python binaries
+- Voice AI provider space is fast-moving -- ElevenLabs + Twilio SIP needs verification before Phase 11
+- macOS system audio capture deferred (BlackHole requirement)
 
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: Completed 06-03-PLAN.md (folder detection gap closure)
+Stopped at: M2 roadmap created, ready to plan Phase 8
 Resume file: None
 
 ## Next Steps
 
-**Current:** Define M2 requirements → create roadmap → `/gsd:plan-phase [N]`
-
-**Future milestones drafted:**
-
-- M3: Client Coordination — `.planning/milestones/03-client-coordination/ROADMAP-DRAFT.md`
-- M4: Intelligent Sourcing — `.planning/milestones/04-intelligent-sourcing/ROADMAP-DRAFT.md`
-- M5: Yama (Agent) — `.planning/milestones/05-yama/ROADMAP-DRAFT.md`
+**Immediate:** `/gsd:plan-phase 8` -- Samsara Wheel navigation + nested routing + DB migration v3

@@ -1,7 +1,7 @@
 # Requirements: Samsara M2 Automated Outreach
 
 **Defined:** 2026-01-31
-**Core Value:** Architecture as the Advantage — Zero Latency, Zero Egress, Zero Per-Seat Tax
+**Core Value:** Architecture as the Advantage -- Zero Latency, Zero Egress, Zero Per-Seat Tax
 
 ## M2 Requirements
 
@@ -22,7 +22,7 @@ Requirements for the Automated Outreach milestone. Each maps to roadmap phases.
 - [ ] **COM-03**: User can create SMS/email templates with variable substitution (candidate name, role, company)
 - [ ] **COM-04**: System sends SMS and email to candidate on outreach trigger
 - [ ] **COM-05**: User can view delivery status per message (sent/delivered/failed)
-- [ ] **COM-06**: System maintains opt-out registry — candidates who opt out are never contacted again
+- [ ] **COM-06**: System maintains opt-out registry -- candidates who opt out are never contacted again
 
 ### Outreach Workflow
 
@@ -90,44 +90,44 @@ Deferred to post-M2 milestones.
 
 | Requirement | Phase | Status  |
 | ----------- | ----- | ------- |
-| NAV-01      |       | Pending |
-| NAV-02      |       | Pending |
-| NAV-03      |       | Pending |
-| NAV-04      |       | Pending |
-| NAV-05      |       | Pending |
-| COM-01      |       | Pending |
-| COM-02      |       | Pending |
-| COM-03      |       | Pending |
-| COM-04      |       | Pending |
-| COM-05      |       | Pending |
-| COM-06      |       | Pending |
-| WRK-01      |       | Pending |
-| WRK-02      |       | Pending |
-| WRK-03      |       | Pending |
-| WRK-04      |       | Pending |
-| WRK-05      |       | Pending |
-| VOX-01      |       | Pending |
-| VOX-02      |       | Pending |
-| VOX-03      |       | Pending |
-| VOX-04      |       | Pending |
-| VOX-05      |       | Pending |
-| REC-01      |       | Pending |
-| REC-02      |       | Pending |
-| REC-03      |       | Pending |
-| ATS-01      |       | Pending |
-| ATS-02      |       | Pending |
-| ATS-03      |       | Pending |
-| ATS-04      |       | Pending |
-| DAT-01      |       | Pending |
-| DAT-02      |       | Pending |
+| NAV-01      | 8     | Pending |
+| NAV-02      | 8     | Pending |
+| NAV-03      | 8     | Pending |
+| NAV-04      | 8     | Pending |
+| NAV-05      | 8     | Pending |
+| COM-01      | 9     | Pending |
+| COM-02      | 9     | Pending |
+| COM-03      | 9     | Pending |
+| COM-04      | 9     | Pending |
+| COM-05      | 9     | Pending |
+| COM-06      | 9     | Pending |
+| WRK-01      | 10    | Pending |
+| WRK-02      | 10    | Pending |
+| WRK-03      | 10    | Pending |
+| WRK-04      | 10    | Pending |
+| WRK-05      | 10    | Pending |
+| VOX-01      | 11    | Pending |
+| VOX-02      | 11    | Pending |
+| VOX-03      | 11    | Pending |
+| VOX-04      | 11    | Pending |
+| VOX-05      | 11    | Pending |
+| REC-01      | 12    | Pending |
+| REC-02      | 12    | Pending |
+| REC-03      | 12    | Pending |
+| ATS-01      | 13    | Pending |
+| ATS-02      | 13    | Pending |
+| ATS-03      | 13    | Pending |
+| ATS-04      | 13    | Pending |
+| DAT-01      | 8     | Pending |
+| DAT-02      | 8     | Pending |
 
 **Coverage:**
 
 - M2 requirements: 30 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 30
+- Mapped to phases: 30
+- Unmapped: 0
 
 ---
 
 _Requirements defined: 2026-01-31_
-_Last updated: 2026-01-31 after initial definition_
+_Last updated: 2026-01-31 after M2 roadmap creation_

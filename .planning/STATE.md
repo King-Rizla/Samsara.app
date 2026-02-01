@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 
 ## Current Position
 
-Phase: 08 of 13 (samsara-wheel-foundation)
-Plan: 3 of 3
-Status: Phase complete
-Last activity: 2026-01-31 — Completed 08-03-PLAN.md
+Phase: 14 (mvp-packaging-and-release)
+Plan: 03 of 04
+Status: In progress
+Last activity: 2026-02-01 — Completed 14-03-PLAN.md (first-run onboarding)
 
-Progress: [==================] v1 done | M2 [██░░░░░░░░░░░░░░░░] 3/18 ~17%
+Progress: [==================] v1 done | MVP packaging [██████░░] 3/4
 
 ## Performance Metrics
 
@@ -58,10 +58,10 @@ Full decision log in PROJECT.md Key Decisions table.
 
 ## Session Continuity
 
-Last session: 2026-01-31
-Stopped at: Completed 08-01-PLAN.md (nested routing foundation)
+Last session: 2026-02-01
+Stopped at: Completed 14-03-PLAN.md (first-run onboarding)
 Resume file: None
 
 ## Next Steps
 
-**Immediate:** Phase 9 planning — Email/SMS outreach integration
+**Immediate:** 14-04 — remaining MVP packaging tasks

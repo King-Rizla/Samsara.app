@@ -1,17 +1,30 @@
-import { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, AlertTriangle } from 'lucide-react';
-import { toast } from 'sonner';
-import { useProjectStore } from '../stores/projectStore';
-import { useUsageStore } from '../stores/usageStore';
-import { StatsStrip, ProjectCard, CreateProjectDialog } from '../components/dashboard';
-import { Card, CardContent } from '../components/ui/card';
+import { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { Plus, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
+import { useProjectStore } from "../stores/projectStore";
+import { useUsageStore } from "../stores/usageStore";
+import {
+  StatsStrip,
+  ProjectCard,
+  CreateProjectDialog,
+} from "../components/dashboard";
+import { Card, CardContent } from "../components/ui/card";
+import { Onboarding, isDismissed } from "../components/Onboarding";
 
 export function Dashboard() {
   const navigate = useNavigate();
-  const { projects, isLoading, loadProjects, createProject, archiveProject, deleteProject } = useProjectStore();
+  const {
+    projects,
+    isLoading,
+    loadProjects,
+    createProject,
+    archiveProject,
+    deleteProject,
+  } = useProjectStore();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [stats, setStats] = useState({ total_cvs: 0, total_jds: 0 });
+  const [onboardingDismissed, setOnboardingDismissed] = useState(isDismissed);
 
   // Usage tracking
   const {
@@ -26,7 +39,10 @@ export function Dashboard() {
   } = useUsageStore();
 
   // Track which toasts have been shown to avoid duplicates
-  const toastShownRef = useRef<{ warning: boolean; limit: boolean }>({ warning: false, limit: false });
+  const toastShownRef = useRef<{ warning: boolean; limit: boolean }>({
+    warning: false,
+    limit: false,
+  });
 
   useEffect(() => {
     loadProjects();
@@ -51,11 +67,11 @@ export function Dashboard() {
             Usage Limit Reached
           </div>
           <p className="text-sm text-muted-foreground">
-            Processing is paused.{' '}
+            Processing is paused.{" "}
             <button
               onClick={() => {
                 toast.dismiss();
-                navigate('/settings');
+                navigate("/settings");
               }}
               className="text-primary underline"
             >
@@ -63,7 +79,7 @@ export function Dashboard() {
             </button>
           </p>
         </div>,
-        { duration: Infinity }
+        { duration: Infinity },
       );
     } else if (isNearLimit() && !toastShownRef.current.warning) {
       toastShownRef.current.warning = true;
@@ -77,11 +93,11 @@ export function Dashboard() {
             Approaching Usage Limit
           </div>
           <p className="text-sm text-muted-foreground">
-            {percentage}% of monthly limit used.{' '}
+            {percentage}% of monthly limit used.{" "}
             <button
               onClick={() => {
                 toast.dismiss();
-                navigate('/settings');
+                navigate("/settings");
               }}
               className="text-primary underline"
             >
@@ -89,12 +105,22 @@ export function Dashboard() {
             </button>
           </p>
         </div>,
-        { duration: Infinity }
+        { duration: Infinity },
       );
     }
-  }, [isNearLimit, isOverLimit, globalUsage.totalTokens, globalTokenLimit, navigate]);
+  }, [
+    isNearLimit,
+    isOverLimit,
+    globalUsage.totalTokens,
+    globalTokenLimit,
+    navigate,
+  ]);
 
-  const handleCreateProject = async (data: { name: string; client_name?: string; description?: string }) => {
+  const handleCreateProject = async (data: {
+    name: string;
+    client_name?: string;
+    description?: string;
+  }) => {
     const id = await createProject(data);
     navigate(`/project/${id}`);
   };
@@ -104,21 +130,45 @@ export function Dashboard() {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Delete this project and all its data? This cannot be undone.')) {
+    if (
+      window.confirm(
+        "Delete this project and all its data? This cannot be undone.",
+      )
+    ) {
       await deleteProject(id);
     }
   };
 
   // Calculate time saved (estimate: 5 min manual vs 2s automated per CV)
   const timeSavedMinutes = Math.round(stats.total_cvs * 4.97); // 5 min - 2s = ~4.97 min saved per CV
-  const timeSavedFormatted = timeSavedMinutes >= 60
-    ? `${Math.floor(timeSavedMinutes / 60)}h ${timeSavedMinutes % 60}m`
-    : `${timeSavedMinutes}m`;
+  const timeSavedFormatted =
+    timeSavedMinutes >= 60
+      ? `${Math.floor(timeSavedMinutes / 60)}h ${timeSavedMinutes % 60}m`
+      : `${timeSavedMinutes}m`;
 
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <p className="text-muted-foreground">Loading projects...</p>
+      </div>
+    );
+  }
+
+  // Show onboarding when no projects and not dismissed
+  const showOnboarding = projects.length === 0 && !onboardingDismissed;
+
+  if (showOnboarding) {
+    return (
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Onboarding
+          onCreateProject={() => setShowCreateDialog(true)}
+          onDismiss={() => setOnboardingDismissed(true)}
+        />
+        <CreateProjectDialog
+          open={showCreateDialog}
+          onOpenChange={setShowCreateDialog}
+          onCreate={handleCreateProject}
+        />
       </div>
     );
   }

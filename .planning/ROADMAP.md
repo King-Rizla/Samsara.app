@@ -3,7 +3,7 @@
 ## Milestones
 
 - **v1 The Sovereign Formatter** — Phases 1-7 + Phase 6, 47 plans (shipped 2026-01-30, completed 2026-01-31) → [Archive](milestones/v1-ROADMAP.md) | [Audit](milestones/v1-MILESTONE-AUDIT.md)
-- **M2 Automated Outreach** — Phases 8-13 (in progress)
+- **M2 Automated Outreach** — Phases 8-14 (in progress)
 
 ## M2 Automated Outreach
 
@@ -131,6 +131,28 @@ Plans:
 - [ ] 13-02: Chrome extension (manifest, content scripts, WebSocket bridge to Electron)
 - [ ] 13-03: Mock ATS test page, end-to-end DOM fill verification
 
+### Phase 14: MVP Packaging & Release
+
+**Goal**: Ship a distributable Windows installer from M1 codebase on an `mvp` branch — app icon, product metadata, Squirrel installer, PDF parsing fixes, and first-run polish — so recruiters can install and test without a terminal
+**Depends on**: Phase 13 (can execute independently — branches from v1 code, not M2)
+**Requirements**: MVP-01 (installer), MVP-02 (app icon/branding), MVP-03 (PDF parsing reliability), MVP-04 (first-run UX)
+**Success Criteria** (what must be TRUE):
+
+1. `mvp` branch exists with v1 code frozen, `master` continues M2 development independently
+2. Running `npm run make` on the `mvp` branch produces a Squirrel `.exe` installer with Samsara icon and product name
+3. Installer creates desktop shortcut and Start Menu entry — user launches by double-clicking, no terminal
+4. PDF parsing failure rate reduced from 30-40% to under 10% on the test corpus
+5. First-run experience includes a sample project or onboarding hint so testers aren't dropped into a blank screen
+
+**Plans**: 4 plans
+
+Plans:
+
+- [ ] 14-01-PLAN.md — Branch creation, build config fixes (sidecar path, DevTools, icon, asar)
+- [ ] 14-02-PLAN.md — PDF parsing reliability (pdfplumber fallback, pre-cleaning, error recovery)
+- [ ] 14-03-PLAN.md — First-run onboarding overlay
+- [ ] 14-04-PLAN.md — Cherry-pick, build installer, end-to-end verification
+
 ---
 
 ## Future Milestones
@@ -145,7 +167,7 @@ Milestone drafts in `.planning/milestones/`:
 
 ## Progress
 
-**Execution Order:** Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13
+**Execution Order:** Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13. Phase 14 runs independently on mvp branch.
 
 | Phase                           | Milestone | Plans Complete | Status      | Completed |
 | ------------------------------- | --------- | -------------- | ----------- | --------- |
@@ -155,6 +177,7 @@ Milestone drafts in `.planning/milestones/`:
 | 11. AI Voice Screening          | M2        | 0/3            | Not started | -         |
 | 12. Recording & Transcription   | M2        | 0/2            | Not started | -         |
 | 13. ATS Integration             | M2        | 0/3            | Not started | -         |
+| 14. MVP Packaging & Release     | M2        | 0/4            | Not started | -         |
 
 ---
 

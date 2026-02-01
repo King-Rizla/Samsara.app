@@ -77,8 +77,10 @@ const createWindow = (): BrowserWindow => {
     );
   }
 
-  // Open the DevTools.
-  mainWindow.webContents.openDevTools();
+  // Open the DevTools in development only.
+  if (!app.isPackaged) {
+    mainWindow.webContents.openDevTools();
+  }
 
   return mainWindow;
 };

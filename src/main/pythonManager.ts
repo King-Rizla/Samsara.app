@@ -38,8 +38,8 @@ function findPythonPath(): string {
     process.platform === "win32" ? "samsara-backend.exe" : "samsara-backend";
 
   if (isPackaged) {
-    // In packaged app, Python is in resources/python/
-    return path.join(process.resourcesPath, "python", exeName);
+    // In packaged app, Python is in resources/samsara-backend/
+    return path.join(process.resourcesPath, "samsara-backend", exeName);
   }
   // In development, Python is in python-dist/samsara-backend/
   return path.join(

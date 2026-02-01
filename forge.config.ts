@@ -1,40 +1,47 @@
-import type { ForgeConfig } from '@electron-forge/shared-types';
-import { MakerSquirrel } from '@electron-forge/maker-squirrel';
-import { MakerZIP } from '@electron-forge/maker-zip';
-import { MakerDeb } from '@electron-forge/maker-deb';
-import { MakerRpm } from '@electron-forge/maker-rpm';
-import { VitePlugin } from '@electron-forge/plugin-vite';
-import { FusesPlugin } from '@electron-forge/plugin-fuses';
-import { FuseV1Options, FuseVersion } from '@electron/fuses';
-import { windowsSign } from './windowsSign';
+import type { ForgeConfig } from "@electron-forge/shared-types";
+import { MakerSquirrel } from "@electron-forge/maker-squirrel";
+import { MakerZIP } from "@electron-forge/maker-zip";
+import { MakerDeb } from "@electron-forge/maker-deb";
+import { MakerRpm } from "@electron-forge/maker-rpm";
+import { VitePlugin } from "@electron-forge/plugin-vite";
+import { FusesPlugin } from "@electron-forge/plugin-fuses";
+import { FuseV1Options, FuseVersion } from "@electron/fuses";
+import { windowsSign } from "./windowsSign";
 
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
+    asarUnpack: ["**/node_modules/better-sqlite3/**"],
+    icon: "./assets/icon",
     extraResource: [
-      './python-dist/samsara-backend',  // Python sidecar directory
+      "./python-dist/samsara-backend", // Python sidecar directory
     ],
     // macOS signing (only applied when building for macOS with certs)
-    ...(process.env.APPLE_ID ? {
-      osxSign: {
-        identity: process.env.APPLE_IDENTITY || 'Developer ID Application',
-        hardenedRuntime: true,
-        entitlements: './entitlements.plist',
-        entitlementsInherit: './entitlements.plist',
-      },
-      osxNotarize: {
-        appleId: process.env.APPLE_ID,
-        appleIdPassword: process.env.APPLE_ID_PASSWORD!,
-        teamId: process.env.APPLE_TEAM_ID!,
-      },
-    } : {}),
+    ...(process.env.APPLE_ID
+      ? {
+          osxSign: {
+            identity: process.env.APPLE_IDENTITY || "Developer ID Application",
+            hardenedRuntime: true,
+            entitlements: "./entitlements.plist",
+            entitlementsInherit: "./entitlements.plist",
+          },
+          osxNotarize: {
+            appleId: process.env.APPLE_ID,
+            appleIdPassword: process.env.APPLE_ID_PASSWORD!,
+            teamId: process.env.APPLE_TEAM_ID!,
+          },
+        }
+      : {}),
     // Windows signing
     ...(windowsSign ? { windowsSign } : {}),
   },
   rebuildConfig: {},
   makers: [
-    new MakerSquirrel({}),
-    new MakerZIP({}, ['darwin']),
+    new MakerSquirrel({
+      name: "samsara",
+      setupIcon: "./assets/icon.ico",
+    }),
+    new MakerZIP({}, ["darwin"]),
     new MakerRpm({}),
     new MakerDeb({}),
   ],
@@ -47,20 +54,20 @@ const config: ForgeConfig = {
       build: [
         {
           // `entry` is just an alias for `build.lib.entry` in the corresponding file of `config`.
-          entry: 'src/main/index.ts',
-          config: 'vite.main.config.ts',
-          target: 'main',
+          entry: "src/main/index.ts",
+          config: "vite.main.config.ts",
+          target: "main",
         },
         {
-          entry: 'src/main/preload.ts',
-          config: 'vite.preload.config.ts',
-          target: 'preload',
+          entry: "src/main/preload.ts",
+          config: "vite.preload.config.ts",
+          target: "preload",
         },
       ],
       renderer: [
         {
-          name: 'main_window',
-          config: 'vite.renderer.config.ts',
+          name: "main_window",
+          config: "vite.renderer.config.ts",
         },
       ],
     }),

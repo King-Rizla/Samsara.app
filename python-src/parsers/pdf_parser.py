@@ -14,16 +14,17 @@ Strategy:
 7. If PyMuPDF text is empty/short, fall back to pdfplumber full text
 8. If PyMuPDF crashes entirely, fall back to pdfplumber-only extraction
 """
+import contextlib
 import io
 import logging
-import os
 import sys
 import time
 from contextlib import contextmanager
-from typing import List, Tuple, Optional
 
-import pymupdf
 import pdfplumber
+import pymupdf
+
+from parsers.base import ParseResult, TableData, TextBlock
 
 logger = logging.getLogger(__name__)
 
@@ -46,9 +47,6 @@ def suppress_stdout():
         # Restore original stdout
         sys.stdout = old_stdout
 
-from parsers.base import ParseResult, TextBlock, TableData
-
-
 # Multi-column detection threshold (pixels)
 COLUMN_GAP_THRESHOLD = 100
 
@@ -56,7 +54,7 @@ COLUMN_GAP_THRESHOLD = 100
 MIN_CHARS_PER_PAGE = 50
 
 
-def check_pdf_readable(file_path: str) -> Tuple[bool, str]:
+def check_pdf_readable(file_path: str) -> tuple[bool, str]:
     """
     Check if PDF is readable and not encrypted/secured.
 
@@ -88,14 +86,12 @@ def check_pdf_readable(file_path: str) -> Tuple[bool, str]:
         doc.close()
         return True, "OK"
     except Exception as e:
-        try:
+        with contextlib.suppress(Exception):
             doc.close()
-        except Exception:  # noqa: S110
-            pass
         return False, f"Error checking PDF: {str(e)}"
 
 
-def pre_clean_pdf(file_path: str) -> Optional[bytes]:
+def pre_clean_pdf(file_path: str) -> bytes | None:
     """
     Attempt to clean/repair a malformed PDF.
 
@@ -112,7 +108,7 @@ def pre_clean_pdf(file_path: str) -> Optional[bytes]:
         return None
 
 
-def is_multi_column(blocks: List[dict], page_width: float) -> bool:
+def is_multi_column(blocks: list[dict], page_width: float) -> bool:
     """
     Detect if page has multi-column layout.
 
@@ -142,7 +138,7 @@ def is_multi_column(blocks: List[dict], page_width: float) -> bool:
     return False
 
 
-def find_column_boundary(blocks: List[dict], page_width: float) -> Optional[float]:
+def find_column_boundary(blocks: list[dict], page_width: float) -> float | None:
     """
     Find the X coordinate that separates left and right columns.
 
@@ -174,7 +170,7 @@ def find_column_boundary(blocks: List[dict], page_width: float) -> Optional[floa
     return boundary
 
 
-def extract_text_from_blocks(blocks: List[dict]) -> str:
+def extract_text_from_blocks(blocks: list[dict]) -> str:
     """Extract concatenated text from blocks."""
     lines = []
     for block in blocks:
@@ -186,7 +182,7 @@ def extract_text_from_blocks(blocks: List[dict]) -> str:
     return "\n".join(lines)
 
 
-def process_multi_column_page(page: pymupdf.Page, page_dict: dict) -> Tuple[str, List[TextBlock]]:
+def process_multi_column_page(page: pymupdf.Page, page_dict: dict) -> tuple[str, list[TextBlock]]:
     """
     Process a multi-column page by splitting into columns and merging.
 
@@ -233,7 +229,7 @@ def process_multi_column_page(page: pymupdf.Page, page_dict: dict) -> Tuple[str,
     return raw_text, text_blocks
 
 
-def convert_to_text_blocks(blocks: List[dict], page_num: int) -> List[TextBlock]:
+def convert_to_text_blocks(blocks: list[dict], page_num: int) -> list[TextBlock]:
     """Convert PyMuPDF blocks to TextBlock format."""
     result = []
 
@@ -268,7 +264,7 @@ def convert_to_text_blocks(blocks: List[dict], page_num: int) -> List[TextBlock]
     return result
 
 
-def extract_tables_with_pdfplumber(file_path: str, pages_with_tables: List[int]) -> List[TableData]:
+def extract_tables_with_pdfplumber(file_path: str, pages_with_tables: list[int]) -> list[TableData]:
     """
     Extract tables using pdfplumber for higher accuracy.
 
@@ -305,7 +301,7 @@ def extract_tables_with_pdfplumber(file_path: str, pages_with_tables: List[int])
     return tables
 
 
-def _extract_text_with_pdfplumber(file_path: str) -> Tuple[str, int]:
+def _extract_text_with_pdfplumber(file_path: str) -> tuple[str, int]:
     """
     Full text extraction using pdfplumber as fallback.
 
@@ -320,7 +316,7 @@ def _extract_text_with_pdfplumber(file_path: str) -> Tuple[str, int]:
         return "\n\n".join(page_texts), len(pdf.pages)
 
 
-def _pdfplumber_only_parse(file_path: str, start_time: float, warnings: List[str]) -> ParseResult:
+def _pdfplumber_only_parse(file_path: str, start_time: float, warnings: list[str]) -> ParseResult:
     """
     Parse PDF using only pdfplumber (when PyMuPDF fails entirely).
     """
@@ -329,7 +325,7 @@ def _pdfplumber_only_parse(file_path: str, start_time: float, warnings: List[str
         warnings.append("Used pdfplumber-only extraction (PyMuPDF unavailable)")
 
         # Also extract tables
-        all_tables: List[TableData] = []
+        all_tables: list[TableData] = []
         try:
             with pdfplumber.open(file_path) as pdf:
                 for i, page in enumerate(pdf.pages):
@@ -341,8 +337,8 @@ def _pdfplumber_only_parse(file_path: str, start_time: float, warnings: List[str
                                 for row in table
                             ]
                             all_tables.append(TableData(rows=cleaned_rows, page=i + 1))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Table extraction in pdfplumber fallback failed: %s", e)
 
         elapsed_ms = int((time.perf_counter() - start_time) * 1000)
         return ParseResult(
@@ -381,7 +377,7 @@ def parse_pdf(file_path: str) -> ParseResult:
     7. If PyMuPDF crashes, fall back to pdfplumber-only extraction
     """
     start_time = time.perf_counter()
-    warnings: List[str] = []
+    warnings: list[str] = []
 
     # Step 1: Pre-clean PDF
     cleaned_bytes = pre_clean_pdf(file_path)
@@ -426,8 +422,8 @@ def parse_pdf(file_path: str) -> ParseResult:
             doc = pymupdf.open(file_path)
 
         all_raw_text = []
-        all_blocks: List[TextBlock] = []
-        pages_with_tables: List[int] = []
+        all_blocks: list[TextBlock] = []
+        pages_with_tables: list[int] = []
 
         for page_num, page in enumerate(doc):
             # Get structured text with position info
@@ -474,7 +470,7 @@ def parse_pdf(file_path: str) -> ParseResult:
                 logger.debug("pdfplumber text fallback also failed: %s", e)
 
         # Step 5: Extract tables with pdfplumber if any were detected
-        all_tables: List[TableData] = []
+        all_tables: list[TableData] = []
         if pages_with_tables:
             all_tables = extract_tables_with_pdfplumber(file_path, pages_with_tables)
             if all_tables:

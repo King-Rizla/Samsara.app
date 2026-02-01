@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 14 (mvp-packaging-and-release) — mvp branch
-Plan: 1 of N
+Plan: 2 of N
 Status: In progress
-Last activity: 2026-02-01 — Completed 14-01-PLAN.md
+Last activity: 2026-02-01 — Completed 14-02-PLAN.md
 
-Progress: MVP branch [█░░░░░░░░░] 14-01 done
+Progress: MVP branch [██░░░░░░░░] 14-01, 14-02 done
 
 ## Performance Metrics
 
@@ -50,7 +50,7 @@ Full decision log in PROJECT.md Key Decisions table.
 
 ### Blockers/Concerns
 
-- PDF parsing may fail on 30-40% of real resumes
+- PDF parsing failure rate reduced with pdfplumber fallback (target <10%)
 - macOS Gatekeeper rejects unsigned Python binaries
 - Voice AI provider space is fast-moving — ElevenLabs + Twilio SIP needs verification before Phase 11
 - macOS system audio capture deferred (BlackHole requirement)
@@ -58,9 +58,9 @@ Full decision log in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 Last session: 2026-02-01
-Stopped at: Completed 14-01-PLAN.md (build config foundation)
+Stopped at: Completed 14-02-PLAN.md (PDF parser resilience)
 Resume file: None
 
 ## Next Steps
 
-**Immediate:** 14-02 — Test packaging with `npx electron-forge make` and fix build errors
+**Immediate:** 14-03 — Next plan in phase 14

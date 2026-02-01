@@ -2,16 +2,20 @@
 PDF parser with cascading extraction strategy.
 
 Uses PyMuPDF (pymupdf) for fast extraction with pdfplumber fallback
-for complex tables.
+for complex tables AND full text extraction when PyMuPDF fails.
 
 Strategy:
-1. Fast extraction with PyMuPDF get_text("dict", sort=True)
-2. Detect multi-column layout by analyzing block X positions
-3. For multi-column: process columns separately, merge in reading order
-4. Detect tables with page.find_tables()
-5. If tables found, use pdfplumber for accurate table extraction
+1. Pre-clean PDF with garbage collection to repair malformed files
+2. Fast extraction with PyMuPDF get_text("dict", sort=True)
+3. Detect multi-column layout by analyzing block X positions
+4. For multi-column: process columns separately, merge in reading order
+5. Detect tables with page.find_tables()
+6. If tables found, use pdfplumber for accurate table extraction
+7. If PyMuPDF text is empty/short, fall back to pdfplumber full text
+8. If PyMuPDF crashes entirely, fall back to pdfplumber-only extraction
 """
 import io
+import logging
 import os
 import sys
 import time
@@ -20,6 +24,8 @@ from typing import List, Tuple, Optional
 
 import pymupdf
 import pdfplumber
+
+logger = logging.getLogger(__name__)
 
 
 @contextmanager
@@ -46,13 +52,17 @@ from parsers.base import ParseResult, TextBlock, TableData
 # Multi-column detection threshold (pixels)
 COLUMN_GAP_THRESHOLD = 100
 
+# Minimum chars expected per page for a valid extraction
+MIN_CHARS_PER_PAGE = 50
+
 
 def check_pdf_readable(file_path: str) -> Tuple[bool, str]:
     """
     Check if PDF is readable and not encrypted/secured.
 
     Returns:
-        Tuple of (is_readable, message)
+        Tuple of (is_readable, message).
+        For image-only PDFs, returns (False, "image-only-pdf").
     """
     try:
         doc = pymupdf.open(file_path)
@@ -69,11 +79,8 @@ def check_pdf_readable(file_path: str) -> Tuple[bool, str]:
             try:
                 text = doc[0].get_text()
                 if not text.strip():
-                    # Could be image-only or permissions restricted
-                    # Try to check permissions
-                    metadata = doc.metadata
                     doc.close()
-                    return False, "PDF appears to be image-only or has no extractable text"
+                    return False, "image-only-pdf"
             except Exception as e:
                 doc.close()
                 return False, f"Cannot extract text from PDF: {str(e)}"
@@ -86,6 +93,23 @@ def check_pdf_readable(file_path: str) -> Tuple[bool, str]:
         except Exception:  # noqa: S110
             pass
         return False, f"Error checking PDF: {str(e)}"
+
+
+def pre_clean_pdf(file_path: str) -> Optional[bytes]:
+    """
+    Attempt to clean/repair a malformed PDF.
+
+    Uses PyMuPDF's garbage collection and cleaning to fix common issues.
+    Returns cleaned bytes on success, None on failure.
+    """
+    try:
+        doc = pymupdf.open(file_path)
+        cleaned_bytes = doc.tobytes(garbage=3, clean=True)
+        doc.close()
+        return cleaned_bytes
+    except Exception as e:
+        logger.debug("PDF pre-cleaning failed: %s — continuing with original", e)
+        return None
 
 
 def is_multi_column(blocks: List[dict], page_width: float) -> bool:
@@ -276,32 +300,131 @@ def extract_tables_with_pdfplumber(file_path: str, pages_with_tables: List[int])
                         ))
     except Exception as e:
         # Tables are optional, don't fail parsing
-        print(f"Table extraction warning: {e}", file=sys.stderr)
+        logger.warning("Table extraction warning: %s", e)
 
     return tables
+
+
+def _extract_text_with_pdfplumber(file_path: str) -> Tuple[str, int]:
+    """
+    Full text extraction using pdfplumber as fallback.
+
+    Returns:
+        Tuple of (extracted_text, page_count)
+    """
+    page_texts = []
+    with pdfplumber.open(file_path) as pdf:
+        for page in pdf.pages:
+            text = page.extract_text() or ""
+            page_texts.append(text)
+        return "\n\n".join(page_texts), len(pdf.pages)
+
+
+def _pdfplumber_only_parse(file_path: str, start_time: float, warnings: List[str]) -> ParseResult:
+    """
+    Parse PDF using only pdfplumber (when PyMuPDF fails entirely).
+    """
+    try:
+        raw_text, page_count = _extract_text_with_pdfplumber(file_path)
+        warnings.append("Used pdfplumber-only extraction (PyMuPDF unavailable)")
+
+        # Also extract tables
+        all_tables: List[TableData] = []
+        try:
+            with pdfplumber.open(file_path) as pdf:
+                for i, page in enumerate(pdf.pages):
+                    page_tables = page.extract_tables()
+                    for table in page_tables:
+                        if table:
+                            cleaned_rows = [
+                                [cell if cell else "" for cell in row]
+                                for row in table
+                            ]
+                            all_tables.append(TableData(rows=cleaned_rows, page=i + 1))
+        except Exception:
+            pass
+
+        elapsed_ms = int((time.perf_counter() - start_time) * 1000)
+        return ParseResult(
+            raw_text=raw_text,
+            blocks=[],
+            tables=all_tables,
+            warnings=warnings,
+            parse_time_ms=elapsed_ms,
+            document_type="pdf",
+            page_count=page_count,
+        )
+    except Exception as e:
+        elapsed_ms = int((time.perf_counter() - start_time) * 1000)
+        return ParseResult(
+            raw_text="",
+            blocks=[],
+            tables=[],
+            warnings=warnings,
+            parse_time_ms=elapsed_ms,
+            document_type="pdf",
+            page_count=0,
+            error=f"Both PyMuPDF and pdfplumber failed: {e}",
+        )
 
 
 def parse_pdf(file_path: str) -> ParseResult:
     """
     Parse PDF with cascading strategy.
 
-    1. Check if PDF is readable
-    2. Extract with PyMuPDF (fast)
-    3. Detect multi-column layouts
-    4. Use pdfplumber for tables if detected
+    1. Pre-clean PDF to repair malformed files
+    2. Check if PDF is readable
+    3. Extract with PyMuPDF (fast)
+    4. Detect multi-column layouts
+    5. Use pdfplumber for tables if detected
+    6. Fall back to pdfplumber for text if PyMuPDF result is empty/short
+    7. If PyMuPDF crashes, fall back to pdfplumber-only extraction
     """
     start_time = time.perf_counter()
     warnings: List[str] = []
 
-    # Check if PDF is readable
+    # Step 1: Pre-clean PDF
+    cleaned_bytes = pre_clean_pdf(file_path)
+    if cleaned_bytes is not None:
+        warnings.append("PDF pre-cleaned with garbage collection")
+
+    # Step 2: Check if PDF is readable
     readable, msg = check_pdf_readable(file_path)
     if not readable:
-        raise RuntimeError(msg)
+        if msg == "image-only-pdf":
+            elapsed_ms = int((time.perf_counter() - start_time) * 1000)
+            return ParseResult(
+                raw_text="",
+                blocks=[],
+                tables=[],
+                warnings=["PDF appears to be image-only (scanned document)"],
+                parse_time_ms=elapsed_ms,
+                document_type="pdf",
+                page_count=0,
+                error="image-only-pdf: This PDF contains only scanned images. "
+                      "OCR is not currently supported. Please provide a text-based PDF.",
+            )
+        # Other readability failures
+        elapsed_ms = int((time.perf_counter() - start_time) * 1000)
+        return ParseResult(
+            raw_text="",
+            blocks=[],
+            tables=[],
+            warnings=[],
+            parse_time_ms=elapsed_ms,
+            document_type="pdf",
+            page_count=0,
+            error=msg,
+        )
 
-    # Open with PyMuPDF
-    doc = pymupdf.open(file_path)
-
+    # Step 3: Try PyMuPDF extraction (wrapped in crash recovery)
     try:
+        # Open from cleaned bytes if available, otherwise from file
+        if cleaned_bytes is not None:
+            doc = pymupdf.open(stream=cleaned_bytes, filetype="pdf")
+        else:
+            doc = pymupdf.open(file_path)
+
         all_raw_text = []
         all_blocks: List[TextBlock] = []
         pages_with_tables: List[int] = []
@@ -323,8 +446,6 @@ def parse_pdf(file_path: str) -> ParseResult:
             all_blocks.extend(text_blocks)
 
             # Check for tables using PyMuPDF
-            # Note: suppress_stdout to prevent PyMuPDF's informational messages
-            # from breaking our JSON lines IPC protocol
             try:
                 with suppress_stdout():
                     tables = page.find_tables()
@@ -336,7 +457,23 @@ def parse_pdf(file_path: str) -> ParseResult:
         page_count = doc.page_count
         doc.close()
 
-        # Extract tables with pdfplumber if any were detected
+        combined_text = "\n\n".join(all_raw_text)
+
+        # Step 4: Check if PyMuPDF extraction was sufficient
+        if len(combined_text.strip()) < MIN_CHARS_PER_PAGE * max(page_count, 1):
+            # PyMuPDF got very little text — try pdfplumber fallback
+            try:
+                plumber_text, _ = _extract_text_with_pdfplumber(file_path)
+                if len(plumber_text.strip()) > len(combined_text.strip()):
+                    combined_text = plumber_text
+                    all_blocks = []  # Can't preserve block info from pdfplumber
+                    warnings.append("Used pdfplumber text fallback (PyMuPDF extraction was insufficient)")
+                    logger.info("pdfplumber fallback produced %d chars vs PyMuPDF %d chars",
+                                len(plumber_text.strip()), len(combined_text.strip()))
+            except Exception as e:
+                logger.debug("pdfplumber text fallback also failed: %s", e)
+
+        # Step 5: Extract tables with pdfplumber if any were detected
         all_tables: List[TableData] = []
         if pages_with_tables:
             all_tables = extract_tables_with_pdfplumber(file_path, pages_with_tables)
@@ -346,18 +483,17 @@ def parse_pdf(file_path: str) -> ParseResult:
         elapsed_ms = int((time.perf_counter() - start_time) * 1000)
 
         return ParseResult(
-            raw_text="\n\n".join(all_raw_text),
+            raw_text=combined_text,
             blocks=all_blocks,
             tables=all_tables,
             warnings=warnings,
             parse_time_ms=elapsed_ms,
             document_type="pdf",
-            page_count=page_count
+            page_count=page_count,
         )
 
     except Exception as e:
-        try:
-            doc.close()
-        except Exception:  # noqa: S110
-            pass
-        raise RuntimeError(f"Failed to parse PDF: {str(e)}")
+        # PyMuPDF crashed — fall back to pdfplumber-only
+        logger.warning("PyMuPDF extraction failed: %s — falling back to pdfplumber", e)
+        warnings.append(f"PyMuPDF failed ({type(e).__name__}: {e})")
+        return _pdfplumber_only_parse(file_path, start_time, warnings)

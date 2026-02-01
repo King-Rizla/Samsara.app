@@ -33,7 +33,7 @@ class TableData(TypedDict):
     page: int
 
 
-class ParseResult(TypedDict):
+class ParseResult(TypedDict, total=False):
     """Result of document parsing."""
     raw_text: str
     blocks: List[TextBlock]
@@ -42,6 +42,7 @@ class ParseResult(TypedDict):
     parse_time_ms: int
     document_type: str
     page_count: int
+    error: Optional[str]
 
 
 def detect_document_type(file_path: str) -> DocumentType:

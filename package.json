@@ -21,6 +21,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
+    "prebuild:sidecar": "cd python-src && pyinstaller samsara.spec --noconfirm",
+    "build:installer": "npm run prebuild:sidecar && npx electron-forge make",
     "prepare": "husky"
   },
   "keywords": [],

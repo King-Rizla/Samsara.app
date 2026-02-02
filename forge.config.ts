@@ -7,11 +7,15 @@ import { VitePlugin } from "@electron-forge/plugin-vite";
 import { FusesPlugin } from "@electron-forge/plugin-fuses";
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
 import { windowsSign } from "./windowsSign";
+import * as path from "path";
+import * as fs from "fs";
 
 const config: ForgeConfig = {
+  outDir: "out",
   packagerConfig: {
-    asar: true,
-    asarUnpack: ["**/node_modules/better-sqlite3/**"],
+    asar: {
+      unpack: "**/node_modules/{better-sqlite3,bindings,file-uri-to-path}/**",
+    },
     icon: "./assets/icon",
     extraResource: [
       "./python-dist/samsara-backend", // Python sidecar directory
@@ -36,12 +40,24 @@ const config: ForgeConfig = {
     ...(windowsSign ? { windowsSign } : {}),
   },
   rebuildConfig: {},
+  hooks: {
+    packageAfterCopy: async (_config, buildPath) => {
+      // Vite doesn't copy node_modules — native modules and their deps must be copied manually
+      const modules = ["better-sqlite3", "bindings", "file-uri-to-path"];
+      for (const mod of modules) {
+        const src = path.resolve("node_modules", mod);
+        const dest = path.join(buildPath, "node_modules", mod);
+        fs.cpSync(src, dest, { recursive: true });
+      }
+    },
+  },
   makers: [
     new MakerSquirrel({
       name: "samsara",
       setupIcon: "./assets/icon.ico",
+      setupExe: "SamsaraSetup.exe",
     }),
-    new MakerZIP({}, ["darwin"]),
+    new MakerZIP({}, ["win32", "darwin"]),
     new MakerRpm({}),
     new MakerDeb({}),
   ],
@@ -79,8 +95,8 @@ const config: ForgeConfig = {
       [FuseV1Options.EnableCookieEncryption]: true,
       [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
       [FuseV1Options.EnableNodeCliInspectArguments]: false,
-      [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
-      [FuseV1Options.OnlyLoadAppFromAsar]: true,
+      [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: false,
+      [FuseV1Options.OnlyLoadAppFromAsar]: false,
     }),
   ],
 };

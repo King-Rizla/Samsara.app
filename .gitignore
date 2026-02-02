@@ -90,6 +90,10 @@ typings/
 
 # Electron-Forge
 out/
+dist/
+build/
+release/
+installer/
 
 # Python sidecar
 python-dist/

@@ -169,15 +169,15 @@ Milestone drafts in `.planning/milestones/`:
 
 **Execution Order:** Phases execute in numeric order: 8 -> 9 -> 10 -> 11 -> 12 -> 13. Phase 14 runs independently on mvp branch.
 
-| Phase                           | Milestone | Plans Complete | Status      | Completed |
-| ------------------------------- | --------- | -------------- | ----------- | --------- |
-| 8. Samsara Wheel & Foundation   | M2        | 0/3            | Not started | -         |
-| 9. Communication Infrastructure | M2        | 0/3            | Not started | -         |
-| 10. Outreach Workflow Engine    | M2        | 0/3            | Not started | -         |
-| 11. AI Voice Screening          | M2        | 0/3            | Not started | -         |
-| 12. Recording & Transcription   | M2        | 0/2            | Not started | -         |
-| 13. ATS Integration             | M2        | 0/3            | Not started | -         |
-| 14. MVP Packaging & Release     | M2        | 0/4            | Not started | -         |
+| Phase                           | Milestone | Plans Complete | Status      | Completed  |
+| ------------------------------- | --------- | -------------- | ----------- | ---------- |
+| 8. Samsara Wheel & Foundation   | M2        | 3/3            | Complete    | 2026-01-31 |
+| 9. Communication Infrastructure | M2        | 0/3            | Ready       | -          |
+| 10. Outreach Workflow Engine    | M2        | 0/3            | Not started | -          |
+| 11. AI Voice Screening          | M2        | 0/3            | Not started | -          |
+| 12. Recording & Transcription   | M2        | 0/2            | Not started | -          |
+| 13. ATS Integration             | M2        | 0/3            | Not started | -          |
+| 14. MVP Packaging & Release     | mvp       | 5/5            | Complete    | 2026-02-03 |
 
 ---
 

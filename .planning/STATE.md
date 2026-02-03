@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 9 (communication-infrastructure)
-Plan: 0 of 3 (not yet planned)
-Status: Ready to plan
-Last activity: 2026-02-03 — Phase 8 verified complete
+Plan: 2 of 3
+Status: In progress
+Last activity: 2026-02-03 — Completed 09-02-PLAN.md
 
-Progress: M2 [████░░░░░░░░░░░░░░] 1/6 phases | Phase 8 complete, Phase 9 ready
+Progress: M2 [█████░░░░░░░░░░░░░] 2/6 phases | Phase 9 in progress (2/3 plans)
 
 ## MVP Status (Separate Branch)
 
@@ -27,9 +27,9 @@ MVP v0.1.0 shipped on `mvp` branch — see `.planning/RELEASE-WORKFLOW.md` for u
 
 **Velocity:**
 
-- Total plans completed: 50 (v1: 47, M2 Phase 8: 3)
+- Total plans completed: 52 (v1: 47, M2 Phase 8: 3, M2 Phase 9: 2)
 - Average duration: 11 min
-- Total execution time: ~7.2 hours
+- Total execution time: ~7.4 hours
 
 ## Accumulated Context
 
@@ -59,6 +59,16 @@ Full decision log in PROJECT.md Key Decisions table.
 - ProjectStatsBar with live store data
 - Database migration v5 with 7 M2 outreach tables
 
+**Phase 9 in progress (2026-02-03):**
+
+- 09-01: Credential manager with safeStorage encryption
+- 09-02: Template engine with {{variable}} substitution and live preview
+
+| Decision            | Choice                   | Rationale                               |
+| ------------------- | ------------------------ | --------------------------------------- |
+| Client-side preview | Generate preview locally | Instant feedback without IPC round-trip |
+| SMS segment calc    | 160/153 chars            | Standard GSM-7 with UDH header          |
+
 ### Pending Todos
 
 - **[PERFORMANCE]** LLM extraction takes ~50 seconds - needs optimization
@@ -75,7 +85,7 @@ Full decision log in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Phase 8 verified, ready for Phase 9 planning
+Stopped at: Completed 09-02-PLAN.md
 Resume file: None
 
 ## Next Steps
@@ -84,10 +94,10 @@ Resume file: None
 
 Goal: Users can configure SMS and email providers and send templated messages to candidates with delivery tracking and opt-out compliance
 
-Plans (from ROADMAP.md):
+Plans:
 
-- 09-01: Credential storage (safeStorage encryption), provider config UI, test-send verification
-- 09-02: Template engine with variable substitution, template CRUD UI
+- 09-01: Credential storage (safeStorage encryption), provider config UI, test-send verification [COMPLETE]
+- 09-02: Template engine with variable substitution, template CRUD UI [COMPLETE]
 - 09-03: SMS/email send via Twilio + Nodemailer, delivery status polling, opt-out registry
 
-Run `/gsd:plan-phase 9` to create detailed plans.
+Run `/gsd:execute-phase 09-03` to continue.

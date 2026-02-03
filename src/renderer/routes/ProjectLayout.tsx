@@ -1,18 +1,15 @@
 import { useEffect, useState } from "react";
-import { Outlet, useParams, useNavigate, useLocation } from "react-router-dom";
-import { motion, AnimatePresence } from "motion/react";
+import { Outlet, useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Settings } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { LLMSettings } from "../components/settings/LLMSettings";
 import { useQueueStore } from "../stores/queueStore";
-import { useEditorStore } from "../stores/editorStore";
 import { useJDStore } from "../stores/jdStore";
 import { useProjectStore } from "../stores/projectStore";
 
 export function ProjectLayout() {
   const { id: projectId } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const location = useLocation();
 
   const loadFromDatabase = useQueueStore((state) => state.loadFromDatabase);
   const { loadJDs, clearActiveJD } = useJDStore();
@@ -21,7 +18,6 @@ export function ProjectLayout() {
   const [showSettings, setShowSettings] = useState(false);
 
   const currentProject = projects.find((p) => p.id === projectId);
-  const isWheelView = /^\/project\/[^/]+$/.test(location.pathname);
 
   // Initialize stores on project change
   useEffect(() => {
@@ -85,19 +81,10 @@ export function ProjectLayout() {
         </div>
       )}
 
-      {/* Animated route content */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={isWheelView ? "wheel" : location.pathname}
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
-          className="flex-1 overflow-hidden flex flex-col"
-        >
-          <Outlet />
-        </motion.div>
-      </AnimatePresence>
+      {/* Route content (instant transitions) */}
+      <div className="flex-1 overflow-hidden flex flex-col">
+        <Outlet />
+      </div>
     </>
   );
 }

@@ -693,6 +693,143 @@ contextBridge.exposeInMainWorld("api", {
    */
   isEncryptionAvailable: (): Promise<{ available: boolean }> =>
     ipcRenderer.invoke("is-encryption-available"),
+
+  // ============================================================================
+  // Messaging operations (Phase 9 Plan 03)
+  // ============================================================================
+
+  /**
+   * Send SMS to a candidate.
+   * Returns { success: boolean, messageId?: string, dbId?: string, error?: string }
+   */
+  sendSMS: (params: {
+    projectId: string;
+    cvId: string;
+    toPhone: string;
+    body: string;
+    templateId?: string;
+  }): Promise<{
+    success: boolean;
+    messageId?: string;
+    dbId?: string;
+    error?: string;
+  }> => ipcRenderer.invoke("send-sms", params),
+
+  /**
+   * Send email to a candidate.
+   * Returns { success: boolean, messageId?: string, dbId?: string, error?: string }
+   */
+  sendEmail: (params: {
+    projectId: string;
+    cvId: string;
+    toEmail: string;
+    subject: string;
+    body: string;
+    templateId?: string;
+  }): Promise<{
+    success: boolean;
+    messageId?: string;
+    dbId?: string;
+    error?: string;
+  }> => ipcRenderer.invoke("send-email", params),
+
+  /**
+   * Get all messages for a CV.
+   * Returns { success: boolean, data?: MessageRecord[], error?: string }
+   */
+  getMessagesByCV: (
+    cvId: string,
+  ): Promise<{ success: boolean; data?: unknown[]; error?: string }> =>
+    ipcRenderer.invoke("get-messages-by-cv", cvId),
+
+  /**
+   * Get all messages for a project.
+   * Returns { success: boolean, data?: MessageRecord[], error?: string }
+   */
+  getMessagesByProject: (
+    projectId: string,
+    limit?: number,
+  ): Promise<{ success: boolean; data?: unknown[]; error?: string }> =>
+    ipcRenderer.invoke("get-messages-by-project", projectId, limit),
+
+  // ============================================================================
+  // DNC operations (Phase 9 Plan 03)
+  // ============================================================================
+
+  /**
+   * Add a phone or email to the DNC list.
+   * Returns { success: boolean, id?: string, error?: string }
+   */
+  addToDNC: (
+    type: "phone" | "email",
+    value: string,
+    reason: "opt_out" | "bounce" | "manual",
+  ): Promise<{ success: boolean; id?: string; error?: string }> =>
+    ipcRenderer.invoke("add-to-dnc", type, value, reason),
+
+  /**
+   * Check if a phone or email is on the DNC list.
+   * Returns { onDNC: boolean }
+   */
+  checkDNC: (
+    type: "phone" | "email",
+    value: string,
+  ): Promise<{ onDNC: boolean }> =>
+    ipcRenderer.invoke("check-dnc", type, value),
+
+  /**
+   * Remove a phone or email from the DNC list.
+   * Returns { success: boolean, removed?: boolean, error?: string }
+   */
+  removeFromDNC: (
+    type: "phone" | "email",
+    value: string,
+  ): Promise<{ success: boolean; removed?: boolean; error?: string }> =>
+    ipcRenderer.invoke("remove-from-dnc", type, value),
+
+  /**
+   * Get the full DNC list.
+   * Returns { success: boolean, data?: DNCEntry[], error?: string }
+   */
+  getDNCList: (): Promise<{
+    success: boolean;
+    data?: Array<{
+      id: string;
+      type: string;
+      value: string;
+      reason: string;
+      createdAt: string;
+    }>;
+    error?: string;
+  }> => ipcRenderer.invoke("get-dnc-list"),
+
+  // ============================================================================
+  // Polling control (Phase 9 Plan 03)
+  // ============================================================================
+
+  /**
+   * Start delivery status polling for a project.
+   * Returns { success: boolean }
+   */
+  startDeliveryPolling: (projectId: string): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke("start-delivery-polling", projectId),
+
+  /**
+   * Stop delivery status polling.
+   * Returns { success: boolean }
+   */
+  stopDeliveryPolling: (): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke("stop-delivery-polling"),
+
+  /**
+   * Render a template with real candidate/role variables.
+   * Returns { success: boolean, data?: string, error?: string }
+   */
+  renderTemplateWithVariables: (
+    template: string,
+    variables: Record<string, string>,
+  ): Promise<{ success: boolean; data?: string; error?: string }> =>
+    ipcRenderer.invoke("render-template-with-variables", template, variables),
 });
 
 /**

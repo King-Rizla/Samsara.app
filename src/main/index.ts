@@ -37,8 +37,8 @@ import {
   getTemplatesByProject,
   updateTemplate,
   deleteTemplate,
-} from "./database";
-import { previewTemplate, AVAILABLE_VARIABLES } from "./templateEngine";
+ getMessagesByCV, getMessagesByProject } from "./database";
+import { previewTemplate, AVAILABLE_VARIABLES , renderTemplate } from "./templateEngine";
 import type { AppSettings } from "./settings";
 import {
   startPython,
@@ -1694,3 +1694,191 @@ ipcMain.handle(
 ipcMain.handle("is-encryption-available", async () => {
   return { available: isEncryptionAvailable() };
 });
+
+// ============================================================================
+// Messaging IPC Handlers (Phase 9 Plan 03)
+// ============================================================================
+
+import {
+  sendSMS,
+  sendEmail,
+  startDeliveryPolling,
+  stopDeliveryPolling,
+  addToDNC,
+  isOnDNC,
+  removeFromDNC,
+  getDNCList,
+} from "./communicationService";
+
+/**
+ * Send SMS to a candidate.
+ * Returns { success: boolean, messageId?: string, dbId?: string, error?: string }
+ */
+ipcMain.handle(
+  "send-sms",
+  async (
+    _event,
+    params: {
+      projectId: string;
+      cvId: string;
+      toPhone: string;
+      body: string;
+      templateId?: string;
+    },
+  ) => {
+    return sendSMS(params);
+  },
+);
+
+/**
+ * Send email to a candidate.
+ * Returns { success: boolean, messageId?: string, dbId?: string, error?: string }
+ */
+ipcMain.handle(
+  "send-email",
+  async (
+    _event,
+    params: {
+      projectId: string;
+      cvId: string;
+      toEmail: string;
+      subject: string;
+      body: string;
+      templateId?: string;
+    },
+  ) => {
+    return sendEmail(params);
+  },
+);
+
+/**
+ * Get all messages for a CV.
+ * Returns { success: boolean, data?: MessageRecord[], error?: string }
+ */
+ipcMain.handle("get-messages-by-cv", async (_event, cvId: string) => {
+  try {
+    const messages = getMessagesByCV(cvId);
+    return { success: true, data: messages };
+  } catch (error) {
+    return { success: false, error: String(error) };
+  }
+});
+
+/**
+ * Get all messages for a project.
+ * Returns { success: boolean, data?: MessageRecord[], error?: string }
+ */
+ipcMain.handle(
+  "get-messages-by-project",
+  async (_event, projectId: string, limit?: number) => {
+    try {
+      const messages = getMessagesByProject(projectId, limit);
+      return { success: true, data: messages };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  },
+);
+
+// ============================================================================
+// DNC IPC Handlers (Phase 9 Plan 03)
+// ============================================================================
+
+/**
+ * Add a phone or email to the DNC list.
+ * Returns { success: boolean, id?: string, error?: string }
+ */
+ipcMain.handle(
+  "add-to-dnc",
+  async (
+    _event,
+    type: "phone" | "email",
+    value: string,
+    reason: "opt_out" | "bounce" | "manual",
+  ) => {
+    try {
+      const id = addToDNC(type, value, reason);
+      return { success: true, id };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  },
+);
+
+/**
+ * Check if a phone or email is on the DNC list.
+ * Returns { onDNC: boolean }
+ */
+ipcMain.handle(
+  "check-dnc",
+  async (_event, type: "phone" | "email", value: string) => {
+    return { onDNC: isOnDNC(type, value) };
+  },
+);
+
+/**
+ * Remove a phone or email from the DNC list.
+ * Returns { success: boolean, removed?: boolean, error?: string }
+ */
+ipcMain.handle(
+  "remove-from-dnc",
+  async (_event, type: "phone" | "email", value: string) => {
+    try {
+      const removed = removeFromDNC(type, value);
+      return { success: true, removed };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  },
+);
+
+/**
+ * Get the full DNC list.
+ * Returns { success: boolean, data?: DNCEntry[], error?: string }
+ */
+ipcMain.handle("get-dnc-list", async () => {
+  try {
+    const list = getDNCList();
+    return { success: true, data: list };
+  } catch (error) {
+    return { success: false, error: String(error) };
+  }
+});
+
+// ============================================================================
+// Polling Control IPC Handlers (Phase 9 Plan 03)
+// ============================================================================
+
+/**
+ * Start delivery status polling for a project.
+ * Returns { success: boolean }
+ */
+ipcMain.handle("start-delivery-polling", async (_event, projectId: string) => {
+  startDeliveryPolling(projectId);
+  return { success: true };
+});
+
+/**
+ * Stop delivery status polling.
+ * Returns { success: boolean }
+ */
+ipcMain.handle("stop-delivery-polling", async () => {
+  stopDeliveryPolling();
+  return { success: true };
+});
+
+/**
+ * Render a template with real candidate/role variables.
+ * Returns { success: boolean, data?: string, error?: string }
+ */
+ipcMain.handle(
+  "render-template-with-variables",
+  async (_event, template: string, variables: Record<string, string>) => {
+    try {
+      const rendered = renderTemplate(template, variables);
+      return { success: true, data: rendered };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  },
+);

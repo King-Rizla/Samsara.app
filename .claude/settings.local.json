@@ -41,7 +41,10 @@
       "Bash(\"C:\\\\Users\\\\edwar\\\\Documents\\\\dev\\\\Projects\\\\Samsara\\\\out\\\\Samsara-win32-x64\\\\Samsara.exe\" --version)",
       "Bash(echo:*)",
       "Bash(npm run test:e2e:*)",
-      "Bash(npx vite:*)"
+      "Bash(npx vite:*)",
+      "Bash(cmd.exe /c \"tasklist /fi \"\"imagename eq Samsara.exe\"\"\")",
+      "Bash(cmd.exe /c \"tasklist | findstr -i samsara\")",
+      "Bash(cmd.exe /c \"tasklist | findstr -i electron\")"
     ]
   }
 }

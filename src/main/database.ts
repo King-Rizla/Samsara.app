@@ -1914,3 +1914,91 @@ export function deleteTemplate(id: string): boolean {
     .run(id);
   return result.changes > 0;
 }
+
+// ============================================================================
+// Message Query Functions (Phase 9 Plan 03)
+// ============================================================================
+
+export interface MessageRecord {
+  id: string;
+  project_id: string;
+  cv_id: string | null;
+  type: string;
+  direction: string;
+  status: string;
+  from_address: string | null;
+  to_address: string;
+  subject: string | null;
+  body: string;
+  template_id: string | null;
+  provider_message_id: string | null;
+  error_message: string | null;
+  sent_at: string | null;
+  delivered_at: string | null;
+  created_at: string;
+}
+
+/**
+ * Get all messages for a CV, sorted by creation date descending.
+ */
+export function getMessagesByCV(cvId: string): MessageRecord[] {
+  const database = getDatabase();
+  return database
+    .prepare(
+      `
+    SELECT * FROM messages WHERE cv_id = ? ORDER BY created_at DESC
+  `,
+    )
+    .all(cvId) as MessageRecord[];
+}
+
+/**
+ * Get all messages for a project, sorted by creation date descending.
+ * @param projectId - Project ID
+ * @param limit - Maximum number of messages to return (default: 50)
+ */
+export function getMessagesByProject(
+  projectId: string,
+  limit = 50,
+): MessageRecord[] {
+  const database = getDatabase();
+  return database
+    .prepare(
+      `
+    SELECT * FROM messages WHERE project_id = ? ORDER BY created_at DESC LIMIT ?
+  `,
+    )
+    .all(projectId, limit) as MessageRecord[];
+}
+
+/**
+ * Get a single message by ID.
+ */
+export function getMessage(id: string): MessageRecord | null {
+  const database = getDatabase();
+  return (
+    (database.prepare("SELECT * FROM messages WHERE id = ?").get(id) as
+      | MessageRecord
+      | undefined) ?? null
+  );
+}
+
+/**
+ * Update a message's status.
+ */
+export function updateMessageStatus(
+  id: string,
+  status: string,
+  errorMessage?: string,
+): boolean {
+  const database = getDatabase();
+  const now = new Date().toISOString();
+  const result = database
+    .prepare(
+      `
+    UPDATE messages SET status = ?, error_message = ?, delivered_at = ? WHERE id = ?
+  `,
+    )
+    .run(status, errorMessage || null, status === "delivered" ? now : null, id);
+  return result.changes > 0;
+}

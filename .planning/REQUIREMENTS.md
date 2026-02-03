@@ -88,38 +88,38 @@ Deferred to post-M2 milestones.
 
 ## Traceability
 
-| Requirement | Phase | Status  |
-| ----------- | ----- | ------- |
-| NAV-01      | 8     | Pending |
-| NAV-02      | 8     | Pending |
-| NAV-03      | 8     | Pending |
-| NAV-04      | 8     | Pending |
-| NAV-05      | 8     | Pending |
-| COM-01      | 9     | Pending |
-| COM-02      | 9     | Pending |
-| COM-03      | 9     | Pending |
-| COM-04      | 9     | Pending |
-| COM-05      | 9     | Pending |
-| COM-06      | 9     | Pending |
-| WRK-01      | 10    | Pending |
-| WRK-02      | 10    | Pending |
-| WRK-03      | 10    | Pending |
-| WRK-04      | 10    | Pending |
-| WRK-05      | 10    | Pending |
-| VOX-01      | 11    | Pending |
-| VOX-02      | 11    | Pending |
-| VOX-03      | 11    | Pending |
-| VOX-04      | 11    | Pending |
-| VOX-05      | 11    | Pending |
-| REC-01      | 12    | Pending |
-| REC-02      | 12    | Pending |
-| REC-03      | 12    | Pending |
-| ATS-01      | 13    | Pending |
-| ATS-02      | 13    | Pending |
-| ATS-03      | 13    | Pending |
-| ATS-04      | 13    | Pending |
-| DAT-01      | 8     | Pending |
-| DAT-02      | 8     | Pending |
+| Requirement | Phase | Status   |
+| ----------- | ----- | -------- |
+| NAV-01      | 8     | Pending  |
+| NAV-02      | 8     | Pending  |
+| NAV-03      | 8     | Pending  |
+| NAV-04      | 8     | Pending  |
+| NAV-05      | 8     | Pending  |
+| COM-01      | 9     | Complete |
+| COM-02      | 9     | Complete |
+| COM-03      | 9     | Complete |
+| COM-04      | 9     | Complete |
+| COM-05      | 9     | Complete |
+| COM-06      | 9     | Complete |
+| WRK-01      | 10    | Pending  |
+| WRK-02      | 10    | Pending  |
+| WRK-03      | 10    | Pending  |
+| WRK-04      | 10    | Pending  |
+| WRK-05      | 10    | Pending  |
+| VOX-01      | 11    | Pending  |
+| VOX-02      | 11    | Pending  |
+| VOX-03      | 11    | Pending  |
+| VOX-04      | 11    | Pending  |
+| VOX-05      | 11    | Pending  |
+| REC-01      | 12    | Pending  |
+| REC-02      | 12    | Pending  |
+| REC-03      | 12    | Pending  |
+| ATS-01      | 13    | Pending  |
+| ATS-02      | 13    | Pending  |
+| ATS-03      | 13    | Pending  |
+| ATS-04      | 13    | Pending  |
+| DAT-01      | 8     | Pending  |
+| DAT-02      | 8     | Pending  |
 
 **Coverage:**
 

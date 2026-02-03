@@ -47,9 +47,9 @@ Plans:
 
 Plans:
 
-- [ ] 09-01-PLAN.md — Credential storage (safeStorage encryption), provider config UI, test-send verification
-- [ ] 09-02-PLAN.md — Template engine with variable substitution, template CRUD UI
-- [ ] 09-03-PLAN.md — SMS/email send via Twilio + Nodemailer, delivery status polling, opt-out registry
+- [x] 09-01-PLAN.md — Credential storage (safeStorage encryption), provider config UI, test-send verification
+- [x] 09-02-PLAN.md — Template engine with variable substitution, template CRUD UI
+- [x] 09-03-PLAN.md — SMS/email send via Twilio + Nodemailer, delivery status polling, opt-out registry
 
 ### Phase 10: Outreach Workflow Engine
 
@@ -172,7 +172,7 @@ Milestone drafts in `.planning/milestones/`:
 | Phase                           | Milestone | Plans Complete | Status      | Completed  |
 | ------------------------------- | --------- | -------------- | ----------- | ---------- |
 | 8. Samsara Wheel & Foundation   | M2        | 3/3            | Complete    | 2026-01-31 |
-| 9. Communication Infrastructure | M2        | 0/3            | Planned     | -          |
+| 9. Communication Infrastructure | M2        | 3/3            | Complete    | 2026-02-03 |
 | 10. Outreach Workflow Engine    | M2        | 0/3            | Not started | -          |
 | 11. AI Voice Screening          | M2        | 0/3            | Not started | -          |
 | 12. Recording & Transcription   | M2        | 0/2            | Not started | -          |

@@ -64,7 +64,6 @@ Full decision log in PROJECT.md Key Decisions table.
 - **[PERFORMANCE]** LLM extraction takes ~50 seconds - needs optimization
 - **[PROMPT]** JD extraction prompt produces truncated booleans and fewer skills
 - **[DESIGN]** Matching architecture rethink (auto-trigger, project=1 JD)
-- **[UX]** Remove wheel section animations — instant transition preferred over animated transitions
 
 ### Blockers/Concerns
 

@@ -5,24 +5,34 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Architecture as the Advantage - Zero Latency, Zero Egress, Zero Per-Seat Tax
-**Current focus:** Phase 14 — MVP Packaging & Release (mvp branch)
+**Current focus:** MVP Released — ready for test users
 
 ## Current Position
 
-Phase: 14 (mvp-packaging-and-release) — mvp branch
-Plan: 4 of 4
-Status: VERIFIED — installer builds, installs, creates desktop icon, app launches correctly
-Last activity: 2026-02-02 — Installer verified working (Squirrel + ZIP)
+Phase: 14 (mvp-packaging-and-release) — COMPLETE
+Plan: 5 of 5
+Status: DEPLOYED — MVP live for test users
+Last activity: 2026-02-03 — Landing page deployed to Vercel
 
-Progress: MVP branch [██████████] 14-01, 14-02, 14-03, 14-04 done — verified
+Progress: MVP branch [██████████] 14-01, 14-02, 14-03, 14-04, 14-05 done — RELEASED
+
+## MVP Deployment
+
+**Landing Page:** https://samsaralanding.vercel.app
+**Download:** https://github.com/King-Rizla/Samsara.mvp/releases/download/MVP-v0.1.0/Samsara-win32-x64-1.0.0.zip
+**Version:** MVP v0.1.0
+**Repos:**
+
+- App code: https://github.com/King-Rizla/Samsara.mvp
+- Landing: https://github.com/King-Rizla/Samsara.landing
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 47 (v1: 47)
+- Total plans completed: 52 (v1: 47, Phase 14: 5)
 - Average duration: 11 min
-- Total execution time: ~6.9 hours
+- Total execution time: ~7.5 hours
 
 ## Accumulated Context
 
@@ -56,7 +66,6 @@ Full decision log in PROJECT.md Key Decisions table.
 - **[PERFORMANCE]** LLM extraction takes ~50 seconds - needs optimization
 - **[PROMPT]** JD extraction prompt produces truncated booleans and fewer skills
 - **[DESIGN]** Matching architecture rethink (auto-trigger, project=1 JD)
-- **[CLEANUP]** Delete stale build dirs after reboot: `out/`, `dist/`, `build/`, `release/`, `installer/` (locked by asar file handles in current session)
 
 ### Blockers/Concerns
 
@@ -67,34 +76,26 @@ Full decision log in PROJECT.md Key Decisions table.
 
 ## Session Continuity
 
-Last session: 2026-02-02
-Stopped at: Phase 14 verified — installer working, needs commit and cleanup
+Last session: 2026-02-03
+Stopped at: Phase 14 COMPLETE — MVP deployed and live
 Resume file: None
 
 ## Next Steps
 
-**Immediate:** Commit all Phase 14 fixes, then cleanup wave
+**MVP is live.** Test users can download from https://samsaralanding.vercel.app
 
-### Phase 14 Fixes Applied (uncommitted)
+### Phase 14 Summary (COMPLETE)
 
-1. **forge.config.ts** — Three fixes:
-   - `asarUnpack` includes `bindings` and `file-uri-to-path` alongside `better-sqlite3`
-   - `packageAfterCopy` copies all three native module deps
-   - Added `MakerSquirrel` with `setupExe: "SamsaraSetup.exe"` + `MakerZIP` for win32
-   - `outDir` set to `out` (changed from default during debugging)
+| Plan  | Description                      | Status |
+| ----- | -------------------------------- | ------ |
+| 14-01 | Build configuration foundation   | ✓      |
+| 14-02 | PDF parser resilience            | ✓      |
+| 14-03 | First-run onboarding             | ✓      |
+| 14-04 | Installer fixes (Squirrel + ZIP) | ✓      |
+| 14-05 | Landing page + deployment        | ✓      |
 
-2. **vite.renderer.config.ts** — `outDir` changed to `.vite/renderer/main_window` so production `loadFile` path matches `MAIN_WINDOW_VITE_NAME`
+### What's Next
 
-3. **src/main/index.ts** — `electron-squirrel-startup` re-added (needed for install/uninstall shortcut lifecycle)
-
-4. **.gitignore** — Added `dist/`, `build/`, `release/`, `installer/` to gitignore
-
-### Cleanup Wave (end of phase)
-
-- [ ] Delete stale build dirs: `out/`, `dist/`, `build/`, `release/`, `installer/` (requires reboot to release asar locks)
-- [ ] Remove `out_old/` if it exists
-- [ ] Verify `npm start` (dev mode) still works after vite.renderer.config.ts change
-- [ ] Run typecheck and lint
-- [ ] Commit all changes
-
-**WARNING:** Do NOT use `rm -rf` or `cat` against asar files from bash — it locks them on Windows. Use `cmd.exe /c rd /s /q` or delete from Explorer.
+- Gather feedback from test users
+- Address critical bugs reported
+- Plan M2 (Automated Outreach) when ready

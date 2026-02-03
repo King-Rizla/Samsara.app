@@ -613,6 +613,86 @@ contextBridge.exposeInMainWorld("api", {
       category: string;
     }>;
   }> => ipcRenderer.invoke("get-available-variables"),
+
+  // Communication credential operations (Phase 9)
+
+  /**
+   * Store a credential with safeStorage encryption.
+   * Returns { success: boolean, id?: string, error?: string }
+   */
+  storeCredential: (
+    projectId: string | null,
+    provider: string,
+    credentialType: string,
+    value: string,
+  ): Promise<{ success: boolean; id?: string; error?: string }> =>
+    ipcRenderer.invoke(
+      "store-credential",
+      projectId,
+      provider,
+      credentialType,
+      value,
+    ),
+
+  /**
+   * Check if a credential is configured (without decrypting).
+   * Returns { success: boolean, configured?: boolean, error?: string }
+   */
+  getCredentialStatus: (
+    projectId: string | null,
+    provider: string,
+    credentialType: string,
+  ): Promise<{ success: boolean; configured?: boolean; error?: string }> =>
+    ipcRenderer.invoke(
+      "get-credential-status",
+      projectId,
+      provider,
+      credentialType,
+    ),
+
+  /**
+   * Delete a credential.
+   * Returns { success: boolean, deleted?: boolean, error?: string }
+   */
+  deleteCredential: (
+    projectId: string | null,
+    provider: string,
+    credentialType: string,
+  ): Promise<{ success: boolean; deleted?: boolean; error?: string }> =>
+    ipcRenderer.invoke(
+      "delete-credential",
+      projectId,
+      provider,
+      credentialType,
+    ),
+
+  /**
+   * Test Twilio credentials by fetching account info.
+   * Returns { success: boolean, error?: string, data?: { friendlyName, status } }
+   */
+  testTwilioCredentials: (
+    projectId: string | null,
+  ): Promise<{
+    success: boolean;
+    error?: string;
+    data?: { friendlyName: string; status: string };
+  }> => ipcRenderer.invoke("test-twilio-credentials", projectId),
+
+  /**
+   * Test SMTP credentials by verifying connection.
+   * Returns { success: boolean, error?: string }
+   */
+  testSmtpCredentials: (
+    projectId: string | null,
+  ): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke("test-smtp-credentials", projectId),
+
+  /**
+   * Check if safeStorage encryption is available on this system.
+   * Returns { available: boolean }
+   */
+  isEncryptionAvailable: (): Promise<{ available: boolean }> =>
+    ipcRenderer.invoke("is-encryption-available"),
 });
 
 /**

@@ -329,3 +329,89 @@ export function listCredentials(projectId: string | null): StoredCredential[] {
     updatedAt: row.updated_at,
   }));
 }
+
+// ============================================================================
+// Provider Test Functions
+// ============================================================================
+
+/**
+ * Test Twilio credentials by fetching account info.
+ *
+ * @param projectId - Project ID to get credentials for (falls back to global)
+ * @returns Test result with account info or error
+ */
+export async function testTwilioCredentials(projectId: string | null): Promise<{
+  success: boolean;
+  error?: string;
+  data?: { friendlyName: string; status: string };
+}> {
+  const accountSid = getCredential(projectId, "twilio", "account_sid");
+  const authToken = getCredential(projectId, "twilio", "auth_token");
+
+  if (!accountSid || !authToken) {
+    return { success: false, error: "Twilio credentials not configured" };
+  }
+
+  try {
+    // Dynamic import to avoid loading twilio at module load time
+    const Twilio = (await import("twilio")).default;
+    const client = new Twilio(accountSid, authToken);
+    const account = await client.api.accounts(accountSid).fetch();
+
+    return {
+      success: true,
+      data: {
+        friendlyName: account.friendlyName,
+        status: account.status,
+      },
+    };
+  } catch (error) {
+    console.error("[CredentialManager] Twilio test failed:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Twilio verification failed",
+    };
+  }
+}
+
+/**
+ * Test SMTP credentials by verifying connection.
+ *
+ * @param projectId - Project ID to get credentials for (falls back to global)
+ * @returns Test result with success or error
+ */
+export async function testSmtpCredentials(projectId: string | null): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  const host = getCredential(projectId, "smtp", "host");
+  const port = getCredential(projectId, "smtp", "port");
+  const user = getCredential(projectId, "smtp", "user");
+  const password = getCredential(projectId, "smtp", "password");
+
+  if (!host || !user || !password) {
+    return { success: false, error: "SMTP credentials not configured" };
+  }
+
+  try {
+    // Dynamic import to avoid loading nodemailer at module load time
+    const nodemailer = await import("nodemailer");
+    const transporter = nodemailer.createTransport({
+      host,
+      port: parseInt(port || "587", 10),
+      secure: port === "465",
+      auth: { user, pass: password },
+    });
+
+    await transporter.verify();
+    return { success: true };
+  } catch (error) {
+    console.error("[CredentialManager] SMTP test failed:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "SMTP verification failed",
+    };
+  }
+}

@@ -54,6 +54,16 @@ import {
   setRecruiterSettings,
 } from "./settings";
 import { createQueueManager, getQueueManager } from "./queueManager";
+import {
+  storeCredential,
+  deleteCredential,
+  hasCredential,
+  isEncryptionAvailable,
+  testTwilioCredentials,
+  testSmtpCredentials,
+  type ProviderType,
+  type CredentialType,
+} from "./credentialManager";
 
 // Vite global variables for dev server and renderer name
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
@@ -1565,4 +1575,122 @@ ipcMain.handle("preview-template", async (_event, template: string) => {
  */
 ipcMain.handle("get-available-variables", async () => {
   return { success: true, data: AVAILABLE_VARIABLES };
+});
+
+// ============================================================================
+// Credential IPC Handlers (Phase 9)
+// ============================================================================
+
+/**
+ * Store a credential with safeStorage encryption.
+ * Returns { success: true, id: string } on success
+ */
+ipcMain.handle(
+  "store-credential",
+  async (
+    _event,
+    projectId: string | null,
+    provider: string,
+    credentialType: string,
+    value: string,
+  ) => {
+    try {
+      const id = storeCredential(
+        projectId,
+        provider as ProviderType,
+        credentialType as CredentialType,
+        value,
+      );
+      return { success: true, id };
+    } catch (error) {
+      console.error("store-credential error:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to store credential",
+      };
+    }
+  },
+);
+
+/**
+ * Check if a credential is configured (without decrypting).
+ * Returns { success: true, configured: boolean } on success
+ */
+ipcMain.handle(
+  "get-credential-status",
+  async (
+    _event,
+    projectId: string | null,
+    provider: string,
+    credentialType: string,
+  ) => {
+    try {
+      const exists = hasCredential(
+        projectId,
+        provider as ProviderType,
+        credentialType as CredentialType,
+      );
+      return { success: true, configured: exists };
+    } catch (error) {
+      console.error("get-credential-status error:", error);
+      return { success: false, error: String(error) };
+    }
+  },
+);
+
+/**
+ * Delete a credential.
+ * Returns { success: true, deleted: boolean } on success
+ */
+ipcMain.handle(
+  "delete-credential",
+  async (
+    _event,
+    projectId: string | null,
+    provider: string,
+    credentialType: string,
+  ) => {
+    try {
+      const deleted = deleteCredential(
+        projectId,
+        provider as ProviderType,
+        credentialType as CredentialType,
+      );
+      return { success: true, deleted };
+    } catch (error) {
+      console.error("delete-credential error:", error);
+      return { success: false, error: String(error) };
+    }
+  },
+);
+
+/**
+ * Test Twilio credentials by fetching account info.
+ * Returns { success: true, data: { friendlyName, status } } on success
+ */
+ipcMain.handle(
+  "test-twilio-credentials",
+  async (_event, projectId: string | null) => {
+    return testTwilioCredentials(projectId);
+  },
+);
+
+/**
+ * Test SMTP credentials by verifying connection.
+ * Returns { success: true } on success
+ */
+ipcMain.handle(
+  "test-smtp-credentials",
+  async (_event, projectId: string | null) => {
+    return testSmtpCredentials(projectId);
+  },
+);
+
+/**
+ * Check if safeStorage encryption is available on this system.
+ * Returns { available: boolean }
+ */
+ipcMain.handle("is-encryption-available", async () => {
+  return { available: isEncryptionAvailable() };
 });

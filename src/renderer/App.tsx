@@ -24,6 +24,7 @@ import { ProjectView } from "./routes/ProjectView";
 import { ProjectLayout } from "./routes/ProjectLayout";
 import { CandidateSearchSection } from "./components/sections/CandidateSearchSection";
 import { PlaceholderSection } from "./components/sections/PlaceholderSection";
+import { OutreachSection } from "./components/outreach";
 import { Settings } from "./routes/Settings";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { useQueueStore } from "./stores/queueStore";
@@ -178,10 +179,7 @@ export function App() {
                   <Route path="/project/:id" element={<ProjectLayout />}>
                     <Route index element={<ProjectView />} />
                     <Route path="search" element={<CandidateSearchSection />} />
-                    <Route
-                      path="outreach"
-                      element={<PlaceholderSection name="Candidate Outreach" />}
-                    />
+                    <Route path="outreach" element={<OutreachSection />} />
                     <Route
                       path="coordination"
                       element={

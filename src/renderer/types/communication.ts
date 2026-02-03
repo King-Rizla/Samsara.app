@@ -131,3 +131,85 @@ export function templateRecordToModel(record: TemplateRecord): MessageTemplate {
     updatedAt: record.updated_at,
   };
 }
+
+// ============================================================================
+// Message Types (Plan 09-03)
+// ============================================================================
+
+export interface Message {
+  id: string;
+  projectId: string;
+  cvId: string | null;
+  type: "sms" | "email";
+  direction: "outbound" | "inbound";
+  status: "queued" | "sent" | "delivered" | "failed" | "received";
+  fromAddress: string | null;
+  toAddress: string;
+  subject: string | null;
+  body: string;
+  templateId: string | null;
+  providerMessageId: string | null;
+  errorMessage: string | null;
+  sentAt: string | null;
+  deliveredAt: string | null;
+  createdAt: string;
+}
+
+export interface DNCEntry {
+  id: string;
+  type: "phone" | "email";
+  value: string;
+  reason: "opt_out" | "bounce" | "manual";
+  createdAt: string;
+}
+
+export interface OutreachCandidate {
+  cvId: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  lastMessageAt?: string;
+  messageCount: number;
+  status: "pending" | "contacted" | "responded" | "opted_out";
+}
+
+/**
+ * Convert database message record to frontend model.
+ */
+export function messageRecordToModel(record: {
+  id: string;
+  project_id: string;
+  cv_id: string | null;
+  type: string;
+  direction: string;
+  status: string;
+  from_address: string | null;
+  to_address: string;
+  subject: string | null;
+  body: string;
+  template_id: string | null;
+  provider_message_id: string | null;
+  error_message: string | null;
+  sent_at: string | null;
+  delivered_at: string | null;
+  created_at: string;
+}): Message {
+  return {
+    id: record.id,
+    projectId: record.project_id,
+    cvId: record.cv_id,
+    type: record.type as "sms" | "email",
+    direction: record.direction as "outbound" | "inbound",
+    status: record.status as Message["status"],
+    fromAddress: record.from_address,
+    toAddress: record.to_address,
+    subject: record.subject,
+    body: record.body,
+    templateId: record.template_id,
+    providerMessageId: record.provider_message_id,
+    errorMessage: record.error_message,
+    sentAt: record.sent_at,
+    deliveredAt: record.delivered_at,
+    createdAt: record.created_at,
+  };
+}

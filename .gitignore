@@ -94,6 +94,7 @@ dist/
 build/
 release/
 installer/
+verify/
 
 # Python sidecar
 python-dist/

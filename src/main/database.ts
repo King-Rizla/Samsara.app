@@ -548,6 +548,53 @@ export function initDatabase(): Database.Database {
       console.log("Database migrated to version 5");
     }
 
+    if (version < 6) {
+      console.log(
+        "Migrating database to version 6 (DNC registry + template/message columns)...",
+      );
+
+      // DNC (Do Not Contact) registry for opt-out compliance
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS dnc_registry (
+          id TEXT PRIMARY KEY,
+          type TEXT NOT NULL,           -- 'phone' | 'email'
+          value TEXT NOT NULL,          -- Normalized phone/email
+          reason TEXT NOT NULL,         -- 'opt_out' | 'bounce' | 'manual'
+          source_message_id TEXT,
+          created_at TEXT NOT NULL,
+          UNIQUE(type, value)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_dnc_type_value ON dnc_registry(type, value);
+      `);
+
+      // Add is_global column to outreach_templates for global templates
+      const templateColumns = db
+        .prepare("PRAGMA table_info(outreach_templates)")
+        .all() as { name: string }[];
+
+      if (!templateColumns.some((col) => col.name === "is_global")) {
+        db.exec(
+          `ALTER TABLE outreach_templates ADD COLUMN is_global INTEGER DEFAULT 0`,
+        );
+      }
+
+      // Add cost tracking columns to messages
+      const messageColumns = db
+        .prepare("PRAGMA table_info(messages)")
+        .all() as { name: string }[];
+
+      if (!messageColumns.some((col) => col.name === "cost_cents")) {
+        db.exec(`ALTER TABLE messages ADD COLUMN cost_cents INTEGER`);
+      }
+      if (!messageColumns.some((col) => col.name === "currency")) {
+        db.exec(`ALTER TABLE messages ADD COLUMN currency TEXT DEFAULT 'USD'`);
+      }
+
+      db.pragma("user_version = 6");
+      console.log("Database migrated to version 6");
+    }
+
     // Store init timestamp
     const stmt = db.prepare(
       "INSERT OR REPLACE INTO app_meta (key, value) VALUES (?, ?)",
@@ -1710,4 +1757,160 @@ export function reorderPinnedProjects(projectIds: string[]): void {
 
   reorder();
   console.log("[DB] Reordered pinned projects:", projectIds);
+}
+
+// ============================================================================
+// Template CRUD Functions (Phase 9)
+// ============================================================================
+
+export interface TemplateRecord {
+  id: string;
+  project_id: string;
+  name: string;
+  type: string;
+  subject: string | null;
+  body: string;
+  variables_json: string | null;
+  is_default: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Create a new message template.
+ * Returns the created template record.
+ */
+export function createTemplate(input: {
+  projectId: string;
+  name: string;
+  type: "sms" | "email";
+  subject?: string;
+  body: string;
+}): TemplateRecord {
+  const database = getDatabase();
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  // Extract variables from body for storage
+  const variableMatches = input.body.matchAll(/\{\{(\w+)\}\}/g);
+  const variables = Array.from(new Set([...variableMatches].map((m) => m[1])));
+
+  database
+    .prepare(
+      `
+    INSERT INTO outreach_templates (id, project_id, name, type, subject, body, variables_json, is_default, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+  `,
+    )
+    .run(
+      id,
+      input.projectId,
+      input.name,
+      input.type,
+      input.subject || null,
+      input.body,
+      JSON.stringify(variables),
+      now,
+      now,
+    );
+
+  return {
+    id,
+    project_id: input.projectId,
+    name: input.name,
+    type: input.type,
+    subject: input.subject || null,
+    body: input.body,
+    variables_json: JSON.stringify(variables),
+    is_default: 0,
+    created_at: now,
+    updated_at: now,
+  };
+}
+
+/**
+ * Get a template by ID.
+ * Returns null if not found.
+ */
+export function getTemplate(id: string): TemplateRecord | null {
+  const database = getDatabase();
+  return (
+    (database
+      .prepare("SELECT * FROM outreach_templates WHERE id = ?")
+      .get(id) as TemplateRecord | undefined) ?? null
+  );
+}
+
+/**
+ * Get all templates for a project, sorted by creation date descending.
+ */
+export function getTemplatesByProject(projectId: string): TemplateRecord[] {
+  const database = getDatabase();
+  return database
+    .prepare(
+      "SELECT * FROM outreach_templates WHERE project_id = ? ORDER BY created_at DESC",
+    )
+    .all(projectId) as TemplateRecord[];
+}
+
+/**
+ * Update a template.
+ * Returns true if a record was updated.
+ */
+export function updateTemplate(
+  id: string,
+  updates: {
+    name?: string;
+    subject?: string;
+    body?: string;
+    isDefault?: boolean;
+  },
+): boolean {
+  const database = getDatabase();
+  const now = new Date().toISOString();
+
+  const fields: string[] = ["updated_at = ?"];
+  const values: unknown[] = [now];
+
+  if (updates.name !== undefined) {
+    fields.push("name = ?");
+    values.push(updates.name);
+  }
+  if (updates.subject !== undefined) {
+    fields.push("subject = ?");
+    values.push(updates.subject);
+  }
+  if (updates.body !== undefined) {
+    fields.push("body = ?");
+    values.push(updates.body);
+    // Re-extract variables when body changes
+    const variableMatches = updates.body.matchAll(/\{\{(\w+)\}\}/g);
+    const variables = Array.from(
+      new Set([...variableMatches].map((m) => m[1])),
+    );
+    fields.push("variables_json = ?");
+    values.push(JSON.stringify(variables));
+  }
+  if (updates.isDefault !== undefined) {
+    fields.push("is_default = ?");
+    values.push(updates.isDefault ? 1 : 0);
+  }
+
+  values.push(id);
+  const result = database
+    .prepare(`UPDATE outreach_templates SET ${fields.join(", ")} WHERE id = ?`)
+    .run(...values);
+  return result.changes > 0;
+}
+
+/**
+ * Delete a template by ID.
+ * Returns true if a record was deleted.
+ */
+export function deleteTemplate(id: string): boolean {
+  const database = getDatabase();
+  const result = database
+    .prepare("DELETE FROM outreach_templates WHERE id = ?")
+    .run(id);
+  return result.changes > 0;
 }

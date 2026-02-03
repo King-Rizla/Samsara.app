@@ -32,7 +32,13 @@ import {
   updateProjectPinned,
   getPinnedProjects,
   reorderPinnedProjects,
+  createTemplate,
+  getTemplate,
+  getTemplatesByProject,
+  updateTemplate,
+  deleteTemplate,
 } from "./database";
+import { previewTemplate, AVAILABLE_VARIABLES } from "./templateEngine";
 import type { AppSettings } from "./settings";
 import {
   startPython,
@@ -1429,4 +1435,134 @@ ipcMain.handle("select-folder", async () => {
     canceled: result.canceled,
     path: result.filePaths[0],
   };
+});
+
+// ============================================================================
+// Template IPC Handlers (Phase 9)
+// ============================================================================
+
+/**
+ * Create a new message template.
+ * Returns { success: true, data: TemplateRecord } on success
+ */
+ipcMain.handle(
+  "create-template",
+  async (
+    _event,
+    input: {
+      projectId: string;
+      name: string;
+      type: "sms" | "email";
+      subject?: string;
+      body: string;
+    },
+  ) => {
+    try {
+      const template = createTemplate(input);
+      return { success: true, data: template };
+    } catch (error) {
+      console.error("create-template error:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to create template",
+      };
+    }
+  },
+);
+
+/**
+ * Get a template by ID.
+ * Returns { success: true, data: TemplateRecord } on success
+ */
+ipcMain.handle("get-template", async (_event, id: string) => {
+  try {
+    const template = getTemplate(id);
+    if (!template) {
+      return { success: false, error: "Template not found" };
+    }
+    return { success: true, data: template };
+  } catch (error) {
+    console.error("get-template error:", error);
+    return { success: false, error: String(error) };
+  }
+});
+
+/**
+ * Get all templates for a project.
+ * Returns { success: true, data: TemplateRecord[] } on success
+ */
+ipcMain.handle(
+  "get-templates-by-project",
+  async (_event, projectId: string) => {
+    try {
+      const templates = getTemplatesByProject(projectId);
+      return { success: true, data: templates };
+    } catch (error) {
+      console.error("get-templates-by-project error:", error);
+      return { success: false, error: String(error) };
+    }
+  },
+);
+
+/**
+ * Update a template.
+ * Returns { success: true } on success
+ */
+ipcMain.handle(
+  "update-template",
+  async (
+    _event,
+    id: string,
+    updates: {
+      name?: string;
+      subject?: string;
+      body?: string;
+      isDefault?: boolean;
+    },
+  ) => {
+    try {
+      const success = updateTemplate(id, updates);
+      return { success };
+    } catch (error) {
+      console.error("update-template error:", error);
+      return { success: false, error: String(error) };
+    }
+  },
+);
+
+/**
+ * Delete a template by ID.
+ * Returns { success: true } on success
+ */
+ipcMain.handle("delete-template", async (_event, id: string) => {
+  try {
+    const success = deleteTemplate(id);
+    return { success };
+  } catch (error) {
+    console.error("delete-template error:", error);
+    return { success: false, error: String(error) };
+  }
+});
+
+/**
+ * Preview a template with example data.
+ * Returns { success: true, data: string } on success
+ */
+ipcMain.handle("preview-template", async (_event, template: string) => {
+  try {
+    const preview = previewTemplate(template);
+    return { success: true, data: preview };
+  } catch (error) {
+    console.error("preview-template error:", error);
+    return { success: false, error: String(error) };
+  }
+});
+
+/**
+ * Get available template variables.
+ * Returns { success: true, data: TemplateVariable[] } on success
+ */
+ipcMain.handle("get-available-variables", async () => {
+  return { success: true, data: AVAILABLE_VARIABLES };
 });

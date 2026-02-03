@@ -533,6 +533,86 @@ contextBridge.exposeInMainWorld("api", {
    */
   selectFolder: (): Promise<{ canceled: boolean; path?: string }> =>
     ipcRenderer.invoke("select-folder"),
+
+  // Template operations (Phase 9)
+
+  /**
+   * Create a new message template.
+   * Returns { success: boolean, data?: TemplateRecord, error?: string }
+   */
+  createTemplate: (input: {
+    projectId: string;
+    name: string;
+    type: "sms" | "email";
+    subject?: string;
+    body: string;
+  }): Promise<{ success: boolean; data?: unknown; error?: string }> =>
+    ipcRenderer.invoke("create-template", input),
+
+  /**
+   * Get a template by ID.
+   * Returns { success: boolean, data?: TemplateRecord, error?: string }
+   */
+  getTemplate: (
+    id: string,
+  ): Promise<{ success: boolean; data?: unknown; error?: string }> =>
+    ipcRenderer.invoke("get-template", id),
+
+  /**
+   * Get all templates for a project.
+   * Returns { success: boolean, data?: TemplateRecord[], error?: string }
+   */
+  getTemplatesByProject: (
+    projectId: string,
+  ): Promise<{ success: boolean; data?: unknown[]; error?: string }> =>
+    ipcRenderer.invoke("get-templates-by-project", projectId),
+
+  /**
+   * Update a template.
+   * Returns { success: boolean, error?: string }
+   */
+  updateTemplate: (
+    id: string,
+    updates: {
+      name?: string;
+      subject?: string;
+      body?: string;
+      isDefault?: boolean;
+    },
+  ): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke("update-template", id, updates),
+
+  /**
+   * Delete a template by ID.
+   * Returns { success: boolean, error?: string }
+   */
+  deleteTemplateById: (
+    id: string,
+  ): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke("delete-template", id),
+
+  /**
+   * Preview a template with example data.
+   * Returns { success: boolean, data?: string, error?: string }
+   */
+  previewTemplate: (
+    template: string,
+  ): Promise<{ success: boolean; data?: string; error?: string }> =>
+    ipcRenderer.invoke("preview-template", template),
+
+  /**
+   * Get available template variables.
+   * Returns { success: boolean, data?: TemplateVariable[] }
+   */
+  getAvailableVariables: (): Promise<{
+    success: boolean;
+    data?: Array<{
+      key: string;
+      label: string;
+      example: string;
+      category: string;
+    }>;
+  }> => ipcRenderer.invoke("get-available-variables"),
 });
 
 /**

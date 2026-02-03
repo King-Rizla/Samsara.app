@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Outlet, useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Settings, FileText } from "lucide-react";
+import { ArrowLeft, Settings, FileText, MessageSquare } from "lucide-react";
 import { Button } from "../components/ui/button";
 import {
   Sheet,
@@ -9,6 +9,7 @@ import {
   SheetTitle,
 } from "../components/ui/sheet";
 import { LLMSettings } from "../components/settings/LLMSettings";
+import { CommunicationSettings } from "../components/settings/CommunicationSettings";
 import { TemplateEditor, TemplateList } from "../components/templates";
 import { useQueueStore } from "../stores/queueStore";
 import { useJDStore } from "../stores/jdStore";
@@ -25,6 +26,7 @@ export function ProjectLayout() {
 
   const [showSettings, setShowSettings] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showCommunication, setShowCommunication] = useState(false);
   const [editingTemplate, setEditingTemplate] =
     useState<MessageTemplate | null>(null);
   const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
@@ -86,12 +88,33 @@ export function ProjectLayout() {
           <Button
             variant="ghost"
             size="sm"
+            onClick={() => setShowCommunication(true)}
+          >
+            <MessageSquare className="h-4 w-4 mr-1" />
+            Outreach
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setShowSettings(!showSettings)}
           >
             <Settings className="h-4 w-4" />
           </Button>
         </div>
       </div>
+
+      {/* Communication settings sheet */}
+      <Sheet open={showCommunication} onOpenChange={setShowCommunication}>
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-xl p-0 overflow-y-auto"
+        >
+          <SheetHeader className="p-4 border-b border-border">
+            <SheetTitle>Communication Settings</SheetTitle>
+          </SheetHeader>
+          <CommunicationSettings />
+        </SheetContent>
+      </Sheet>
 
       {/* Templates management sheet */}
       <Sheet open={showTemplates} onOpenChange={setShowTemplates}>

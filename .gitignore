@@ -123,3 +123,9 @@ resources/
 e2e/screenshots/
 e2e/fixtures/user-data/
 e2e/fixtures/temp/
+
+# Build and test artifacts
+verify/
+landing/
+python-src/.hypothesis/
+

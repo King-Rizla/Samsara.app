@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 9 (communication-infrastructure)
-Plan: 2 of 3
+Plan: 2 of 3 (09-01 and 09-02 complete)
 Status: In progress
-Last activity: 2026-02-03 — Completed 09-02-PLAN.md
+Last activity: 2026-02-03 — Completed 09-01-PLAN.md (executed after 09-02)
 
 Progress: M2 [█████░░░░░░░░░░░░░] 2/6 phases | Phase 9 in progress (2/3 plans)
 
@@ -27,7 +27,7 @@ MVP v0.1.0 shipped on `mvp` branch — see `.planning/RELEASE-WORKFLOW.md` for u
 
 **Velocity:**
 
-- Total plans completed: 52 (v1: 47, M2 Phase 8: 3, M2 Phase 9: 2)
+- Total plans completed: 52 (v1: 47, M2 Phase 8: 3, M2 Phase 9: 2) [09-01 executed after 09-02]
 - Average duration: 11 min
 - Total execution time: ~7.4 hours
 
@@ -61,8 +61,14 @@ Full decision log in PROJECT.md Key Decisions table.
 
 **Phase 9 in progress (2026-02-03):**
 
-- 09-01: Credential manager with safeStorage encryption
+- 09-01: Credential manager with safeStorage encryption, CommunicationSettings UI
 - 09-02: Template engine with {{variable}} substitution and live preview
+
+| Decision              | Choice                       | Rationale                                   |
+| --------------------- | ---------------------------- | ------------------------------------------- |
+| Credential encryption | safeStorage (DPAPI/Keychain) | OS-level encryption, no app secrets         |
+| Credential fallback   | Project -> global            | Allows global default with overrides        |
+| Provider SDK loading  | Dynamic import               | Avoids loading twilio/nodemailer at startup |
 
 | Decision            | Choice                   | Rationale                               |
 | ------------------- | ------------------------ | --------------------------------------- |
@@ -85,7 +91,7 @@ Full decision log in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 09-02-PLAN.md
+Stopped at: Completed 09-01-PLAN.md (credential storage and provider config UI)
 Resume file: None
 
 ## Next Steps

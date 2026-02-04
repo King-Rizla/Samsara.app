@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 10 of 14 (outreach-workflow-engine)
-Plan: 1 of 3 complete
+Plan: 2 of 3 complete
 Status: In progress
-Last activity: 2026-02-04 - Completed 10-01-PLAN.md (XState workflow engine)
+Last activity: 2026-02-04 - Completed 10-02-PLAN.md (Reply polling and workflow triggers)
 
-Progress: M2 [███████░░░░░░░░░░░] 3.3/6 phases | Phase 10 plan 1/3 complete
+Progress: M2 [████████░░░░░░░░░░] 3.5/6 phases | Phase 10 plan 2/3 complete
 
 ## MVP Status (Separate Branch)
 
@@ -27,9 +27,9 @@ MVP v0.1.0 shipped on `mvp` branch - see `.planning/RELEASE-WORKFLOW.md` for upd
 
 **Velocity:**
 
-- Total plans completed: 55 (v1: 47, M2 Phase 8: 3, M2 Phase 9: 4, M2 Phase 10: 1)
+- Total plans completed: 56 (v1: 47, M2 Phase 8: 3, M2 Phase 9: 4, M2 Phase 10: 2)
 - Average duration: 11 min
-- Total execution time: ~8 hours
+- Total execution time: ~8.2 hours
 
 ## Accumulated Context
 
@@ -69,6 +69,7 @@ Full decision log in PROJECT.md Key Decisions table.
 **Phase 10 in progress (2026-02-04):**
 
 - 10-01: XState v5 workflow engine with SQLite persistence, graduation IPC, TypeScript 5.6 upgrade
+- 10-02: Reply polling (30s), keyword intent classification, working hours queueing, WRK-05 callbacks
 
 | Decision              | Choice                       | Rationale                                   |
 | --------------------- | ---------------------------- | ------------------------------------------- |
@@ -78,15 +79,17 @@ Full decision log in PROJECT.md Key Decisions table.
 | DNC normalization     | Digits only / lowercase      | Consistent matching regardless of format    |
 | Polling interval      | 60 seconds                   | Balance freshness vs API rate limits        |
 
-| Decision             | Choice                      | Rationale                                        |
-| -------------------- | --------------------------- | ------------------------------------------------ |
-| Client-side preview  | Generate preview locally    | Instant feedback without IPC round-trip          |
-| SMS segment calc     | 160/153 chars               | Standard GSM-7 with UDH header                   |
-| Delete confirmation  | AlertDialog (not two-click) | Radix DropdownMenu closes between clicks         |
-| Empty state contrast | text-foreground/70          | Better readability than text-muted-foreground    |
-| TypeScript version   | 5.6                         | XState v5 requires TS 5+ for type definitions    |
-| Snapshot persistence | On every state change       | Ensures durability across app restarts           |
-| Actor model          | Actor-per-candidate         | Independent workflow instances, easy persistence |
+| Decision              | Choice                      | Rationale                                          |
+| --------------------- | --------------------------- | -------------------------------------------------- |
+| Client-side preview   | Generate preview locally    | Instant feedback without IPC round-trip            |
+| SMS segment calc      | 160/153 chars               | Standard GSM-7 with UDH header                     |
+| Delete confirmation   | AlertDialog (not two-click) | Radix DropdownMenu closes between clicks           |
+| Empty state contrast  | text-foreground/70          | Better readability than text-muted-foreground      |
+| TypeScript version    | 5.6                         | XState v5 requires TS 5+ for type definitions      |
+| Snapshot persistence  | On every state change       | Ensures durability across app restarts             |
+| Actor model           | Actor-per-candidate         | Independent workflow instances, easy persistence   |
+| Intent classification | Keyword-based               | Simple, predictable, ambiguous treated as positive |
+| Reply polling         | 30 seconds                  | Faster than delivery polling for real-time feel    |
 
 ### Pending Todos
 
@@ -104,7 +107,7 @@ Full decision log in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 Last session: 2026-02-04
-Stopped at: Completed 10-01-PLAN.md (XState workflow engine)
+Stopped at: Completed 10-02-PLAN.md (Reply polling and workflow triggers)
 Resume file: None
 
 ## Next Steps
@@ -113,8 +116,7 @@ Resume file: None
 
 Remaining plans:
 
-- 10-02: Kanban UI with graduation controls and workflow visualization
-- 10-03: Reply detection and workflow triggers
+- 10-03: Kanban UI with graduation controls and workflow visualization
 
 **Deferred tests (must verify in Phase 10):**
 

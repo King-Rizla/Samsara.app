@@ -383,9 +383,9 @@ export function OutreachSection() {
         projectId={projectId || ""}
         roleTitle={currentProject?.name}
         companyName={currentProject?.client_name || undefined}
-        recruiterName={recruiterSettings.name}
-        recruiterEmail={recruiterSettings.email}
-        recruiterPhone={recruiterSettings.phone}
+        recruiterName={recruiterSettings?.name}
+        recruiterEmail={recruiterSettings?.email}
+        recruiterPhone={recruiterSettings?.phone}
       />
 
       {/* Add to DNC confirmation */}

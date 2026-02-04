@@ -106,10 +106,21 @@ Resume file: None
 
 Goal: Implement XState-based outreach workflow automation with SMS/email/call sequences and response handling
 
+**Required feature (from Phase 9 UAT):**
+Candidate graduation from JD matches to Outreach pipeline. Candidates should NOT auto-populate - user/agent must explicitly graduate them.
+
+**Deferred tests (must verify in Phase 10):**
+
+- View graduated candidates in Outreach list
+- Select candidate and view timeline
+- Open Send Message dialog
+- SMS character count display
+- DNC warning prevents sending
+
 Plans (to be generated):
 
-- 10-01: XState machine for outreach sequences
+- 10-01: Candidate graduation + XState machine for outreach sequences
 - 10-02: Sequence builder UI
 - 10-03: Response detection and workflow triggers
 
-Run `/gsd:plan 10` to generate Phase 10 plans.
+Run `/gsd:plan-phase 10` to generate Phase 10 plans.

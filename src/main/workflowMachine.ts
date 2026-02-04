@@ -13,6 +13,10 @@
 
 import { setup, assign, fromPromise } from "xstate";
 import { sendSMS, sendEmail } from "./communicationService";
+import {
+  queueMessageForWorkingHours,
+  getProjectOutreachSettings,
+} from "./workingHours";
 
 // ============================================================================
 // Types
@@ -170,29 +174,62 @@ export const outreachMachine = setup({
     },
   },
   actors: {
-    // Actor: Send initial SMS + Email simultaneously
+    // Actor: Send initial SMS + Email simultaneously (with working hours check)
     sendInitialMessages: fromPromise(
       async ({ input }: { input: WorkflowContext }) => {
+        const smsBody = `Hi ${input.candidateName}, we have an exciting opportunity that matches your profile. Are you available for a quick call?`;
+        const emailSubject = "Exciting Career Opportunity";
+        const emailBody = `<p>Hi ${input.candidateName},</p><p>We came across your profile and believe you would be a great fit for an opportunity we're working on.</p><p>Would you be available for a quick call to discuss?</p>`;
+
+        // Check working hours for SMS
+        const smsResult = input.phone
+          ? queueMessageForWorkingHours(
+              input.projectId,
+              input.candidateId,
+              "sms",
+              { toAddress: input.phone, body: smsBody },
+            )
+          : { send: false };
+
+        // Check working hours for email
+        const emailResult = input.email
+          ? queueMessageForWorkingHours(
+              input.projectId,
+              input.candidateId,
+              "email",
+              { toAddress: input.email, body: emailBody, subject: emailSubject },
+            )
+          : { send: false };
+
+        // Send immediately if within working hours
         const results = await Promise.allSettled([
-          // Send SMS if phone is available
-          input.phone
+          // Send SMS if within working hours and phone is available
+          input.phone && smsResult.send
             ? sendSMS({
                 projectId: input.projectId,
                 cvId: input.candidateId,
                 toPhone: input.phone,
-                body: `Hi ${input.candidateName}, we have an exciting opportunity that matches your profile. Are you available for a quick call?`,
+                body: smsBody,
               })
-            : Promise.resolve({ success: true, skipped: true }),
-          // Send Email if email is available
-          input.email
+            : Promise.resolve({
+                success: true,
+                skipped: true,
+                scheduledFor: smsResult.scheduledFor,
+              }),
+          // Send Email if within working hours and email is available
+          input.email && emailResult.send
             ? sendEmail({
                 projectId: input.projectId,
                 cvId: input.candidateId,
                 toEmail: input.email,
-                subject: "Exciting Career Opportunity",
-                body: `<p>Hi ${input.candidateName},</p><p>We came across your profile and believe you would be a great fit for an opportunity we're working on.</p><p>Would you be available for a quick call to discuss?</p>`,
+                subject: emailSubject,
+                body: emailBody,
               })
-            : Promise.resolve({ success: true, skipped: true }),
+            : Promise.resolve({
+                success: true,
+                skipped: true,
+                scheduledFor: emailResult.scheduledFor,
+              }),
         ]);
 
         console.log(

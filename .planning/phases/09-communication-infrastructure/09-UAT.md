@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: complete
 phase: 09-communication-infrastructure
-source: [09-01-SUMMARY.md, 09-02-SUMMARY.md, 09-03-SUMMARY.md]
+source: [09-01-SUMMARY.md, 09-02-SUMMARY.md, 09-03-SUMMARY.md, 09-04-SUMMARY.md]
 started: 2026-02-03T20:15:00Z
-updated: 2026-02-03T20:35:00Z
+updated: 2026-02-04T12:30:00Z
 ---
 
 ## Current Test
@@ -12,164 +12,97 @@ updated: 2026-02-03T20:35:00Z
 
 ## Tests
 
-### 1. Open Communication Settings
+### 1. Template Editor Header (Re-test)
 
-expected: Navigate to a project. Click the "Outreach" button in the header. A sheet slides out showing a tabbed interface with "Twilio SMS" and "Email SMTP" tabs.
+expected: Open Templates sheet, create or edit a template. Resize window to narrow width (< 600px). The Cancel and Save buttons on the right should remain fully visible. Title may truncate with ellipsis.
 result: pass
+previous: issue (gap closure 09-04 applied fix)
+note: Additional fix applied during UAT - removed title, added right margin to buttons
 
-### 2. Twilio Credentials Form
+### 2. Delete Template Confirmation (Re-test)
 
-expected: In the Twilio SMS tab, you see input fields for Account SID, Auth Token, and Phone Number. Status indicator shows "Unconfigured" (gray).
+expected: In template list, click "..." menu on a template, click "Delete". An AlertDialog popup appears asking for confirmation. Click "Cancel" to dismiss, or "Delete" to confirm deletion. Dialog should NOT auto-close.
 result: pass
+previous: issue (gap closure 09-04 replaced two-click with AlertDialog)
 
-### 3. SMTP Credentials Form
+### 3. Navigate to Outreach Section (Re-test)
 
-expected: Click "Email SMTP" tab. You see input fields for Host, Port (dropdown), Username, Password, and From Email. Status indicator shows "Unconfigured".
+expected: Click the "Candidate Outreach" wedge on the Samsara Wheel. Section loads (no "Coming Soon" blocker). Shows split view with candidate list on left, detail panel on right.
 result: pass
+previous: issue (gap closure 09-04 set comingSoon: false)
+note: Fixed runtime error (recruiterSettings undefined) during UAT. Moved Templates/Communication buttons from ProjectLayout to OutreachSection header.
 
-### 4. Open Templates Sheet
+### 4. Outreach Empty State Visibility (Re-test)
 
-expected: In project header, click "Templates" button. A sheet slides out showing template management UI with "New Template" button and filter tabs (All, SMS, Email).
+expected: With no candidates or none selected, empty state messages should be clearly readable with good contrast (not faded/invisible text on dark background).
 result: pass
+previous: issue (gap closure 09-04 improved contrast)
 
-### 5. Create SMS Template
+### 5. View Candidate List (Previously Skipped)
 
-expected: Click "New Template". Select SMS type, enter a name, type body with {{candidate_name}} variable. Live preview on right shows "John Smith" replacing the variable as you type.
-result: issue
-reported: "The banner at the top of create template is overcrowded. The save button is half off the screen and the x overlaps on the save button."
-severity: minor
+expected: In Outreach section, left panel shows candidates with contact info (email/phone). Each row shows name and a StatusWheel indicator. If no candidates have contact info, a visible empty state message appears.
+result: skipped
+reason: Candidate graduation feature not implemented. Phase 10 scope - candidates should be explicitly graduated from JD matches, not auto-populated.
 
-### 6. Variable Dropdown
-
-expected: Click "Insert Variable" dropdown. See categorized variables (Candidate, Role, Recruiter) with example values. Clicking a variable inserts {{variable_name}} into template body.
-result: pass
-
-### 7. Save Template
-
-expected: Click "Save" after creating template. Template appears in list with SMS badge and name. Persists after closing and reopening Templates sheet.
-result: pass
-
-### 8. Edit Template
-
-expected: Click an existing template in the list. Editor opens with existing values populated. Change body, save. Changes persist.
-result: pass
-
-### 9. Delete Template
-
-expected: In template list, click dropdown menu on a template, select Delete. Confirmation appears. Confirm deletion. Template removed from list.
-result: issue
-reported: "When you click delete the pop up closes and requires you to re-open the menu and confirm the deletion. Should be seamless if we have 2 click to delete."
-severity: minor
-
-### 10. Navigate to Outreach Section
-
-expected: In project view, click the "Outreach" wedge on the Samsara Wheel. Page navigates to Outreach section showing candidate list on left panel.
-result: issue
-reported: "The candidate outreach screen is just black at the moment."
-severity: major
-
-### 11. View Candidate List
-
-expected: In Outreach section, left panel shows candidates with contact info (email/phone). Each row shows name and a StatusWheel indicator.
-result: issue
-reported: "Blank screen"
-severity: major
-
-### 12. Select Candidate
+### 6. Select Candidate (Previously Skipped)
 
 expected: Click a candidate in the list. Right panel shows candidate details: name, contact info, and message timeline (empty if no messages sent).
 result: skipped
-reason: Outreach section inaccessible due to blank screen
+reason: Blocked by missing graduation feature (Phase 10)
 
-### 13. Open Send Message Dialog
+### 7. Open Send Message Dialog (Previously Skipped)
 
 expected: With a candidate selected, click "Send SMS" or "Send Email" button. Dialog opens with template selector, recipient field, and message body input.
 result: skipped
-reason: Outreach section inaccessible due to blank screen
+reason: Blocked by missing graduation feature (Phase 10)
 
-### 14. SMS Character Count
+### 8. SMS Character Count (Previously Skipped)
 
 expected: In SMS send dialog, type a message. Character count displays below textarea. Shows segment estimate (e.g., "85/160 chars - 1 segment").
 result: skipped
-reason: Outreach section inaccessible due to blank screen
+reason: Blocked by missing graduation feature (Phase 10)
 
-### 15. DNC Warning Display
+### 9. DNC Warning Display (Previously Skipped)
 
 expected: If a candidate's phone/email is on the DNC list, send dialog shows warning banner "This contact is on the Do Not Contact list" and send button is disabled.
 result: skipped
-reason: Outreach section inaccessible due to blank screen
+reason: Blocked by missing graduation feature (Phase 10)
 
-### 16. Add to DNC Manually
+## Previous Session Summary (2026-02-03)
 
-expected: In Outreach section, with candidate selected, click "Add to DNC" action. Contact is added to DNC registry. Attempting to send shows DNC warning.
-result: skipped
-reason: Outreach section inaccessible due to blank screen
+passed: 7 (Open Communication Settings, Twilio Form, SMTP Form, Templates Sheet, Variable Dropdown, Save Template, Edit Template)
+issues: 4 (all fixed in 09-04 gap closure + additional fixes during re-test)
+skipped: 5 (blocked by Outreach blank screen - now fixed but graduation feature needed)
 
 ## Summary
 
-total: 16
-passed: 7
-issues: 4
+total: 9
+passed: 4
+issues: 0
 pending: 0
 skipped: 5
 
+## Session Notes
+
+**Re-test session (2026-02-04):**
+
+- All 4 gap closure fixes verified working
+- Additional fixes applied during session:
+  - Template editor: removed title, added button margin
+  - OutreachSection: fixed recruiterSettings undefined crash
+  - Moved Templates/Communication buttons to OutreachSection header
+- 5 tests skipped: require candidate graduation feature (Phase 10 scope)
+
+**Architectural clarification:**
+User confirmed candidates should NOT auto-populate in Outreach. Intended flow:
+
+1. CVs processed in Candidate Search
+2. JD matching identifies good fits
+3. User/agent explicitly "graduates" candidates to Outreach pipeline
+4. Outreach section shows graduated candidates only
+
+This graduation workflow is Phase 10 (Outreach Workflow Engine) scope.
+
 ## Gaps
 
-- truth: "Template editor header is responsive and buttons visible"
-  status: failed
-  reason: "User reported: The banner at the top of create template is overcrowded. The save button is half off the screen and the x overlaps on the save button."
-  severity: minor
-  test: 5
-  root_cause: "Missing flex-shrink constraints in header. Left-side wrapper lacks flex-shrink and min-w-0, allowing unbounded expansion. Title has no truncation. Right-side buttons pushed off screen."
-  artifacts:
-  - path: "src/renderer/components/templates/TemplateEditor.tsx"
-    issue: "Lines 173-174: Header flex children need flex-shrink constraints; Line 175: h2 needs truncate; Line 210: Right wrapper needs flex-shrink-0"
-    missing:
-  - "Add flex-shrink min-w-0 to left-side wrapper"
-  - "Add truncate class to title h2"
-  - "Add flex-shrink-0 to right-side button wrapper"
-    debug_session: ".planning/debug/template-editor-header-layout.md"
-
-- truth: "Delete confirmation appears inline without closing menu"
-  status: failed
-  reason: "User reported: When you click delete the pop up closes and requires you to re-open the menu and confirm the deletion. Should be seamless if we have 2 click to delete."
-  severity: minor
-  test: 9
-  root_cause: "Radix UI DropdownMenu auto-closes on item click. The two-click state update works but menu closes before user sees 'Click again to confirm' text."
-  artifacts:
-  - path: "src/renderer/components/templates/TemplateList.tsx"
-    issue: "Lines 210-221: Delete menu item implementation; menu closes before re-render shows confirmation text"
-    missing:
-  - "Replace two-click pattern with AlertDialog for delete confirmation"
-  - "Or prevent dropdown auto-close on delete click"
-    debug_session: ".planning/debug/dropdown-delete-closes.md"
-
-- truth: "Outreach section renders with candidate list"
-  status: failed
-  reason: "User reported: The candidate outreach screen is just black at the moment."
-  severity: major
-  test: 10
-  root_cause: "Component renders correctly but shows empty state with low-contrast gray text on pure black background. Empty state message 'No candidates with contact info' is barely visible. Also comingSoon:true flag in wheel/types.ts should be set to false."
-  artifacts:
-  - path: "src/renderer/components/outreach/OutreachSection.tsx"
-    issue: "Empty state text uses text-muted-foreground on black background - nearly invisible"
-  - path: "src/renderer/components/wheel/types.ts"
-    issue: "Line 39: comingSoon: true should be false now that feature is implemented"
-    missing:
-  - "Change comingSoon: false in wheel/types.ts line 39"
-  - "Improve empty state visibility with better contrast or background"
-  - "Add visible feedback when no candidates have contact info"
-    debug_session: ".planning/debug/outreach-blank-screen.md"
-
-- truth: "Candidate list shows names and StatusWheel indicators"
-  status: failed
-  reason: "User reported: Blank screen"
-  severity: major
-  test: 11
-  root_cause: "Same root cause as test 10 - empty state visibility issue. When no candidates with contact info, the empty state is nearly invisible."
-  artifacts:
-  - path: "src/renderer/components/outreach/OutreachSection.tsx"
-    issue: "Empty state contrast issue"
-    missing:
-  - "Improve empty state design with visible text and guidance"
-    debug_session: ".planning/debug/outreach-blank-screen.md"
+[none - remaining functionality is Phase 10 scope, not Phase 9 bugs]

@@ -17,6 +17,7 @@ import {
   queueMessageForWorkingHours,
   getProjectOutreachSettings,
 } from "./workingHours";
+import { sendCallbackOptions } from "./callbackScheduler";
 
 // ============================================================================
 // Types
@@ -29,6 +30,8 @@ export type WorkflowState =
   | "screening"
   | "passed"
   | "failed"
+  | "scheduling_callback"
+  | "callback_scheduled"
   | "paused"
   | "archived";
 
@@ -62,7 +65,9 @@ export type WorkflowEvent =
   | { type: "RESUME" }
   | { type: "CANCEL" }
   | { type: "FORCE_CALL" }
-  | { type: "SKIP_TO_SCREENING" };
+  | { type: "SKIP_TO_SCREENING" }
+  | { type: "CALLBACK_CONFIRMED" }
+  | { type: "CALLBACK_TIMEOUT" };
 
 export interface WorkflowInput {
   candidateId: string;
@@ -197,7 +202,11 @@ export const outreachMachine = setup({
               input.projectId,
               input.candidateId,
               "email",
-              { toAddress: input.email, body: emailBody, subject: emailSubject },
+              {
+                toAddress: input.email,
+                body: emailBody,
+                subject: emailSubject,
+              },
             )
           : { send: false };
 
@@ -254,10 +263,36 @@ export const outreachMachine = setup({
         };
       },
     ),
+
+    // Actor: Send callback options to failed-screening candidate (WRK-05)
+    sendCallbackOptionsActor: fromPromise(
+      async ({ input }: { input: WorkflowContext }) => {
+        if (!input.phone) {
+          throw new Error("No phone number available for callback scheduling");
+        }
+
+        const success = await sendCallbackOptions(
+          input.candidateId,
+          input.projectId,
+          input.phone,
+        );
+
+        if (!success) {
+          throw new Error("Failed to send callback options");
+        }
+
+        console.log(
+          `[WorkflowMachine] Sent callback options to ${input.candidateId}`,
+        );
+        return { success: true };
+      },
+    ),
   },
   delays: {
     // Dynamic escalation timeout from context
     escalationTimeout: ({ context }) => context.escalationTimeoutMs,
+    // Callback scheduling timeout (24 hours to respond)
+    callbackTimeout: () => 24 * 60 * 60 * 1000,
   },
 }).createMachine({
   id: "outreachWorkflow",
@@ -412,11 +447,50 @@ export const outreachMachine = setup({
     failed: {
       on: {
         REPLY_DETECTED: {
-          // WRK-05: Handle late replies for callback scheduling
-          actions: [
-            assign({ replyDetected: true }),
-            // TODO: Trigger callback scheduling in future phase
-          ],
+          // WRK-05: Handle late replies - transition to callback scheduling
+          target: "scheduling_callback",
+          actions: [assign({ replyDetected: true })],
+        },
+      },
+    },
+
+    // ========================================================================
+    // SCHEDULING_CALLBACK: Sending callback options to candidate (WRK-05)
+    // ========================================================================
+    scheduling_callback: {
+      invoke: {
+        id: "sendCallbackOptions",
+        src: "sendCallbackOptionsActor",
+        input: ({ context }) => context,
+        onDone: {
+          target: "callback_scheduled",
+        },
+        onError: {
+          target: "archived",
+          actions: ["storeError", "markCompleted"],
+        },
+      },
+    },
+
+    // ========================================================================
+    // CALLBACK_SCHEDULED: Waiting for candidate to select a callback slot (WRK-05)
+    // ========================================================================
+    callback_scheduled: {
+      // 24-hour timeout for callback response
+      after: {
+        callbackTimeout: {
+          target: "archived",
+          actions: ["markCompleted"],
+        },
+      },
+      on: {
+        CALLBACK_CONFIRMED: {
+          target: "archived",
+          actions: ["markCompleted"],
+        },
+        CANCEL: {
+          target: "archived",
+          actions: ["markCompleted"],
         },
       },
     },

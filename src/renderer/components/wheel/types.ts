@@ -36,7 +36,7 @@ export const WHEEL_SECTIONS: WheelSectionDef[] = [
     route: "outreach",
     icon: Phone,
     color: "hsl(255, 70%, 60%)",
-    comingSoon: true,
+    comingSoon: false,
     stats: [
       { label: "Pipeline", value: "0" },
       { label: "Response rate", value: "--" },

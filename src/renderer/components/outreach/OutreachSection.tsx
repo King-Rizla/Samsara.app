@@ -214,7 +214,7 @@ export function OutreachSection() {
           <div className="flex-1 overflow-y-auto">
             {filteredCandidates.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                <User className="h-12 w-12 text-muted-foreground/30 mb-4" />
+                <User className="h-12 w-12 text-muted-foreground/50 mb-4" />
                 <p className="text-sm text-muted-foreground">
                   {candidates.length === 0
                     ? "No candidates with contact info"
@@ -363,11 +363,11 @@ export function OutreachSection() {
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
-              <MessageSquare className="h-16 w-16 text-muted-foreground/20 mb-4" />
-              <p className="text-muted-foreground">
+              <MessageSquare className="h-16 w-16 text-muted-foreground/40 mb-4" />
+              <p className="text-foreground/70">
                 Select a candidate to view their message history
               </p>
-              <p className="text-sm text-muted-foreground/70 mt-1">
+              <p className="text-sm text-foreground/50 mt-1">
                 Send SMS or email messages and track delivery status
               </p>
             </div>

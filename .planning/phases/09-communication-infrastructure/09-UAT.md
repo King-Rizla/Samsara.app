@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 09-communication-infrastructure
 source: [09-01-SUMMARY.md, 09-02-SUMMARY.md, 09-03-SUMMARY.md]
 started: 2026-02-03T20:15:00Z
@@ -115,42 +115,61 @@ skipped: 5
 
 ## Gaps
 
-- truth: "Live preview shows variable substitution as user types"
+- truth: "Template editor header is responsive and buttons visible"
   status: failed
   reason: "User reported: The banner at the top of create template is overcrowded. The save button is half off the screen and the x overlaps on the save button."
   severity: minor
   test: 5
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+  root_cause: "Missing flex-shrink constraints in header. Left-side wrapper lacks flex-shrink and min-w-0, allowing unbounded expansion. Title has no truncation. Right-side buttons pushed off screen."
+  artifacts:
+  - path: "src/renderer/components/templates/TemplateEditor.tsx"
+    issue: "Lines 173-174: Header flex children need flex-shrink constraints; Line 175: h2 needs truncate; Line 210: Right wrapper needs flex-shrink-0"
+    missing:
+  - "Add flex-shrink min-w-0 to left-side wrapper"
+  - "Add truncate class to title h2"
+  - "Add flex-shrink-0 to right-side button wrapper"
+    debug_session: ".planning/debug/template-editor-header-layout.md"
 
 - truth: "Delete confirmation appears inline without closing menu"
   status: failed
   reason: "User reported: When you click delete the pop up closes and requires you to re-open the menu and confirm the deletion. Should be seamless if we have 2 click to delete."
   severity: minor
   test: 9
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+  root_cause: "Radix UI DropdownMenu auto-closes on item click. The two-click state update works but menu closes before user sees 'Click again to confirm' text."
+  artifacts:
+  - path: "src/renderer/components/templates/TemplateList.tsx"
+    issue: "Lines 210-221: Delete menu item implementation; menu closes before re-render shows confirmation text"
+    missing:
+  - "Replace two-click pattern with AlertDialog for delete confirmation"
+  - "Or prevent dropdown auto-close on delete click"
+    debug_session: ".planning/debug/dropdown-delete-closes.md"
 
 - truth: "Outreach section renders with candidate list"
   status: failed
   reason: "User reported: The candidate outreach screen is just black at the moment."
   severity: major
   test: 10
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+  root_cause: "Component renders correctly but shows empty state with low-contrast gray text on pure black background. Empty state message 'No candidates with contact info' is barely visible. Also comingSoon:true flag in wheel/types.ts should be set to false."
+  artifacts:
+  - path: "src/renderer/components/outreach/OutreachSection.tsx"
+    issue: "Empty state text uses text-muted-foreground on black background - nearly invisible"
+  - path: "src/renderer/components/wheel/types.ts"
+    issue: "Line 39: comingSoon: true should be false now that feature is implemented"
+    missing:
+  - "Change comingSoon: false in wheel/types.ts line 39"
+  - "Improve empty state visibility with better contrast or background"
+  - "Add visible feedback when no candidates have contact info"
+    debug_session: ".planning/debug/outreach-blank-screen.md"
 
 - truth: "Candidate list shows names and StatusWheel indicators"
   status: failed
   reason: "User reported: Blank screen"
   severity: major
   test: 11
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+  root_cause: "Same root cause as test 10 - empty state visibility issue. When no candidates with contact info, the empty state is nearly invisible."
+  artifacts:
+  - path: "src/renderer/components/outreach/OutreachSection.tsx"
+    issue: "Empty state contrast issue"
+    missing:
+  - "Improve empty state design with visible text and guidance"
+    debug_session: ".planning/debug/outreach-blank-screen.md"

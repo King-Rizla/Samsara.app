@@ -65,6 +65,9 @@ export function KanbanBoard() {
   const moveCandidateToColumn = useWorkflowStore(
     (state) => state.moveCandidateToColumn,
   );
+  const retryFailedCandidate = useWorkflowStore(
+    (state) => state.retryFailedCandidate,
+  );
 
   // Track active drag and which column is being hovered
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -174,10 +177,17 @@ export function KanbanBoard() {
       // If dropped on same column, do nothing
       if (currentColumnId === targetColumnId) return;
 
+      // Special case: dragging FROM failed column means retry/give another chance
+      if (currentColumnId === "failed" && targetColumnId !== "failed") {
+        // Retry the failed candidate, moving them to the target state
+        retryFailedCandidate(candidateId, targetColumnId);
+        return;
+      }
+
       // Attempt the move (store handles validation and feedback)
       moveCandidateToColumn(candidateId, targetColumnId);
     },
-    [candidates, moveCandidateToColumn],
+    [candidates, moveCandidateToColumn, retryFailedCandidate],
   );
 
   // Handle drag cancel

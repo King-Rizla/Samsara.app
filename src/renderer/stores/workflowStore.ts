@@ -62,6 +62,10 @@ interface WorkflowState {
   cancelWorkflow: (candidateId: string) => Promise<boolean>;
   forceCall: (candidateId: string) => Promise<boolean>;
   skipToScreening: (candidateId: string) => Promise<boolean>;
+  retryFailedCandidate: (
+    candidateId: string,
+    targetState: string,
+  ) => Promise<boolean>;
   refreshCandidates: () => Promise<void>;
 }
 
@@ -412,6 +416,20 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       return true;
     }
     toast.error(result.error || "Failed to skip to screening");
+    return false;
+  },
+
+  retryFailedCandidate: async (candidateId: string, targetState: string) => {
+    // Send RETRY event with the target state to re-enter the workflow
+    const result = await window.api.sendWorkflowEvent(candidateId, "RETRY", {
+      targetState,
+    });
+    if (result.success) {
+      toast.success("Candidate given another chance");
+      get().refreshCandidates();
+      return true;
+    }
+    toast.error(result.error || "Failed to retry candidate");
     return false;
   },
 

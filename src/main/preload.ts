@@ -943,6 +943,86 @@ contextBridge.exposeInMainWorld("api", {
     };
     error?: string;
   }> => ipcRenderer.invoke("get-workflow-candidate", candidateId),
+
+  // ============================================================================
+  // Reply Polling operations (Phase 10 Plan 02)
+  // ============================================================================
+
+  /**
+   * Start reply polling for a project.
+   * Returns { success: boolean, error?: string }
+   */
+  startReplyPolling: (
+    projectId: string,
+  ): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke("start-reply-polling", projectId),
+
+  /**
+   * Stop reply polling.
+   * Returns { success: boolean, error?: string }
+   */
+  stopReplyPolling: (): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke("stop-reply-polling"),
+
+  // ============================================================================
+  // Project Outreach Settings operations (Phase 10 Plan 02)
+  // ============================================================================
+
+  /**
+   * Get outreach settings for a project.
+   * Returns { success: boolean, data?: ProjectOutreachSettings, error?: string }
+   */
+  getProjectOutreachSettings: (
+    projectId: string,
+  ): Promise<{
+    success: boolean;
+    data?: {
+      project_id: string;
+      escalation_timeout_ms: number;
+      ai_call_enabled: number;
+      working_hours_enabled: number;
+      working_hours_start: string;
+      working_hours_end: string;
+      working_hours_timezone: string;
+      working_hours_days: string;
+      created_at: string;
+      updated_at: string;
+    };
+    error?: string;
+  }> => ipcRenderer.invoke("get-project-outreach-settings", projectId),
+
+  /**
+   * Update outreach settings for a project.
+   * Returns { success: boolean, data?: ProjectOutreachSettings, error?: string }
+   */
+  updateProjectOutreachSettings: (
+    projectId: string,
+    settings: {
+      escalation_timeout_ms?: number;
+      ai_call_enabled?: number;
+      working_hours_enabled?: number;
+      working_hours_start?: string;
+      working_hours_end?: string;
+      working_hours_timezone?: string;
+      working_hours_days?: string;
+    },
+  ): Promise<{
+    success: boolean;
+    data?: {
+      project_id: string;
+      escalation_timeout_ms: number;
+      ai_call_enabled: number;
+      working_hours_enabled: number;
+      working_hours_start: string;
+      working_hours_end: string;
+      working_hours_timezone: string;
+      working_hours_days: string;
+      created_at: string;
+      updated_at: string;
+    };
+    error?: string;
+  }> =>
+    ipcRenderer.invoke("update-project-outreach-settings", projectId, settings),
 });
 
 /**

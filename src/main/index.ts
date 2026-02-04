@@ -1736,6 +1736,11 @@ import {
   type GraduateContext,
 } from "./workflowService";
 import type { WorkflowEvent } from "./workflowMachine";
+import { startReplyPolling, stopReplyPolling } from "./replyPoller";
+import {
+  getProjectOutreachSettings,
+  updateProjectOutreachSettings,
+} from "./workingHours";
 
 /**
  * Send SMS to a candidate.
@@ -2044,6 +2049,90 @@ ipcMain.handle(
         error:
           error instanceof Error ? error.message : "Failed to get workflow",
       };
+    }
+  },
+);
+
+// ============================================================================
+// Reply Polling IPC Handlers (Phase 10 Plan 02)
+// ============================================================================
+
+/**
+ * Start reply polling for a project.
+ * Polls Twilio every 30 seconds for inbound SMS.
+ * Returns { success: boolean }
+ */
+ipcMain.handle("start-reply-polling", async (_event, projectId: string) => {
+  try {
+    startReplyPolling(projectId);
+    return { success: true };
+  } catch (error) {
+    console.error("start-reply-polling error:", error);
+    return { success: false, error: String(error) };
+  }
+});
+
+/**
+ * Stop reply polling.
+ * Returns { success: boolean }
+ */
+ipcMain.handle("stop-reply-polling", async () => {
+  try {
+    stopReplyPolling();
+    return { success: true };
+  } catch (error) {
+    console.error("stop-reply-polling error:", error);
+    return { success: false, error: String(error) };
+  }
+});
+
+// ============================================================================
+// Project Outreach Settings IPC Handlers (Phase 10 Plan 02)
+// ============================================================================
+
+/**
+ * Get outreach settings for a project.
+ * Includes escalation timeout and working hours config.
+ * Returns { success: boolean, data?: ProjectOutreachSettings, error?: string }
+ */
+ipcMain.handle(
+  "get-project-outreach-settings",
+  async (_event, projectId: string) => {
+    try {
+      const settings = getProjectOutreachSettings(projectId);
+      return { success: true, data: settings };
+    } catch (error) {
+      console.error("get-project-outreach-settings error:", error);
+      return { success: false, error: String(error) };
+    }
+  },
+);
+
+/**
+ * Update outreach settings for a project.
+ * Returns { success: boolean, data?: ProjectOutreachSettings, error?: string }
+ */
+ipcMain.handle(
+  "update-project-outreach-settings",
+  async (
+    _event,
+    projectId: string,
+    settings: {
+      escalation_timeout_ms?: number;
+      ai_call_enabled?: number;
+      working_hours_enabled?: number;
+      working_hours_start?: string;
+      working_hours_end?: string;
+      working_hours_timezone?: string;
+      working_hours_days?: string;
+    },
+  ) => {
+    try {
+      const updated = updateProjectOutreachSettings(projectId, settings);
+      return { success: true, data: updated };
+    } catch (error) {
+      console.error("update-project-outreach-settings error:", error);
+      return { success: false, error: String(error) };
     }
   },
 );

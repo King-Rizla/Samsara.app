@@ -595,6 +595,51 @@ export function initDatabase(): Database.Database {
       console.log("Database migrated to version 6");
     }
 
+    if (version < 7) {
+      console.log(
+        "Migrating database to version 7 (workflow persistence + graduation)...",
+      );
+
+      // outreach_workflows table for XState snapshot persistence
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS outreach_workflows (
+          candidate_id TEXT PRIMARY KEY,
+          project_id TEXT NOT NULL,
+          snapshot_json TEXT NOT NULL,
+          current_state TEXT NOT NULL,
+          match_score INTEGER,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY (candidate_id) REFERENCES cvs(id) ON DELETE CASCADE,
+          FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_workflows_project_state ON outreach_workflows(project_id, current_state);
+        CREATE INDEX IF NOT EXISTS idx_workflows_match_score ON outreach_workflows(project_id, match_score DESC);
+      `);
+
+      // Add graduated_at and outreach_status columns to cvs table
+      const cvColumns = db.prepare("PRAGMA table_info(cvs)").all() as {
+        name: string;
+      }[];
+
+      if (!cvColumns.some((col) => col.name === "graduated_at")) {
+        db.exec(`ALTER TABLE cvs ADD COLUMN graduated_at TEXT`);
+      }
+      if (!cvColumns.some((col) => col.name === "outreach_status")) {
+        db.exec(
+          `ALTER TABLE cvs ADD COLUMN outreach_status TEXT DEFAULT 'not_graduated'`,
+        );
+      }
+
+      db.exec(
+        `CREATE INDEX IF NOT EXISTS idx_cvs_outreach_status ON cvs(project_id, outreach_status)`,
+      );
+
+      db.pragma("user_version = 7");
+      console.log("Database migrated to version 7");
+    }
+
     // Store init timestamp
     const stmt = db.prepare(
       "INSERT OR REPLACE INTO app_meta (key, value) VALUES (?, ?)",

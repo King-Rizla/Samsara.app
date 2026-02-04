@@ -43,13 +43,14 @@ Plans:
 4. System sends SMS and email to a candidate and user can see delivery status (sent/delivered/failed) update via polling
 5. Candidates who reply STOP or opt out are added to an opt-out registry and blocked from future contact
 
-**Plans**: 3 plans
+**Plans**: 4 plans
 
 Plans:
 
 - [x] 09-01-PLAN.md — Credential storage (safeStorage encryption), provider config UI, test-send verification
 - [x] 09-02-PLAN.md — Template engine with variable substitution, template CRUD UI
 - [x] 09-03-PLAN.md — SMS/email send via Twilio + Nodemailer, delivery status polling, opt-out registry
+- [x] 09-04-PLAN.md — UAT gap closure (header overflow, AlertDialog delete, Outreach visibility)
 
 ### Phase 10: Outreach Workflow Engine
 
@@ -172,7 +173,7 @@ Milestone drafts in `.planning/milestones/`:
 | Phase                           | Milestone | Plans Complete | Status      | Completed  |
 | ------------------------------- | --------- | -------------- | ----------- | ---------- |
 | 8. Samsara Wheel & Foundation   | M2        | 3/3            | Complete    | 2026-01-31 |
-| 9. Communication Infrastructure | M2        | 3/3            | Complete    | 2026-02-03 |
+| 9. Communication Infrastructure | M2        | 4/4            | Complete    | 2026-02-04 |
 | 10. Outreach Workflow Engine    | M2        | 0/3            | Not started | -          |
 | 11. AI Voice Screening          | M2        | 0/3            | Not started | -          |
 | 12. Recording & Transcription   | M2        | 0/2            | Not started | -          |

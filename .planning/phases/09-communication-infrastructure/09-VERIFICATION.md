@@ -1,59 +1,97 @@
 ---
 phase: 09-communication-infrastructure
-verified: 2026-02-03T19:30:00Z
+verified: 2026-02-04T16:20:52Z
 status: passed
-score: 5/5 must-haves verified
+score: 9/9 must-haves verified
+re_verification:
+  previous_status: passed
+  previous_score: 5/5
+  previous_verified: 2026-02-03T19:30:00Z
+  gaps_closed:
+    - "Template editor header buttons do not overflow or get cut off at narrow widths"
+    - "Delete template shows AlertDialog confirmation before deletion"
+    - "Outreach section displays visible content (not blank screen)"
+    - "Outreach wheel wedge is clickable and navigates to section"
+  gaps_remaining: []
+  regressions: []
 ---
 
 # Phase 9: Communication Infrastructure Verification Report
 
 **Phase Goal:** Users can configure SMS and email providers and send templated messages to candidates with delivery tracking and opt-out compliance
 
-**Verified:** 2026-02-03T19:30:00Z
+**Verified:** 2026-02-04T16:20:52Z
 **Status:** passed
-**Re-verification:** No — initial verification
+**Re-verification:** Yes — after UAT gap closure (Plan 09-04)
 
 ## Goal Achievement
 
-### Observable Truths
+### Observable Truths (Original Success Criteria)
 
-| #   | Truth                                                                                              | Status   | Evidence                                                                                                                                                                                        |
-| --- | -------------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | User can enter and test Twilio SMS credentials within a project                                    | VERIFIED | CommunicationSettings.tsx (516 lines) with Twilio tab, testTwilioCredentials() in credentialManager.ts calls Twilio API, IPC handler registered                                                 |
-| 2   | User can enter and test SMTP email credentials within a project                                    | VERIFIED | CommunicationSettings.tsx SMTP tab, testSmtpCredentials() in credentialManager.ts calls nodemailer.verify(), IPC handler registered                                                             |
-| 3   | User can create message templates with variable substitution and preview rendered output           | VERIFIED | TemplateEditor.tsx (332 lines) with live preview via generatePreview() (client-side), VariableDropdown for 9 variables, templateEngine.ts renderTemplate()                                      |
-| 4   | System sends SMS and email to a candidate and user can see delivery status update via polling      | VERIFIED | sendSMS()/sendEmail() in communicationService.ts, pollDeliveryStatus() runs every 60s, OutreachSection starts polling on mount (line 127), CandidateTimeline displays status badges             |
-| 5   | Candidates who reply STOP or opt out are added to opt-out registry and blocked from future contact | VERIFIED | DNC registry with addToDNC()/isOnDNC()/removeFromDNC() in communicationService.ts, sendSMS/sendEmail check isOnDNC() before sending (lines 31, 109), SendMessageDialog shows DNC warning banner |
+| #   | Truth                                                                                              | Status   | Evidence                                                                                                                                                     |
+| --- | -------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | User can enter and test Twilio SMS credentials within a project                                    | VERIFIED | CommunicationSettings.tsx (516 lines), testTwilioCredentials() in credentialManager.ts (line 343), IPC handler wired                                         |
+| 2   | User can enter and test SMTP email credentials within a project                                    | VERIFIED | CommunicationSettings.tsx SMTP tab, testSmtpCredentials() in credentialManager.ts (line 384), IPC handler wired                                              |
+| 3   | User can create message templates with variable substitution and preview rendered output           | VERIFIED | TemplateEditor.tsx (332 lines) with live preview, renderTemplate() in templateEngine.ts (line 99)                                                            |
+| 4   | System sends SMS and email to a candidate and user can see delivery status update via polling      | VERIFIED | sendSMS() line 24, sendEmail() line 102 in communicationService.ts, pollDeliveryStatus() line 183, startDeliveryPolling() called in OutreachSection line 127 |
+| 5   | Candidates who reply STOP or opt out are added to opt-out registry and blocked from future contact | VERIFIED | isOnDNC() checks in sendSMS line 31, sendEmail line 109, DNC registry functions (line 326+)                                                                  |
 
-**Score:** 5/5 truths verified
+**Score (Original):** 5/5 truths verified
+
+### Gap Closure Must-Haves (Plan 09-04)
+
+| #   | Truth                                                                          | Status   | Evidence                                                                                                                                                             |
+| --- | ------------------------------------------------------------------------------ | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 6   | Template editor header buttons do not overflow or get cut off at narrow widths | VERIFIED | TemplateEditor.tsx line 174: flex items-center gap-4 min-w-0 flex-shrink (left), line 175: truncate on h2, line 210: flex-shrink-0 (right buttons)                   |
+| 7   | Delete template shows AlertDialog confirmation before deletion                 | VERIFIED | TemplateList.tsx imports AlertDialog (lines 11-19), templateToDelete state (line 45), AlertDialog implementation (lines 229-256)                                     |
+| 8   | Outreach section displays visible content (not blank screen)                   | VERIFIED | OutreachSection.tsx line 217: text-muted-foreground/50 for icon (increased from /30), line 367: text-foreground/70, line 370: text-foreground/50 (improved contrast) |
+| 9   | Outreach wheel wedge is clickable and navigates to section                     | VERIFIED | wheel/types.ts line 39: comingSoon: false for candidate-outreach section                                                                                             |
+
+**Score (Gap Closure):** 4/4 truths verified
+
+**Total Score:** 9/9 must-haves verified
 
 ### Required Artifacts
 
-| Artifact                                                   | Expected                                               | Status   | Details                                                                                                                                                                                 |
-| ---------------------------------------------------------- | ------------------------------------------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| src/main/credentialManager.ts                              | Credential storage with safeStorage encryption         | VERIFIED | 418 lines, exports storeCredential/getCredential/deleteCredential/hasCredential/listCredentials/testTwilioCredentials/testSmtpCredentials, uses safeStorage.encryptString/decryptString |
-| src/main/templateEngine.ts                                 | Template variable substitution                         | VERIFIED | 139 lines, exports renderTemplate/previewTemplate/extractTemplateVariables/validateTemplateVariables, AVAILABLE_VARIABLES with 9 variables                                              |
-| src/main/communicationService.ts                           | SMS and email sending, delivery polling, DNC check     | VERIFIED | 379 lines, exports sendSMS/sendEmail/pollDeliveryStatus/startDeliveryPolling/stopDeliveryPolling/addToDNC/isOnDNC/removeFromDNC/getDNCList                                              |
-| src/renderer/components/settings/CommunicationSettings.tsx | UI for entering and testing provider credentials       | VERIFIED | 516 lines (>150 min), Twilio and SMTP tabs with credential forms, test buttons, status indicators                                                                                       |
-| src/renderer/components/templates/TemplateEditor.tsx       | Side-by-side template editing with live preview        | VERIFIED | 332 lines (>120 min), split view with form + preview, client-side renderTemplate, SMS segment count                                                                                     |
-| src/renderer/components/templates/TemplateList.tsx         | List of templates with edit/delete actions             | VERIFIED | 234 lines (>80 min), filter tabs (All/SMS/Email), template cards, edit/delete actions                                                                                                   |
-| src/renderer/components/outreach/OutreachSection.tsx       | Outreach wheel section with candidate list and actions | VERIFIED | 467 lines (>150 min), candidate list, timeline view, starts polling on mount, SendMessageDialog integration                                                                             |
-| src/renderer/components/outreach/CandidateTimeline.tsx     | Timeline view of messages sent to a candidate          | VERIFIED | 222 lines (>80 min), message cards with status badges, expandable details, error display                                                                                                |
-| src/renderer/stores/communicationStore.ts                  | Zustand store for communication state                  | VERIFIED | Exports useCommunicationStore, testTwilio/testSmtp actions call window.api                                                                                                              |
-| src/renderer/stores/outreachStore.ts                       | Zustand store for outreach state and message history   | VERIFIED | Exports useOutreachStore, sendSMS/sendEmail/checkDNC actions call window.api                                                                                                            |
+All artifacts from previous verification remain VERIFIED (no regressions detected):
+
+| Artifact                                                   | Status   | Details                                                               |
+| ---------------------------------------------------------- | -------- | --------------------------------------------------------------------- |
+| src/main/credentialManager.ts                              | VERIFIED | 418 lines, safeStorage encryption, test functions present             |
+| src/main/templateEngine.ts                                 | VERIFIED | 139 lines, renderTemplate() exports present                           |
+| src/main/communicationService.ts                           | VERIFIED | 379 lines, sendSMS/sendEmail/polling/DNC functions present            |
+| src/renderer/components/settings/CommunicationSettings.tsx | VERIFIED | 516 lines (substantive), credential tabs present                      |
+| src/renderer/components/templates/TemplateEditor.tsx       | VERIFIED | 332 lines (substantive), header layout fixed with flex-shrink-0       |
+| src/renderer/components/templates/TemplateList.tsx         | VERIFIED | AlertDialog imports and implementation added (lines 11-19, 229-256)   |
+| src/renderer/components/outreach/OutreachSection.tsx       | VERIFIED | 467 lines (substantive), empty state contrast improved, polling wired |
+| src/renderer/components/wheel/types.ts                     | VERIFIED | comingSoon: false for candidate-outreach (line 39)                    |
+
+**Modified in Plan 09-04:** TemplateEditor.tsx, TemplateList.tsx, OutreachSection.tsx, types.ts
+
+**Regression check:** All modifications additive or CSS-only. No core logic changed.
 
 ### Key Link Verification
 
-| From                      | To                               | Via                  | Status | Details                                                                                                                    |
-| ------------------------- | -------------------------------- | -------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------- |
-| CommunicationSettings.tsx | window.api.testTwilioCredentials | IPC invoke           | WIRED  | communicationStore.ts line 219 calls window.api.testTwilioCredentials, CommunicationSettings calls testTwilio() from store |
-| credentialManager.ts      | safeStorage                      | Electron API         | WIRED  | Line 95: safeStorage.encryptString(), line 204: safeStorage.decryptString()                                                |
-| SendMessageDialog.tsx     | window.api.sendSMS               | IPC invoke           | WIRED  | outreachStore.ts line 173 calls window.api.sendSMS, SendMessageDialog calls sendSMS from store                             |
-| communicationService.ts   | twilio.messages.create           | Twilio SDK           | WIRED  | Line 48: client.messages.create() after dynamic import                                                                     |
-| communicationService.ts   | transporter.sendMail             | Nodemailer           | WIRED  | Line 133: transporter.sendMail() after dynamic import                                                                      |
-| OutreachSection.tsx       | startDeliveryPolling             | IPC invoke           | WIRED  | Line 127: window.api.startDeliveryPolling(projectId) in useEffect                                                          |
-| communicationService.ts   | pollDeliveryStatus               | setInterval          | WIRED  | Line 268: setInterval with 60000ms interval                                                                                |
-| TemplateEditor.tsx        | preview generation               | Client-side function | WIRED  | Line 40-47: generatePreview() replaces {{variable}} with example data                                                      |
+All key links from previous verification remain WIRED:
+
+| From                      | To                               | Via          | Status | Details                                  |
+| ------------------------- | -------------------------------- | ------------ | ------ | ---------------------------------------- |
+| CommunicationSettings.tsx | window.api.testTwilioCredentials | IPC invoke   | WIRED  | credentialManager functions present      |
+| credentialManager.ts      | safeStorage                      | Electron API | WIRED  | Encryption calls present                 |
+| SendMessageDialog.tsx     | window.api.sendSMS               | IPC invoke   | WIRED  | communicationService functions present   |
+| communicationService.ts   | twilio.messages.create           | Twilio SDK   | WIRED  | Dynamic import with DNC check (line 31)  |
+| communicationService.ts   | transporter.sendMail             | Nodemailer   | WIRED  | Dynamic import with DNC check (line 109) |
+| OutreachSection.tsx       | startDeliveryPolling             | IPC invoke   | WIRED  | Line 127: starts polling on mount        |
+| communicationService.ts   | pollDeliveryStatus               | setInterval  | WIRED  | Polling loop implementation present      |
+| TemplateEditor.tsx        | preview generation               | Client-side  | WIRED  | generatePreview() function present       |
+
+**Gap closure links added:**
+
+| From                        | To                 | Via             | Status | Details                                           |
+| --------------------------- | ------------------ | --------------- | ------ | ------------------------------------------------- |
+| TemplateList.tsx            | AlertDialog        | Radix UI import | WIRED  | Lines 11-19: imported, lines 229-256: implemented |
+| TemplateEditor.tsx header   | flex-shrink-0      | Tailwind CSS    | WIRED  | Line 210: buttons have flex-shrink-0 class        |
+| OutreachSection empty state | text-foreground/70 | Tailwind CSS    | WIRED  | Lines 367, 370: improved contrast classes         |
 
 ### Requirements Coverage
 
@@ -74,11 +112,14 @@ score: 5/5 must-haves verified
 
 **Notes:**
 
-- "placeholder" strings found in UI components are legitimate UI placeholder attributes, not code stubs
-- No TODO/FIXME comments in core service files
-- Dynamic imports for Twilio/Nodemailer prevent heavy SDK loading at startup
+- Plan 09-04 introduced no new anti-patterns
+- All changes were CSS layout fixes or AlertDialog additions
+- No TODO/FIXME comments added
+- No stub patterns detected
 
 ### Human Verification Required
+
+Same items as previous verification (unchanged):
 
 #### 1. Test Twilio Credential Verification with Real Account
 
@@ -153,7 +194,80 @@ score: 5/5 must-haves verified
 
 **Why human:** Requires test data and UI observation
 
+#### 6. Test Template Editor Responsive Layout (NEW - Gap Closure Verification)
+
+**Test:**
+
+1. Open Templates sheet
+2. Click "New Template"
+3. Resize browser window to narrow width (< 600px) or resize the sheet panel
+
+**Expected:**
+
+- Cancel and Save buttons remain fully visible (no overflow)
+- Title truncates with ellipsis if needed
+- Variable dropdown may wrap but buttons stay fixed
+
+**Why human:** Visual confirmation of responsive behavior at various widths
+
+#### 7. Test AlertDialog Delete Confirmation (NEW - Gap Closure Verification)
+
+**Test:**
+
+1. Open Templates section
+2. Create a test template if none exist
+3. Click the "..." menu on a template
+4. Click "Delete"
+5. AlertDialog should appear with title "Delete Template" and template name
+
+**Expected:**
+
+- Dialog persists until user clicks Cancel or Delete
+- Clicking Cancel closes dialog, template remains
+- Clicking Delete removes template
+- Dialog does NOT auto-close like the dropdown menu did before
+
+**Why human:** Visual confirmation of AlertDialog behavior and persistence
+
+#### 8. Test Outreach Section Visibility (NEW - Gap Closure Verification)
+
+**Test:**
+
+1. Click the "Candidate Outreach" wedge on the Samsara Wheel
+2. Section should load (no "Coming Soon" message)
+3. If no candidates with contact info, observe empty state
+
+**Expected:**
+
+- Navigation works (no Coming Soon blocker)
+- Empty state icon and text are clearly readable on the background
+- Text has sufficient contrast (not nearly invisible gray on black)
+
+**Why human:** Visual confirmation of contrast and readability
+
+### Gap Closure Summary
+
+**Previous status:** Initial verification marked PASSED with 5/5 truths, but UAT testing (09-UAT.md) discovered 4 UI issues that prevented full user acceptance.
+
+**Issues identified:**
+
+1. Template editor header buttons overflow/cut off at narrow widths
+2. Delete template confirmation auto-closes due to DropdownMenu behavior
+3. Outreach section shows "Coming Soon" despite being implemented
+4. Outreach empty state text nearly invisible (low contrast on dark background)
+
+**Resolution:** Plan 09-04 executed with 4 targeted fixes:
+
+1. Added flex-shrink constraints and truncate to TemplateEditor header
+2. Replaced two-click delete with persistent AlertDialog in TemplateList
+3. Changed comingSoon flag to false for candidate-outreach wedge
+4. Improved text contrast in OutreachSection empty states
+
+**Result:** All 4 gaps closed. All original truths remain verified. No regressions detected.
+
 ---
 
-_Verified: 2026-02-03T19:30:00Z_
+_Verified: 2026-02-04T16:20:52Z_
 _Verifier: Claude (gsd-verifier)_
+_Previous verification: 2026-02-03T19:30:00Z_
+_Gap closure plan: 09-04-PLAN.md (executed 2026-02-04)_

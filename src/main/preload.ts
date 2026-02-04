@@ -830,6 +830,119 @@ contextBridge.exposeInMainWorld("api", {
     variables: Record<string, string>,
   ): Promise<{ success: boolean; data?: string; error?: string }> =>
     ipcRenderer.invoke("render-template-with-variables", template, variables),
+
+  // ============================================================================
+  // Workflow operations (Phase 10)
+  // ============================================================================
+
+  /**
+   * Graduate a single candidate to outreach pipeline.
+   * Returns { success: boolean, error?: string }
+   */
+  graduateCandidate: (
+    candidateId: string,
+    projectId: string,
+    context: {
+      matchScore: number;
+      candidateName: string;
+      phone?: string;
+      email?: string;
+      escalationTimeoutMs?: number;
+    },
+  ): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke("graduate-candidate", candidateId, projectId, context),
+
+  /**
+   * Batch graduate multiple candidates to outreach pipeline.
+   * Returns { success: boolean, data?: { success: string[], failed: string[] }, error?: string }
+   */
+  graduateCandidates: (
+    candidateIds: string[],
+    projectId: string,
+    escalationTimeoutMs?: number,
+  ): Promise<{
+    success: boolean;
+    data?: { success: string[]; failed: string[] };
+    error?: string;
+  }> =>
+    ipcRenderer.invoke(
+      "graduate-candidates",
+      candidateIds,
+      projectId,
+      escalationTimeoutMs,
+    ),
+
+  /**
+   * Send an event to a workflow.
+   * eventType: PAUSE | RESUME | CANCEL | FORCE_CALL | SKIP_TO_SCREENING | REPLY_DETECTED | SCREENING_COMPLETE
+   * Returns { success: boolean, error?: string }
+   */
+  sendWorkflowEvent: (
+    candidateId: string,
+    eventType: string,
+    payload?: Record<string, unknown>,
+  ): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke("send-workflow-event", candidateId, eventType, payload),
+
+  /**
+   * Get all workflows for a project.
+   * Returns { success: boolean, data?: WorkflowSummary[], error?: string }
+   */
+  getWorkflowsByProject: (
+    projectId: string,
+  ): Promise<{
+    success: boolean;
+    data?: Array<{
+      candidateId: string;
+      projectId: string;
+      currentState: string;
+      matchScore: number;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+    error?: string;
+  }> => ipcRenderer.invoke("get-workflows-by-project", projectId),
+
+  /**
+   * Get workflow data for a single candidate.
+   * Returns { success: boolean, data?: WorkflowCandidateData, error?: string }
+   */
+  getWorkflowCandidate: (
+    candidateId: string,
+  ): Promise<{
+    success: boolean;
+    data?: {
+      summary: {
+        candidateId: string;
+        projectId: string;
+        currentState: string;
+        matchScore: number;
+        createdAt: string;
+        updatedAt: string;
+      };
+      context: {
+        candidateId: string;
+        projectId: string;
+        matchScore: number;
+        candidateName: string;
+        phone?: string;
+        email?: string;
+        escalationTimeoutMs: number;
+        replyDetected: boolean;
+        replyIntent: "positive" | "negative" | "ambiguous" | null;
+        screeningOutcome: "passed" | "failed" | null;
+        timestamps: {
+          startedAt: string;
+          contactedAt?: string;
+          repliedAt?: string;
+          screeningAt?: string;
+          completedAt?: string;
+        };
+        lastError?: string;
+      };
+    };
+    error?: string;
+  }> => ipcRenderer.invoke("get-workflow-candidate", candidateId),
 });
 
 /**

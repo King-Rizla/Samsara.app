@@ -37,8 +37,15 @@ import {
   getTemplatesByProject,
   updateTemplate,
   deleteTemplate,
- getMessagesByCV, getMessagesByProject } from "./database";
-import { previewTemplate, AVAILABLE_VARIABLES , renderTemplate } from "./templateEngine";
+  getMessagesByCV,
+  getMessagesByProject,
+  completeCVProcessing,
+} from "./database";
+import {
+  previewTemplate,
+  AVAILABLE_VARIABLES,
+  renderTemplate,
+} from "./templateEngine";
 import type { AppSettings } from "./settings";
 import {
   startPython,
@@ -116,6 +123,14 @@ app.whenReady().then(async () => {
   const queueManager = createQueueManager();
   console.log("QueueManager initialized");
 
+  // Initialize workflow service (restores active workflows from database)
+  try {
+    initializeWorkflows();
+    console.log("Workflow service initialized");
+  } catch (error) {
+    console.error("Workflow initialization failed:", error);
+  }
+
   // Load settings and start Python sidecar with configured mode
   try {
     const settings = loadSettings();
@@ -152,8 +167,9 @@ app.on("activate", () => {
   }
 });
 
-// Close database and Python before app quits
+// Close database, Python, and workflows before app quits
 app.on("before-quit", () => {
+  stopAllWorkflows();
   stopPython();
   closeDatabase();
 });
@@ -1709,6 +1725,17 @@ import {
   removeFromDNC,
   getDNCList,
 } from "./communicationService";
+import {
+  initializeWorkflows,
+  graduateCandidate,
+  graduateCandidates,
+  sendWorkflowEvent,
+  getWorkflowsByProject,
+  getWorkflowCandidateData,
+  stopAllWorkflows,
+  type GraduateContext,
+} from "./workflowService";
+import type { WorkflowEvent } from "./workflowMachine";
 
 /**
  * Send SMS to a candidate.
@@ -1879,6 +1906,144 @@ ipcMain.handle(
       return { success: true, data: rendered };
     } catch (error) {
       return { success: false, error: String(error) };
+    }
+  },
+);
+
+// ============================================================================
+// Workflow IPC Handlers (Phase 10)
+// ============================================================================
+
+/**
+ * Graduate a single candidate to outreach pipeline.
+ * Creates workflow actor and sends GRADUATE event.
+ * Returns { success: boolean, error?: string }
+ */
+ipcMain.handle(
+  "graduate-candidate",
+  async (
+    _event,
+    candidateId: string,
+    projectId: string,
+    context: GraduateContext,
+  ) => {
+    try {
+      const success = await graduateCandidate(candidateId, projectId, context);
+      return {
+        success,
+        error: success ? undefined : "Candidate already graduated or not found",
+      };
+    } catch (error) {
+      console.error("graduate-candidate error:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to graduate candidate",
+      };
+    }
+  },
+);
+
+/**
+ * Batch graduate multiple candidates to outreach pipeline.
+ * Returns { success: boolean, data?: { success: string[], failed: string[] }, error?: string }
+ */
+ipcMain.handle(
+  "graduate-candidates",
+  async (
+    _event,
+    candidateIds: string[],
+    projectId: string,
+    escalationTimeoutMs?: number,
+  ) => {
+    try {
+      const result = await graduateCandidates(
+        candidateIds,
+        projectId,
+        escalationTimeoutMs,
+      );
+      return { success: true, data: result };
+    } catch (error) {
+      console.error("graduate-candidates error:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to batch graduate",
+      };
+    }
+  },
+);
+
+/**
+ * Send an event to a workflow.
+ * eventType: PAUSE | RESUME | CANCEL | FORCE_CALL | SKIP_TO_SCREENING | REPLY_DETECTED | SCREENING_COMPLETE
+ * Returns { success: boolean, error?: string }
+ */
+ipcMain.handle(
+  "send-workflow-event",
+  async (
+    _event,
+    candidateId: string,
+    eventType: string,
+    payload?: Record<string, unknown>,
+  ) => {
+    try {
+      const event = { type: eventType, ...payload } as WorkflowEvent;
+      const success = sendWorkflowEvent(candidateId, event);
+      return { success, error: success ? undefined : "Workflow not found" };
+    } catch (error) {
+      console.error("send-workflow-event error:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to send event",
+      };
+    }
+  },
+);
+
+/**
+ * Get all workflows for a project.
+ * Returns { success: boolean, data?: WorkflowSummary[], error?: string }
+ */
+ipcMain.handle(
+  "get-workflows-by-project",
+  async (_event, projectId: string) => {
+    try {
+      const workflows = getWorkflowsByProject(projectId);
+      return { success: true, data: workflows };
+    } catch (error) {
+      console.error("get-workflows-by-project error:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to get workflows",
+      };
+    }
+  },
+);
+
+/**
+ * Get workflow data for a single candidate.
+ * Returns { success: boolean, data?: WorkflowCandidateData, error?: string }
+ */
+ipcMain.handle(
+  "get-workflow-candidate",
+  async (_event, candidateId: string) => {
+    try {
+      const data = getWorkflowCandidateData(candidateId);
+      if (!data) {
+        return { success: false, error: "Workflow not found" };
+      }
+      return { success: true, data };
+    } catch (error) {
+      console.error("get-workflow-candidate error:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to get workflow",
+      };
     }
   },
 );

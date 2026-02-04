@@ -69,8 +69,11 @@ function formatRelativeTime(dateString?: string): string {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-// Get valid actions for current status
-function getValidActions(status: string): Array<{
+// Get valid actions for current status and paused state
+function getValidActions(
+  status: string,
+  isPaused: boolean,
+): Array<{
   id: string;
   label: string;
   icon: React.ElementType;
@@ -83,38 +86,30 @@ function getValidActions(status: string): Array<{
     variant?: "destructive";
   }> = [];
 
+  // If paused, show resume as primary action
+  if (isPaused) {
+    actions.push({ id: "resume", label: "Resume", icon: Play });
+    actions.push({ id: "forceCall", label: "Force Call", icon: PhoneCall });
+    actions.push({
+      id: "cancel",
+      label: "Archive",
+      icon: Archive,
+      variant: "destructive",
+    });
+    return actions;
+  }
+
+  // Actions based on current column/status
   switch (status) {
+    case "pending":
     case "contacted":
-      actions.push({ id: "pause", label: "Pause", icon: Pause });
-      actions.push({
-        id: "skipToScreening",
-        label: "Skip to Screening",
-        icon: Forward,
-      });
-      actions.push({
-        id: "cancel",
-        label: "Archive",
-        icon: Archive,
-        variant: "destructive",
-      });
-      break;
-    case "paused":
-      actions.push({ id: "resume", label: "Resume", icon: Play });
-      actions.push({ id: "forceCall", label: "Force Call", icon: PhoneCall });
-      actions.push({
-        id: "cancel",
-        label: "Archive",
-        icon: Archive,
-        variant: "destructive",
-      });
-      break;
     case "replied":
+      actions.push({ id: "pause", label: "Pause", icon: Pause });
       actions.push({
         id: "skipToScreening",
         label: "Skip to Screening",
         icon: Forward,
       });
-      actions.push({ id: "pause", label: "Pause", icon: Pause });
       actions.push({
         id: "cancel",
         label: "Archive",
@@ -159,7 +154,7 @@ export function CandidateCard({ candidate, isDragging }: CandidateCardProps) {
     transition,
   };
 
-  const validActions = getValidActions(candidate.status);
+  const validActions = getValidActions(candidate.status, candidate.isPaused);
 
   // Handle action click
   const handleAction = async (actionId: string) => {
@@ -201,25 +196,27 @@ export function CandidateCard({ candidate, isDragging }: CandidateCardProps) {
       className={cn(
         "bg-card border rounded-lg p-3 shadow-sm hover:shadow-md transition cursor-grab",
         (isDragging || isSortableDragging) && "opacity-50 ring-2 ring-primary",
-        candidate.status === "paused" && "border-amber-500/50",
+        candidate.isPaused && "border-amber-500/50 bg-amber-500/5",
       )}
     >
       {/* Header: Name and Match Score */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <p className="font-medium text-sm text-foreground truncate">
-            {candidate.name}
-          </p>
-
-          {/* Status badge for paused */}
-          {candidate.status === "paused" && (
-            <Badge
-              variant="outline"
-              className="mt-1 text-xs border-amber-500/50 text-amber-500"
-            >
-              Paused
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            <p className="font-medium text-sm text-foreground truncate">
+              {candidate.name}
+            </p>
+            {/* Paused indicator badge */}
+            {candidate.isPaused && (
+              <Badge
+                variant="outline"
+                className="text-xs border-amber-500/50 text-amber-500 bg-amber-500/10"
+              >
+                <Pause className="h-2.5 w-2.5 mr-1" />
+                Paused
+              </Badge>
+            )}
+          </div>
         </div>
 
         {/* Match score badge */}

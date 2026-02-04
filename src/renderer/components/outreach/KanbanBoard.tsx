@@ -3,7 +3,9 @@
  *
  * Features:
  * - 6 columns: Pending, Contacted, Replied, Screening, Passed, Failed
- * - Drag-and-drop with validation (only valid transitions allowed)
+ * - Free drag-and-drop (recruiters have full manual control)
+ * - Only restriction: can't drag TO Failed column (use Archive)
+ * - Paused is a visual modifier (badge), not a separate column
  * - Drag overlay for visual feedback
  * - Horizontal scrolling for all columns
  */
@@ -23,10 +25,7 @@ import {
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { KanbanColumn } from "./KanbanColumn";
 import { CandidateCard } from "./CandidateCard";
-import {
-  useWorkflowStore,
-  VALID_TRANSITIONS,
-} from "../../stores/workflowStore";
+import { useWorkflowStore } from "../../stores/workflowStore";
 
 // ============================================================================
 // Column Configuration
@@ -38,10 +37,11 @@ const COLUMNS = [
   { id: "replied", title: "Replied", color: "bg-purple-500/20" },
   { id: "screening", title: "Screening", color: "bg-amber-500/20" },
   { id: "passed", title: "Passed", color: "bg-green-500/20" },
-  { id: "failed", title: "Failed", color: "bg-red-500/20" },
+  { id: "failed", title: "Failed/Archived", color: "bg-red-500/20" },
 ] as const;
 
 // Map workflow states to column IDs
+// Note: "paused" is NOT a column - paused candidates stay in their current column
 const STATE_TO_COLUMN: Record<string, string> = {
   pending: "pending",
   contacted: "contacted",
@@ -49,7 +49,6 @@ const STATE_TO_COLUMN: Record<string, string> = {
   screening: "screening",
   passed: "passed",
   failed: "failed",
-  paused: "contacted", // Show paused in contacted column (with badge)
   archived: "failed", // Show archived in failed column
 };
 
@@ -87,6 +86,8 @@ export function KanbanBoard() {
     }
 
     for (const candidate of candidates) {
+      // Use the candidate's status to determine column
+      // isPaused is just a visual modifier, doesn't change column
       const columnId = STATE_TO_COLUMN[candidate.status] || "pending";
       if (grouped[columnId]) {
         grouped[columnId].push(candidate);
@@ -127,18 +128,7 @@ export function KanbanBoard() {
     // If dropped on same column, do nothing
     if (currentColumnId === targetColumnId) return;
 
-    // Check if transition is valid
-    const currentStatus = candidate.status;
-    const eventType = VALID_TRANSITIONS[currentStatus]?.[targetColumnId];
-
-    if (!eventType) {
-      // Invalid transition - the store will show an error toast
-      console.log(
-        `[KanbanBoard] Invalid transition: ${currentStatus} -> ${targetColumnId}`,
-      );
-    }
-
-    // Attempt the move (store will validate and show appropriate toast)
+    // Attempt the move (store handles validation and feedback)
     moveCandidateToColumn(candidateId, targetColumnId);
   };
 

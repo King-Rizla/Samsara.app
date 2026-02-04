@@ -25,6 +25,10 @@ interface QueueStore {
   removeItem: (id: string) => void;
   removeItems: (ids: string[]) => void;
   updateItemId: (oldId: string, newId: string) => void;
+  updateOutreachStatus: (
+    id: string,
+    outreachStatus: "graduated" | null,
+  ) => void;
 
   // Selection
   toggleSelect: (id: string) => void;
@@ -34,6 +38,7 @@ interface QueueStore {
 
   // Bulk operations
   retryFailed: (ids: string[]) => Promise<void>;
+  retrySingle: (id: string) => Promise<void>;
   deleteSelected: () => Promise<void>;
 
   // Load from database
@@ -146,6 +151,22 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
         state.lastSelectedId === oldId ? newId : state.lastSelectedId,
     })),
 
+  updateOutreachStatus: (id, outreachStatus) =>
+    set((state) => ({
+      items: state.items.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              outreachStatus,
+              graduatedAt:
+                outreachStatus === "graduated"
+                  ? new Date().toISOString()
+                  : null,
+            }
+          : item,
+      ),
+    })),
+
   toggleSelect: (id) =>
     set((state) => {
       const newSelected = new Set(state.selectedIds);
@@ -225,6 +246,39 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
             error: err instanceof Error ? err.message : "Retry failed",
           });
         }
+      }
+    }
+  },
+
+  retrySingle: async (id) => {
+    const { items, updateStatus, updateStage } = get();
+    const projectId = useProjectStore.getState().activeProjectId;
+    const item = items.find((i) => i.id === id);
+
+    if (item && item.status === "failed") {
+      updateStatus(id, "submitted", { error: undefined });
+      updateStage(id, "Parsing...");
+
+      try {
+        const result = await window.api.reprocessCV(
+          item.filePath,
+          projectId || undefined,
+          id,
+        );
+        if (result.success && result.data) {
+          updateStatus(id, "completed", {
+            data: result.data,
+            parseConfidence: result.data.parse_confidence,
+          });
+        } else {
+          updateStatus(id, "failed", {
+            error: result.error || "Retry failed",
+          });
+        }
+      } catch (err) {
+        updateStatus(id, "failed", {
+          error: err instanceof Error ? err.message : "Retry failed",
+        });
       }
     }
   },

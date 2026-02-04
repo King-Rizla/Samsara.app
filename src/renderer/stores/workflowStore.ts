@@ -7,6 +7,7 @@
 
 import { create } from "zustand";
 import { toast } from "sonner";
+import { useQueueStore } from "./queueStore";
 
 // ============================================================================
 // Types
@@ -16,7 +17,8 @@ export interface WorkflowCandidate {
   id: string; // candidateId (same as cvId)
   name: string;
   matchScore: number;
-  status: string; // Current workflow state
+  status: string; // Current workflow state (contacted, replied, screening, passed, failed)
+  isPaused: boolean; // Paused is a modifier, not a separate state
   phone?: string;
   email?: string;
   contactedAt?: string;
@@ -64,39 +66,54 @@ interface WorkflowState {
 }
 
 // ============================================================================
-// Valid Transitions Map (for drag-drop validation)
+// Column Configuration
 // ============================================================================
 
 /**
- * Maps current state + target column to workflow event type.
- * If a transition is not in this map, it's invalid.
+ * Columns in the Kanban board.
+ * Note: "paused" is NOT a column - it's a visual modifier on cards in any column.
+ * Recruiters can freely move candidates between columns (except to "failed" which
+ * is determined by screening outcome or manual archive).
  */
-export const VALID_TRANSITIONS: Record<string, Record<string, string>> = {
-  pending: {
-    contacted: "GRADUATE",
-  },
-  contacted: {
-    paused: "PAUSE",
-    archived: "CANCEL",
-    screening: "SKIP_TO_SCREENING",
-  },
-  paused: {
-    contacted: "RESUME",
-    screening: "FORCE_CALL",
-    archived: "CANCEL",
-  },
-  replied: {
-    screening: "SKIP_TO_SCREENING",
-    paused: "PAUSE",
-    archived: "CANCEL",
-  },
-  screening: {
-    passed: "SCREENING_COMPLETE",
-    failed: "SCREENING_COMPLETE",
-    paused: "PAUSE",
-    archived: "CANCEL",
-  },
-};
+export const KANBAN_COLUMNS = [
+  "pending",
+  "contacted",
+  "replied",
+  "screening",
+  "passed",
+  "failed",
+] as const;
+
+/**
+ * Maps drag-drop target to workflow event.
+ * This is permissive - recruiters have full manual override control.
+ * The only restriction: can't drag TO "failed" (use archive/screening instead).
+ */
+export function getWorkflowEventForMove(
+  _fromStatus: string,
+  toStatus: string,
+): string | null {
+  // Can't drag TO failed column directly - use archive or screening outcome
+  if (toStatus === "failed") {
+    return null;
+  }
+
+  // Map target column to appropriate event
+  switch (toStatus) {
+    case "pending":
+      return "MANUAL_MOVE"; // Reset to pending
+    case "contacted":
+      return "MANUAL_MOVE"; // Move to contacted
+    case "replied":
+      return "REPLY_DETECTED"; // Mark as replied
+    case "screening":
+      return "SKIP_TO_SCREENING"; // Move to screening
+    case "passed":
+      return "SCREENING_COMPLETE"; // Mark as passed
+    default:
+      return "MANUAL_MOVE";
+  }
+}
 
 // ============================================================================
 // Store
@@ -143,11 +160,20 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
             }>;
             const lastMessage = messages[0];
 
+            // Determine if paused and the actual display status
+            const isPaused = workflow.currentState === "paused";
+            // If paused, show in the column they were in before pausing (default to contacted)
+            // The backend stores the previous state, but for now default to contacted
+            const displayStatus = isPaused
+              ? "contacted"
+              : workflow.currentState;
+
             return {
               id: workflow.candidateId,
               name: context?.candidateName || "Unknown",
               matchScore: workflow.matchScore,
-              status: workflow.currentState,
+              status: displayStatus,
+              isPaused,
               phone: context?.phone,
               email: context?.email,
               contactedAt: context?.timestamps?.contactedAt,
@@ -189,10 +215,18 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     }
 
     const currentStatus = candidate.status;
-    const eventType = VALID_TRANSITIONS[currentStatus]?.[newStatus];
+
+    // Can't drag TO failed column - use archive or screening outcome
+    if (newStatus === "failed") {
+      toast.error("Use Archive or Screening to move to Failed");
+      return;
+    }
+
+    // Get the appropriate event type
+    const eventType = getWorkflowEventForMove(currentStatus, newStatus);
 
     if (!eventType) {
-      toast.error(`Cannot move from ${currentStatus} to ${newStatus}`);
+      toast.error(`Cannot move to ${newStatus}`);
       return;
     }
 
@@ -210,6 +244,9 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       // For screening complete, we need to pass outcome
       if (eventType === "SCREENING_COMPLETE") {
         payload = { outcome: newStatus === "passed" ? "passed" : "failed" };
+      } else {
+        // For manual moves, include the target state
+        payload = { targetState: newStatus };
       }
 
       const result = await window.api.sendWorkflowEvent(
@@ -251,6 +288,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
 
       if (result.success) {
         toast.success(`${context.candidateName} graduated to outreach`);
+        // Update queue store immediately for instant UI feedback
+        useQueueStore.getState().updateOutreachStatus(candidateId, "graduated");
         // Refresh candidates if we're viewing this project
         if (currentProjectId === projectId) {
           get().refreshCandidates();
@@ -283,6 +322,12 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
           toast.success(
             `Graduated ${success.length} candidate${success.length !== 1 ? "s" : ""} to outreach`,
           );
+          // Update queue store immediately for instant UI feedback
+          const updateOutreachStatus =
+            useQueueStore.getState().updateOutreachStatus;
+          for (const id of success) {
+            updateOutreachStatus(id, "graduated");
+          }
         }
 
         if (failed.length > 0) {

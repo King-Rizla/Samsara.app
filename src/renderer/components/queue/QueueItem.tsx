@@ -1,11 +1,11 @@
-import { useCallback } from 'react';
-import { Download } from 'lucide-react';
-import { useQueueStore } from '../../stores/queueStore';
-import { useEditorStore } from '../../stores/editorStore';
-import { Badge } from '../ui/badge';
-import { Button } from '../ui/button';
-import { cn } from '../../lib/utils';
-import type { QueueItem as QueueItemType } from '../../types/cv';
+import { useCallback, useState } from "react";
+import { Download, RotateCcw, Loader2 } from "lucide-react";
+import { useQueueStore } from "../../stores/queueStore";
+import { useEditorStore } from "../../stores/editorStore";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { cn } from "../../lib/utils";
+import type { QueueItem as QueueItemType } from "../../types/cv";
 
 interface QueueItemProps {
   item: QueueItemType;
@@ -28,6 +28,8 @@ export function QueueItem({ item, onExport }: QueueItemProps) {
   const isSelected = useQueueStore((state) => state.selectedIds.has(item.id));
   const toggleSelect = useQueueStore((state) => state.toggleSelect);
   const selectRange = useQueueStore((state) => state.selectRange);
+  const retrySingle = useQueueStore((state) => state.retrySingle);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   const loadCV = useEditorStore((state) => state.loadCV);
 
@@ -42,7 +44,7 @@ export function QueueItem({ item, onExport }: QueueItemProps) {
         toggleSelect(item.id);
       }
     },
-    [toggleSelect, selectRange, item.id]
+    [toggleSelect, selectRange, item.id],
   );
 
   const setFailedItem = useEditorStore((state) => state.setFailedItem);
@@ -51,45 +53,63 @@ export function QueueItem({ item, onExport }: QueueItemProps) {
   const handleFilenameClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      if (item.status === 'completed') {
+      if (item.status === "completed") {
         loadCV(item.id);
-      } else if (item.status === 'failed') {
+      } else if (item.status === "failed") {
         setFailedItem(item);
       }
     },
-    [loadCV, setFailedItem, item]
+    [loadCV, setFailedItem, item],
   );
 
   // Handle export button click
   const handleExportClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      if (onExport && item.status === 'completed') {
+      if (onExport && item.status === "completed") {
         onExport(item.id, item.fileName);
       }
     },
-    [onExport, item.id, item.fileName, item.status]
+    [onExport, item.id, item.fileName, item.status],
+  );
+
+  // Handle retry button click for failed items
+  const handleRetryClick = useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (item.status === "failed" && !isRetrying) {
+        setIsRetrying(true);
+        try {
+          await retrySingle(item.id);
+        } finally {
+          setIsRetrying(false);
+        }
+      }
+    },
+    [retrySingle, item.id, item.status, isRetrying],
   );
 
   const getStatusBadge = () => {
-    if (item.status === 'queued') {
+    if (item.status === "queued") {
       return (
         <Badge className="bg-status-submitted/20 text-status-submitted border border-status-submitted whitespace-nowrap">
-          Queued<AnimatedEllipsis />
+          Queued
+          <AnimatedEllipsis />
         </Badge>
       );
     }
 
-    if (item.status === 'submitted') {
-      const stageText = item.stage?.replace('...', '') || 'Processing';
+    if (item.status === "submitted") {
+      const stageText = item.stage?.replace("...", "") || "Processing";
       return (
         <Badge className="bg-status-submitted/20 text-status-submitted border border-status-submitted whitespace-nowrap">
-          {stageText}<AnimatedEllipsis />
+          {stageText}
+          <AnimatedEllipsis />
         </Badge>
       );
     }
 
-    if (item.status === 'failed') {
+    if (item.status === "failed") {
       return (
         <Badge className="bg-status-failed/20 text-status-failed border border-status-failed">
           Error
@@ -97,17 +117,17 @@ export function QueueItem({ item, onExport }: QueueItemProps) {
       );
     }
 
-    if (item.status === 'completed' && item.parseConfidence !== undefined) {
+    if (item.status === "completed" && item.parseConfidence !== undefined) {
       const isLow = item.parseConfidence < 0.7;
       return (
         <Badge
           className={cn(
-            'border whitespace-nowrap',
+            "border whitespace-nowrap",
             isLow
-              ? 'bg-warning/20 text-warning border-warning'
-              : 'bg-status-completed/20 text-status-completed border-status-completed'
+              ? "bg-warning/20 text-warning border-warning"
+              : "bg-status-completed/20 text-status-completed border-status-completed",
           )}
-          title={isLow ? 'Low confidence - may need review' : 'High confidence'}
+          title={isLow ? "Low confidence - may need review" : "High confidence"}
         >
           {Math.round(item.parseConfidence * 100)}%
         </Badge>
@@ -120,8 +140,10 @@ export function QueueItem({ item, onExport }: QueueItemProps) {
   return (
     <div
       className={cn(
-        'flex items-center gap-3 px-4 py-3 rounded-md border border-border bg-card transition-colors',
-        isSelected ? 'bg-primary/10 border-primary' : 'hover:border-muted-foreground'
+        "flex items-center gap-3 px-4 py-3 rounded-md border border-border bg-card transition-colors",
+        isSelected
+          ? "bg-primary/10 border-primary"
+          : "hover:border-muted-foreground",
       )}
     >
       {/* Checkbox - shift-click here for range selection */}
@@ -140,11 +162,11 @@ export function QueueItem({ item, onExport }: QueueItemProps) {
           <span
             onClick={handleFilenameClick}
             className={cn(
-              'font-medium truncate',
-              (item.status === 'completed' || item.status === 'failed') &&
-                'cursor-pointer hover:underline transition-colors',
-              item.status === 'completed' && 'hover:text-primary',
-              item.status === 'failed' && 'hover:text-status-failed'
+              "font-medium truncate",
+              (item.status === "completed" || item.status === "failed") &&
+                "cursor-pointer hover:underline transition-colors",
+              item.status === "completed" && "hover:text-primary",
+              item.status === "failed" && "hover:text-status-failed",
             )}
           >
             {item.fileName}
@@ -159,7 +181,7 @@ export function QueueItem({ item, onExport }: QueueItemProps) {
       {getStatusBadge()}
 
       {/* Export button - only for completed items */}
-      {item.status === 'completed' && onExport && (
+      {item.status === "completed" && onExport && (
         <Button
           variant="ghost"
           size="sm"
@@ -168,6 +190,24 @@ export function QueueItem({ item, onExport }: QueueItemProps) {
           title="Export CV"
         >
           <Download className="h-4 w-4" />
+        </Button>
+      )}
+
+      {/* Retry button - only for failed items */}
+      {item.status === "failed" && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleRetryClick}
+          disabled={isRetrying}
+          className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
+          title="Retry processing"
+        >
+          {isRetrying ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <RotateCcw className="h-4 w-4" />
+          )}
         </Button>
       )}
     </div>

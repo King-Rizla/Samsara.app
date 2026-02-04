@@ -5,20 +5,20 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Architecture as the Advantage - Zero Latency, Zero Egress, Zero Per-Seat Tax
-**Current focus:** M2 Automated Outreach — Phase 10 (Automated Outreach Sequences) next
+**Current focus:** M2 Automated Outreach - Phase 10 (Automated Outreach Sequences)
 
 ## Current Position
 
-Phase: 9 of 14 (communication-infrastructure) COMPLETE
-Plan: 4 of 4 (all complete including gap closure)
-Status: Phase complete
-Last activity: 2026-02-04 — Completed 09-04-PLAN.md (UAT gap closure fixes)
+Phase: 10 of 14 (outreach-workflow-engine)
+Plan: 1 of 3 complete
+Status: In progress
+Last activity: 2026-02-04 - Completed 10-01-PLAN.md (XState workflow engine)
 
-Progress: M2 [██████░░░░░░░░░░░░] 3/6 phases | Phase 9 complete (with UAT fixes)
+Progress: M2 [███████░░░░░░░░░░░] 3.3/6 phases | Phase 10 plan 1/3 complete
 
 ## MVP Status (Separate Branch)
 
-MVP v0.1.0 shipped on `mvp` branch — see `.planning/RELEASE-WORKFLOW.md` for update process.
+MVP v0.1.0 shipped on `mvp` branch - see `.planning/RELEASE-WORKFLOW.md` for update process.
 
 - Landing: https://samsaralanding.vercel.app
 - Download: https://github.com/King-Rizla/Samsara.mvp/releases
@@ -27,9 +27,9 @@ MVP v0.1.0 shipped on `mvp` branch — see `.planning/RELEASE-WORKFLOW.md` for u
 
 **Velocity:**
 
-- Total plans completed: 54 (v1: 47, M2 Phase 8: 3, M2 Phase 9: 4)
+- Total plans completed: 55 (v1: 47, M2 Phase 8: 3, M2 Phase 9: 4, M2 Phase 10: 1)
 - Average duration: 11 min
-- Total execution time: ~7.7 hours
+- Total execution time: ~8 hours
 
 ## Accumulated Context
 
@@ -39,7 +39,7 @@ Full decision log in PROJECT.md Key Decisions table.
 
 **M2 architectural decisions:**
 
-- Polling-first for SMS/email/voice status (no webhooks — desktop app constraint)
+- Polling-first for SMS/email/voice status (no webhooks - desktop app constraint)
 - XState for outreach workflow state machine
 - ElevenLabs Conversational AI + Twilio SIP for voice screening
 - System audio capture via Windows WASAPI (macOS deferred)
@@ -66,6 +66,10 @@ Full decision log in PROJECT.md Key Decisions table.
 - 09-03: SMS/email sending via Twilio + Nodemailer, delivery polling, DNC registry, OutreachSection UI
 - 09-04: UAT gap closure - header overflow, AlertDialog delete, Outreach enabled, visibility fixes
 
+**Phase 10 in progress (2026-02-04):**
+
+- 10-01: XState v5 workflow engine with SQLite persistence, graduation IPC, TypeScript 5.6 upgrade
+
 | Decision              | Choice                       | Rationale                                   |
 | --------------------- | ---------------------------- | ------------------------------------------- |
 | Credential encryption | safeStorage (DPAPI/Keychain) | OS-level encryption, no app secrets         |
@@ -74,12 +78,15 @@ Full decision log in PROJECT.md Key Decisions table.
 | DNC normalization     | Digits only / lowercase      | Consistent matching regardless of format    |
 | Polling interval      | 60 seconds                   | Balance freshness vs API rate limits        |
 
-| Decision             | Choice                      | Rationale                                             |
-| -------------------- | --------------------------- | ----------------------------------------------------- |
-| Client-side preview  | Generate preview locally    | Instant feedback without IPC round-trip               |
-| SMS segment calc     | 160/153 chars               | Standard GSM-7 with UDH header                        |
-| Delete confirmation  | AlertDialog (not two-click) | Radix DropdownMenu closes between clicks              |
-| Empty state contrast | text-foreground/70          | Better readability than text-muted-foreground on dark |
+| Decision             | Choice                      | Rationale                                        |
+| -------------------- | --------------------------- | ------------------------------------------------ |
+| Client-side preview  | Generate preview locally    | Instant feedback without IPC round-trip          |
+| SMS segment calc     | 160/153 chars               | Standard GSM-7 with UDH header                   |
+| Delete confirmation  | AlertDialog (not two-click) | Radix DropdownMenu closes between clicks         |
+| Empty state contrast | text-foreground/70          | Better readability than text-muted-foreground    |
+| TypeScript version   | 5.6                         | XState v5 requires TS 5+ for type definitions    |
+| Snapshot persistence | On every state change       | Ensures durability across app restarts           |
+| Actor model          | Actor-per-candidate         | Independent workflow instances, easy persistence |
 
 ### Pending Todos
 
@@ -91,23 +98,23 @@ Full decision log in PROJECT.md Key Decisions table.
 
 - PDF parsing may fail on 30-40% of real resumes (pdfplumber fallback added in MVP)
 - macOS Gatekeeper rejects unsigned Python binaries
-- Voice AI provider space is fast-moving — ElevenLabs + Twilio SIP needs verification before Phase 11
+- Voice AI provider space is fast-moving - ElevenLabs + Twilio SIP needs verification before Phase 11
 - macOS system audio capture deferred (BlackHole requirement)
 
 ## Session Continuity
 
 Last session: 2026-02-04
-Stopped at: Completed Phase 9 (communication-infrastructure) with UAT gap closure
+Stopped at: Completed 10-01-PLAN.md (XState workflow engine)
 Resume file: None
 
 ## Next Steps
 
-**Phase 10: Automated Outreach Sequences**
+**Phase 10: Automated Outreach Sequences (continued)**
 
-Goal: Implement XState-based outreach workflow automation with SMS/email/call sequences and response handling
+Remaining plans:
 
-**Required feature (from Phase 9 UAT):**
-Candidate graduation from JD matches to Outreach pipeline. Candidates should NOT auto-populate - user/agent must explicitly graduate them.
+- 10-02: Kanban UI with graduation controls and workflow visualization
+- 10-03: Reply detection and workflow triggers
 
 **Deferred tests (must verify in Phase 10):**
 
@@ -116,11 +123,3 @@ Candidate graduation from JD matches to Outreach pipeline. Candidates should NOT
 - Open Send Message dialog
 - SMS character count display
 - DNC warning prevents sending
-
-Plans (to be generated):
-
-- 10-01: Candidate graduation + XState machine for outreach sequences
-- 10-02: Sequence builder UI
-- 10-03: Response detection and workflow triggers
-
-Run `/gsd:plan-phase 10` to generate Phase 10 plans.

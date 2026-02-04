@@ -10,17 +10,18 @@
  * - Horizontal scrolling for all columns
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   DndContext,
   DragOverlay,
-  closestCorners,
+  rectIntersection,
   PointerSensor,
   KeyboardSensor,
   useSensor,
   useSensors,
   type DragStartEvent,
   type DragEndEvent,
+  type DragOverEvent,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { KanbanColumn } from "./KanbanColumn";
@@ -39,6 +40,9 @@ const COLUMNS = [
   { id: "passed", title: "Passed", color: "bg-green-500/20" },
   { id: "failed", title: "Failed/Archived", color: "bg-red-500/20" },
 ] as const;
+
+// Column IDs for checking if we're over a column (not a card)
+const COLUMN_IDS = new Set<string>(COLUMNS.map((c) => c.id));
 
 // Map workflow states to column IDs
 // Note: "paused" is NOT a column - paused candidates stay in their current column
@@ -62,8 +66,9 @@ export function KanbanBoard() {
     (state) => state.moveCandidateToColumn,
   );
 
-  // Track active drag
+  // Track active drag and which column is being hovered
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [overColumnId, setOverColumnId] = useState<string | null>(null);
 
   // Set up sensors for drag-and-drop
   const sensors = useSensors(
@@ -104,40 +109,91 @@ export function KanbanBoard() {
   );
 
   // Handle drag start
-  const handleDragStart = (event: DragStartEvent) => {
+  const handleDragStart = useCallback((event: DragStartEvent) => {
     setActiveId(event.active.id as string);
-  };
+  }, []);
+
+  // Handle drag over - track which column we're hovering
+  const handleDragOver = useCallback(
+    (event: DragOverEvent) => {
+      const { over } = event;
+
+      if (!over) {
+        setOverColumnId(null);
+        return;
+      }
+
+      const overId = over.id as string;
+
+      // Check if we're over a column directly
+      if (COLUMN_IDS.has(overId)) {
+        setOverColumnId(overId);
+        return;
+      }
+
+      // We're over a card - find which column it belongs to
+      // The card's parent column can be determined from candidate status
+      const overCandidate = candidates.find((c) => c.id === overId);
+      if (overCandidate) {
+        const columnId = STATE_TO_COLUMN[overCandidate.status] || "pending";
+        setOverColumnId(columnId);
+      }
+    },
+    [candidates],
+  );
 
   // Handle drag end
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      setActiveId(null);
+      setOverColumnId(null);
+
+      if (!over) return;
+
+      const candidateId = active.id as string;
+      let targetColumnId = over.id as string;
+
+      // If dropped on a card, get the column that card is in
+      if (!COLUMN_IDS.has(targetColumnId)) {
+        const overCandidate = candidates.find((c) => c.id === targetColumnId);
+        if (overCandidate) {
+          targetColumnId = STATE_TO_COLUMN[overCandidate.status] || "pending";
+        } else {
+          return; // Unknown target
+        }
+      }
+
+      // Find the candidate being dragged
+      const candidate = candidates.find((c) => c.id === candidateId);
+      if (!candidate) return;
+
+      // Get current column
+      const currentColumnId = STATE_TO_COLUMN[candidate.status] || "pending";
+
+      // If dropped on same column, do nothing
+      if (currentColumnId === targetColumnId) return;
+
+      // Attempt the move (store handles validation and feedback)
+      moveCandidateToColumn(candidateId, targetColumnId);
+    },
+    [candidates, moveCandidateToColumn],
+  );
+
+  // Handle drag cancel
+  const handleDragCancel = useCallback(() => {
     setActiveId(null);
-
-    if (!over) return;
-
-    const candidateId = active.id as string;
-    const targetColumnId = over.id as string;
-
-    // Find the candidate
-    const candidate = candidates.find((c) => c.id === candidateId);
-    if (!candidate) return;
-
-    // Get current column
-    const currentColumnId = STATE_TO_COLUMN[candidate.status] || "pending";
-
-    // If dropped on same column, do nothing
-    if (currentColumnId === targetColumnId) return;
-
-    // Attempt the move (store handles validation and feedback)
-    moveCandidateToColumn(candidateId, targetColumnId);
-  };
+    setOverColumnId(null);
+  }, []);
 
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCorners}
+      collisionDetection={rectIntersection}
       onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
     >
       <div className="flex gap-4 p-4 h-full overflow-x-auto">
         {COLUMNS.map((column) => {
@@ -152,6 +208,8 @@ export function KanbanBoard() {
               count={columnCandidates.length}
               color={column.color}
               candidateIds={candidateIds}
+              isOver={overColumnId === column.id}
+              isDragging={activeId !== null}
             >
               {columnCandidates.map((candidate) => (
                 <CandidateCard
@@ -166,7 +224,7 @@ export function KanbanBoard() {
       </div>
 
       {/* Drag overlay */}
-      <DragOverlay>
+      <DragOverlay dropAnimation={null}>
         {activeCandidate ? (
           <CandidateCard candidate={activeCandidate} isDragging />
         ) : null}

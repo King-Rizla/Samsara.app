@@ -640,6 +640,89 @@ export function initDatabase(): Database.Database {
       console.log("Database migrated to version 7");
     }
 
+    if (version < 8) {
+      console.log(
+        "Migrating database to version 8 (reply polling + working hours + callbacks)...",
+      );
+
+      // Project outreach settings for escalation timeout and working hours
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS project_outreach_settings (
+          project_id TEXT PRIMARY KEY,
+          escalation_timeout_ms INTEGER DEFAULT 1800000,
+          ai_call_enabled INTEGER DEFAULT 1,
+          working_hours_enabled INTEGER DEFAULT 0,
+          working_hours_start TEXT DEFAULT '09:00',
+          working_hours_end TEXT DEFAULT '17:00',
+          working_hours_timezone TEXT DEFAULT 'America/New_York',
+          working_hours_days TEXT DEFAULT '[1,2,3,4,5]',
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+        );
+      `);
+
+      // Message queue for working hours delayed sends
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS message_queue (
+          id TEXT PRIMARY KEY,
+          project_id TEXT NOT NULL,
+          candidate_id TEXT NOT NULL,
+          message_type TEXT NOT NULL,
+          payload_json TEXT NOT NULL,
+          scheduled_for TEXT NOT NULL,
+          status TEXT DEFAULT 'pending',
+          sent_at TEXT,
+          created_at TEXT NOT NULL,
+          FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+          FOREIGN KEY (candidate_id) REFERENCES cvs(id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_message_queue_status ON message_queue(status, scheduled_for);
+      `);
+
+      // Callback slots for post-failed-screening scheduling (WRK-05)
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS callback_slots (
+          id TEXT PRIMARY KEY,
+          candidate_id TEXT NOT NULL,
+          project_id TEXT NOT NULL,
+          scheduled_at TEXT NOT NULL,
+          status TEXT DEFAULT 'pending',
+          recruiter_notes TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY (candidate_id) REFERENCES cvs(id) ON DELETE CASCADE,
+          FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_callback_slots_project ON callback_slots(project_id, status);
+        CREATE INDEX IF NOT EXISTS idx_callback_slots_candidate ON callback_slots(candidate_id);
+      `);
+
+      // Pending callback requests to track offered time slots
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS pending_callback_requests (
+          id TEXT PRIMARY KEY,
+          candidate_id TEXT NOT NULL,
+          project_id TEXT NOT NULL,
+          slots_json TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          FOREIGN KEY (candidate_id) REFERENCES cvs(id) ON DELETE CASCADE,
+          FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_pending_callbacks_candidate ON pending_callback_requests(candidate_id);
+      `);
+
+      // Add UNIQUE index on provider_message_id for idempotent message processing
+      // SQLite doesn't support adding constraints via ALTER TABLE, so we create index if not exists
+      // Note: This allows NULL values, only enforces uniqueness on non-null values
+      db.exec(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_messages_provider_id ON messages(provider_message_id) WHERE provider_message_id IS NOT NULL;
+      `);
+
+      db.pragma("user_version = 8");
+      console.log("Database migrated to version 8");
+    }
+
     // Store init timestamp
     const stmt = db.prepare(
       "INSERT OR REPLACE INTO app_meta (key, value) VALUES (?, ?)",

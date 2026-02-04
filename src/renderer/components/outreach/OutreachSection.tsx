@@ -237,7 +237,7 @@ export function OutreachSection() {
             onClick={() => setShowCommunication(true)}
           >
             <Settings className="h-4 w-4 mr-1" />
-            Settings
+            Communication
           </Button>
         </div>
       </div>

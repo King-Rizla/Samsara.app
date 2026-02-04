@@ -170,15 +170,11 @@ export function TemplateEditor({
   return (
     <div className="flex flex-col h-full">
       {/* Header toolbar */}
-      <div className="flex items-center justify-between p-4 border-b border-border">
-        <div className="flex items-center gap-4 min-w-0 flex-shrink">
-          <h2 className="text-lg font-medium truncate">
-            {isEditing ? "Edit Template" : "New Template"}
-          </h2>
-
+      <div className="flex items-center justify-between p-4 border-b border-border gap-4">
+        <div className="flex items-center gap-3">
           {/* Type toggle (only for new templates) */}
           {!isEditing && (
-            <div className="flex items-center gap-1 bg-muted rounded-md p-1 flex-shrink-0">
+            <div className="flex items-center gap-1 bg-muted rounded-md p-1">
               <Button
                 variant={type === "sms" ? "secondary" : "ghost"}
                 size="sm"
@@ -200,6 +196,18 @@ export function TemplateEditor({
             </div>
           )}
 
+          {/* Show type badge when editing */}
+          {isEditing && (
+            <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md text-sm text-muted-foreground">
+              {type === "sms" ? (
+                <MessageSquare className="h-4 w-4" />
+              ) : (
+                <Mail className="h-4 w-4" />
+              )}
+              {type.toUpperCase()}
+            </div>
+          )}
+
           <VariableDropdown
             variables={availableVariables}
             onInsert={handleInsertVariable}
@@ -214,7 +222,6 @@ export function TemplateEditor({
             onClick={onClose}
             disabled={isSaving}
           >
-            <X className="h-4 w-4 mr-1" />
             Cancel
           </Button>
           <Button

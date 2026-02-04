@@ -54,24 +54,24 @@ Plans:
 
 ### Phase 10: Outreach Workflow Engine
 
-**Goal**: The system orchestrates automated outreach sequences -- triggering SMS/email on candidate approval, escalating on timeout, and responding to replies -- with full recruiter override control
+**Goal**: The system orchestrates automated outreach sequences -- triggering SMS/email on candidate graduation, escalating on timeout, and responding to replies -- with full recruiter override control via Kanban dashboard
 **Depends on**: Phase 9
 **Requirements**: WRK-01, WRK-02, WRK-03, WRK-04, WRK-05
 **Success Criteria** (what must be TRUE):
 
-1. Outreach triggers automatically when recruiter approves a candidate (SMS + email sent)
+1. Outreach triggers automatically when recruiter graduates a candidate (SMS + email sent)
 2. System escalates to AI screening call after configurable timeout (default 30 min) with no reply
 3. Candidate reply triggers immediate AI screening call
 4. Recruiter can manually pause, cancel, or force-trigger any outreach step per candidate from the outreach dashboard
 5. Post-failed-screening candidate reply triggers the bot to schedule a recruiter callback slot
 
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
 
-- [ ] 10-01: XState state machine with SQLite persistence, outreach sequence lifecycle
-- [ ] 10-02: Timer-based escalation (timeout handling surviving app restart), reply detection
-- [ ] 10-03: Outreach dashboard UI (candidate pipeline view, manual controls, activity timeline)
+- [ ] 10-01-PLAN.md — XState v5 state machine, SQLite persistence, graduation flow, database migration v7
+- [ ] 10-02-PLAN.md — Reply polling, intent classification, working hours queueing, missed escalation recovery
+- [ ] 10-03-PLAN.md — Kanban dashboard UI with @dnd-kit, candidate cards, side panel, graduation controls
 
 ### Phase 11: AI Voice Screening
 
@@ -174,7 +174,7 @@ Milestone drafts in `.planning/milestones/`:
 | ------------------------------- | --------- | -------------- | ----------- | ---------- |
 | 8. Samsara Wheel & Foundation   | M2        | 3/3            | Complete    | 2026-01-31 |
 | 9. Communication Infrastructure | M2        | 4/4            | Complete    | 2026-02-04 |
-| 10. Outreach Workflow Engine    | M2        | 0/3            | Not started | -          |
+| 10. Outreach Workflow Engine    | M2        | 0/3            | Planned     | -          |
 | 11. AI Voice Screening          | M2        | 0/3            | Not started | -          |
 | 12. Recording & Transcription   | M2        | 0/2            | Not started | -          |
 | 13. ATS Integration             | M2        | 0/3            | Not started | -          |

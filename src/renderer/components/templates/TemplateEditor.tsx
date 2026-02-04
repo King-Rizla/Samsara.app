@@ -171,14 +171,14 @@ export function TemplateEditor({
     <div className="flex flex-col h-full">
       {/* Header toolbar */}
       <div className="flex items-center justify-between p-4 border-b border-border">
-        <div className="flex items-center gap-4">
-          <h2 className="text-lg font-medium">
+        <div className="flex items-center gap-4 min-w-0 flex-shrink">
+          <h2 className="text-lg font-medium truncate">
             {isEditing ? "Edit Template" : "New Template"}
           </h2>
 
           {/* Type toggle (only for new templates) */}
           {!isEditing && (
-            <div className="flex items-center gap-1 bg-muted rounded-md p-1">
+            <div className="flex items-center gap-1 bg-muted rounded-md p-1 flex-shrink-0">
               <Button
                 variant={type === "sms" ? "secondary" : "ghost"}
                 size="sm"
@@ -207,7 +207,7 @@ export function TemplateEditor({
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <Button
             variant="ghost"
             size="sm"

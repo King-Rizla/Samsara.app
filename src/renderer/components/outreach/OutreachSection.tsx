@@ -14,8 +14,9 @@
  */
 
 import { useEffect, useState, useMemo } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
+  ArrowLeft,
   MessageSquare,
   Mail,
   Phone,
@@ -23,6 +24,8 @@ import {
   Ban,
   AlertTriangle,
   Search,
+  FileText,
+  Settings,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -37,7 +40,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../ui/alert-dialog";
-import { SectionHeader } from "../sections/SectionHeader";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../ui/sheet";
+import { CommunicationSettings } from "../settings/CommunicationSettings";
+import { TemplateEditor, TemplateList } from "../templates";
 import { StatusWheel } from "./StatusWheel";
 import { CandidateTimeline } from "./CandidateTimeline";
 import { SendMessageDialog } from "./SendMessageDialog";
@@ -46,10 +51,14 @@ import { useQueueStore } from "../../stores/queueStore";
 import { useProjectStore } from "../../stores/projectStore";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { cn } from "../../lib/utils";
-import type { OutreachCandidate } from "../../types/communication";
+import type {
+  OutreachCandidate,
+  MessageTemplate,
+} from "../../types/communication";
 
 export function OutreachSection() {
   const { id: projectId } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [showSendDialog, setShowSendDialog] = useState(false);
   const [showDNCDialog, setShowDNCDialog] = useState(false);
@@ -57,6 +66,13 @@ export function OutreachSection() {
     type: "phone" | "email";
     value: string;
   } | null>(null);
+
+  // Templates and Communication settings state
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [showCommunication, setShowCommunication] = useState(false);
+  const [editingTemplate, setEditingTemplate] =
+    useState<MessageTemplate | null>(null);
+  const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
 
   // Stores
   const queueItems = useQueueStore((state) => state.items);
@@ -192,7 +208,39 @@ export function OutreachSection() {
 
   return (
     <div className="flex flex-col h-full">
-      <SectionHeader title="Candidate Outreach" />
+      {/* Section header with Templates and Settings buttons */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-background">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate(`/project/${projectId}`)}
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Project Home
+          </Button>
+          <div className="h-4 w-px bg-border" />
+          <span className="font-medium text-sm">Candidate Outreach</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowTemplates(true)}
+          >
+            <FileText className="h-4 w-4 mr-1" />
+            Templates
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowCommunication(true)}
+          >
+            <Settings className="h-4 w-4 mr-1" />
+            Settings
+          </Button>
+        </div>
+      </div>
 
       <div className="flex-1 flex min-h-0">
         {/* Left panel - Candidate list */}
@@ -411,6 +459,48 @@ export function OutreachSection() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Communication settings sheet */}
+      <Sheet open={showCommunication} onOpenChange={setShowCommunication}>
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-xl p-0 overflow-y-auto"
+        >
+          <SheetHeader className="p-4 border-b border-border">
+            <SheetTitle>Communication Settings</SheetTitle>
+          </SheetHeader>
+          <CommunicationSettings />
+        </SheetContent>
+      </Sheet>
+
+      {/* Templates management sheet */}
+      <Sheet open={showTemplates} onOpenChange={setShowTemplates}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl p-0">
+          {editingTemplate || isCreatingTemplate ? (
+            <TemplateEditor
+              template={editingTemplate}
+              onClose={() => {
+                setEditingTemplate(null);
+                setIsCreatingTemplate(false);
+              }}
+              onSave={() => {
+                setEditingTemplate(null);
+                setIsCreatingTemplate(false);
+              }}
+            />
+          ) : (
+            <>
+              <SheetHeader className="p-4 border-b border-border">
+                <SheetTitle>Message Templates</SheetTitle>
+              </SheetHeader>
+              <TemplateList
+                onEdit={(template) => setEditingTemplate(template)}
+                onNew={() => setIsCreatingTemplate(true)}
+              />
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

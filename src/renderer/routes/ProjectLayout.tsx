@@ -1,20 +1,11 @@
 import { useEffect, useState } from "react";
 import { Outlet, useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Settings, FileText, MessageSquare } from "lucide-react";
+import { ArrowLeft, Settings } from "lucide-react";
 import { Button } from "../components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "../components/ui/sheet";
 import { LLMSettings } from "../components/settings/LLMSettings";
-import { CommunicationSettings } from "../components/settings/CommunicationSettings";
-import { TemplateEditor, TemplateList } from "../components/templates";
 import { useQueueStore } from "../stores/queueStore";
 import { useJDStore } from "../stores/jdStore";
 import { useProjectStore } from "../stores/projectStore";
-import type { MessageTemplate } from "../types/communication";
 
 export function ProjectLayout() {
   const { id: projectId } = useParams<{ id: string }>();
@@ -25,11 +16,6 @@ export function ProjectLayout() {
   const { selectProject, projects } = useProjectStore();
 
   const [showSettings, setShowSettings] = useState(false);
-  const [showTemplates, setShowTemplates] = useState(false);
-  const [showCommunication, setShowCommunication] = useState(false);
-  const [editingTemplate, setEditingTemplate] =
-    useState<MessageTemplate | null>(null);
-  const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
 
   const currentProject = projects.find((p) => p.id === projectId);
 
@@ -76,74 +62,14 @@ export function ProjectLayout() {
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowTemplates(true)}
-          >
-            <FileText className="h-4 w-4 mr-1" />
-            Templates
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowCommunication(true)}
-          >
-            <MessageSquare className="h-4 w-4 mr-1" />
-            Outreach
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowSettings(!showSettings)}
-          >
-            <Settings className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Communication settings sheet */}
-      <Sheet open={showCommunication} onOpenChange={setShowCommunication}>
-        <SheetContent
-          side="right"
-          className="w-full sm:max-w-xl p-0 overflow-y-auto"
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowSettings(!showSettings)}
         >
-          <SheetHeader className="p-4 border-b border-border">
-            <SheetTitle>Communication Settings</SheetTitle>
-          </SheetHeader>
-          <CommunicationSettings />
-        </SheetContent>
-      </Sheet>
-
-      {/* Templates management sheet */}
-      <Sheet open={showTemplates} onOpenChange={setShowTemplates}>
-        <SheetContent side="right" className="w-full sm:max-w-2xl p-0">
-          {editingTemplate || isCreatingTemplate ? (
-            <TemplateEditor
-              template={editingTemplate}
-              onClose={() => {
-                setEditingTemplate(null);
-                setIsCreatingTemplate(false);
-              }}
-              onSave={() => {
-                setEditingTemplate(null);
-                setIsCreatingTemplate(false);
-              }}
-            />
-          ) : (
-            <>
-              <SheetHeader className="p-4 border-b border-border">
-                <SheetTitle>Message Templates</SheetTitle>
-              </SheetHeader>
-              <TemplateList
-                onEdit={(template) => setEditingTemplate(template)}
-                onNew={() => setIsCreatingTemplate(true)}
-              />
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
+          <Settings className="h-4 w-4" />
+        </Button>
+      </div>
 
       {/* Settings panel (project-level, above section content) */}
       {showSettings && (

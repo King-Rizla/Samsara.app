@@ -27,6 +27,8 @@ interface CVSummary {
   contact_json: string;
   parse_confidence: number;
   created_at: string;
+  outreach_status?: string | null;
+  graduated_at?: string | null;
 }
 
 interface GetAllCVsResult {

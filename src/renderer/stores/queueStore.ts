@@ -261,6 +261,9 @@ export const useQueueStore = create<QueueStore>((set, get) => ({
               status: "completed" as QueueStatus,
               parseConfidence: cv.parse_confidence,
               createdAt: cv.created_at,
+              outreachStatus:
+                cv.outreach_status === "graduated" ? "graduated" : null,
+              graduatedAt: cv.graduated_at || null,
             }))
           : [];
 

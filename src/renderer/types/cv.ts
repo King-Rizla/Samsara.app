@@ -86,6 +86,9 @@ export interface QueueItem {
   data?: ParsedCV;
   parseConfidence?: number;
   createdAt: string;
+  // Outreach status (Phase 10)
+  outreachStatus?: "graduated" | null;
+  graduatedAt?: string | null;
 }
 
 export interface QueueStatusUpdate {

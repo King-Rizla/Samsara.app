@@ -1,12 +1,18 @@
-import { useEffect, useState, useMemo } from "react";
-import { Search } from "lucide-react";
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { Search, GraduationCap, Loader2, Check } from "lucide-react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
+import { Checkbox } from "../ui/checkbox";
+import { Switch } from "../ui/switch";
+import { Label } from "../ui/label";
 import { useJDStore } from "../../stores/jdStore";
 import { useQueueStore } from "../../stores/queueStore";
 import { useEditorStore } from "../../stores/editorStore";
+import { useWorkflowStore } from "../../stores/workflowStore";
 import { getMatchQuality } from "../../lib/matchingEngine";
+import { GraduationControls } from "../outreach/GraduationControls";
+import { useParams } from "react-router-dom";
 
 /**
  * MatchResults displays ranked CV results against the active JD.
@@ -19,6 +25,7 @@ import { getMatchQuality } from "../../lib/matchingEngine";
  * 5. After matching, clearSelection() clears the checkboxes
  */
 export function MatchResults() {
+  const { id: projectId } = useParams<{ id: string }>();
   const { activeJD, matchResults, matchCVs, loadMatchResults } = useJDStore();
 
   // Read selected CVs from queueStore - these are selected via checkboxes in QueueList
@@ -27,8 +34,20 @@ export function MatchResults() {
 
   const { loadCV } = useEditorStore();
 
+  // Workflow store for graduation
+  const graduateCandidate = useWorkflowStore(
+    (state) => state.graduateCandidate,
+  );
+
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Graduation UI state
+  const [selectedForGraduation, setSelectedForGraduation] = useState<
+    Set<string>
+  >(new Set());
+  const [graduatingIds, setGraduatingIds] = useState<Set<string>>(new Set());
+  const [hideGraduated, setHideGraduated] = useState(false);
 
   // Load match results when JD changes
   useEffect(() => {
@@ -67,11 +86,63 @@ export function MatchResults() {
     await matchCVs(allIds);
   };
 
-  // Get CV file name from queue items
-  const getCVFileName = (cvId: string) => {
+  // Get CV data from queue items
+  const getCVData = (cvId: string) => {
     const item = queueItems.find((i) => i.id === cvId);
-    return item?.fileName || "Unknown CV";
+    return {
+      fileName: item?.fileName || "Unknown CV",
+      name: item?.data?.contact?.name || item?.fileName || "Unknown",
+      phone: item?.data?.contact?.phone,
+      email: item?.data?.contact?.email,
+      isGraduated: item?.outreachStatus === "graduated",
+    };
   };
+
+  // Toggle selection for graduation
+  const toggleGraduationSelection = useCallback((cvId: string) => {
+    setSelectedForGraduation((prev) => {
+      const next = new Set(prev);
+      if (next.has(cvId)) {
+        next.delete(cvId);
+      } else {
+        next.add(cvId);
+      }
+      return next;
+    });
+  }, []);
+
+  // Graduate individual candidate
+  const handleGraduateOne = useCallback(
+    async (cvId: string, matchScore: number) => {
+      if (!projectId) return;
+
+      const cvData = getCVData(cvId);
+      if (cvData.isGraduated) return;
+
+      setGraduatingIds((prev) => new Set([...prev, cvId]));
+
+      try {
+        await graduateCandidate(cvId, projectId, {
+          matchScore,
+          candidateName: cvData.name,
+          phone: cvData.phone,
+          email: cvData.email,
+        });
+      } finally {
+        setGraduatingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(cvId);
+          return next;
+        });
+      }
+    },
+    [projectId, graduateCandidate],
+  );
+
+  // Clear graduation selection after batch graduation
+  const handleBatchGraduated = useCallback(() => {
+    setSelectedForGraduation(new Set());
+  }, []);
 
   // Filter match results to only show CVs that exist in current project
   // This prevents showing stale results from CVs that were deleted or from other projects
@@ -81,6 +152,11 @@ export function MatchResults() {
       // Must exist in current project
       const item = queueItems.find((i) => i.id === result.cv_id);
       if (!item) return false;
+
+      // Hide graduated if toggle is on
+      if (hideGraduated && item.outreachStatus === "graduated") {
+        return false;
+      }
 
       // Filter by search query if provided
       if (query) {
@@ -96,7 +172,14 @@ export function MatchResults() {
 
       return true;
     });
-  }, [matchResults, queueItems, searchQuery]);
+  }, [matchResults, queueItems, searchQuery, hideGraduated]);
+
+  // IDs selected for graduation that are valid (in filtered results)
+  const validSelectedIds = useMemo(() => {
+    return [...selectedForGraduation].filter((id) =>
+      filteredMatchResults.some((r) => r.cv_id === id),
+    );
+  }, [selectedForGraduation, filteredMatchResults]);
 
   return (
     <div className="h-full flex flex-col">
@@ -142,8 +225,8 @@ export function MatchResults() {
         </p>
       </div>
 
-      {/* Search bar */}
-      <div className="px-4 py-2 border-b border-border">
+      {/* Search bar and filters */}
+      <div className="px-4 py-2 border-b border-border space-y-2">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -153,7 +236,29 @@ export function MatchResults() {
             className="pl-8"
           />
         </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            id="hide-graduated"
+            checked={hideGraduated}
+            onCheckedChange={setHideGraduated}
+          />
+          <Label
+            htmlFor="hide-graduated"
+            className="text-xs text-muted-foreground"
+          >
+            Hide graduated
+          </Label>
+        </div>
       </div>
+
+      {/* Graduation controls for selected candidates */}
+      {projectId && validSelectedIds.length > 0 && (
+        <GraduationControls
+          selectedIds={validSelectedIds}
+          projectId={projectId}
+          onGraduated={handleBatchGraduated}
+        />
+      )}
 
       {/* Results list */}
       <div className="flex-1 overflow-y-auto p-2">
@@ -168,23 +273,71 @@ export function MatchResults() {
           <div className="space-y-2">
             {filteredMatchResults.map((result, index) => {
               const quality = getMatchQuality(result.match_score);
+              const cvData = getCVData(result.cv_id);
+              const isSelected = selectedForGraduation.has(result.cv_id);
+              const isGraduating = graduatingIds.has(result.cv_id);
+
               return (
                 <div
                   key={result.cv_id}
-                  className="p-3 rounded-md border border-border bg-card hover:border-muted-foreground
-                             cursor-pointer transition-colors"
+                  className={`p-3 rounded-md border bg-card hover:border-muted-foreground
+                             cursor-pointer transition-colors ${
+                               cvData.isGraduated
+                                 ? "border-green-500/30 bg-green-500/5"
+                                 : "border-border"
+                             }`}
                   onClick={() => loadCV(result.cv_id)}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
+                      {/* Checkbox for batch graduation */}
+                      {!cvData.isGraduated && (
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() =>
+                            toggleGraduationSelection(result.cv_id)
+                          }
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex-shrink-0"
+                        />
+                      )}
                       <span className="text-lg font-bold text-muted-foreground w-6">
                         #{index + 1}
                       </span>
                       <span className="font-medium text-foreground truncate">
-                        {getCVFileName(result.cv_id)}
+                        {cvData.fileName}
                       </span>
+                      {/* Graduated badge */}
+                      {cvData.isGraduated && (
+                        <Badge
+                          variant="secondary"
+                          className="bg-green-500/20 text-green-600 border-green-500/30"
+                        >
+                          <Check className="h-3 w-3 mr-1" />
+                          Graduated
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
+                      {/* Graduate button for individual candidate */}
+                      {!cvData.isGraduated && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleGraduateOne(result.cv_id, result.match_score);
+                          }}
+                          disabled={isGraduating}
+                        >
+                          {isGraduating ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <GraduationCap className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      )}
                       <span
                         className={`
                           text-lg font-bold

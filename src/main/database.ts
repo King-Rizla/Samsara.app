@@ -82,9 +82,12 @@ export interface CVRecord {
 export interface CVSummary {
   id: string;
   file_name: string;
+  file_path?: string;
   contact_json: string;
   parse_confidence: number;
   created_at: string;
+  outreach_status?: string | null;
+  graduated_at?: string | null;
 }
 
 // ============================================================================
@@ -842,7 +845,7 @@ export function getAllCVs(projectId?: string): CVSummary[] {
   // Queued/processing CVs are returned by getQueuedCVsByProject()
   // This separation ensures no duplicate items in the UI
   let query = `
-    SELECT id, file_name, file_path, contact_json, parse_confidence, created_at
+    SELECT id, file_name, file_path, contact_json, parse_confidence, created_at, outreach_status, graduated_at
     FROM cvs
     WHERE status = 'completed'
   `;

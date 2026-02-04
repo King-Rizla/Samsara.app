@@ -1,10 +1,12 @@
-import { useEffect } from 'react';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
-import { useJDStore } from '../../stores/jdStore';
-import { useQueueStore } from '../../stores/queueStore';
-import { useEditorStore } from '../../stores/editorStore';
-import { getMatchQuality } from '../../lib/matchingEngine';
+import { useEffect, useState, useMemo } from "react";
+import { Search } from "lucide-react";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
+import { Input } from "../ui/input";
+import { useJDStore } from "../../stores/jdStore";
+import { useQueueStore } from "../../stores/queueStore";
+import { useEditorStore } from "../../stores/editorStore";
+import { getMatchQuality } from "../../lib/matchingEngine";
 
 /**
  * MatchResults displays ranked CV results against the active JD.
@@ -25,6 +27,9 @@ export function MatchResults() {
 
   const { loadCV } = useEditorStore();
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+
   // Load match results when JD changes
   useEffect(() => {
     if (activeJD) {
@@ -41,38 +46,57 @@ export function MatchResults() {
   }
 
   // Filter to only completed CVs (those that have been successfully parsed)
-  const completedCVs = queueItems.filter(i => i.status === 'completed');
+  const completedCVs = queueItems.filter((i) => i.status === "completed");
 
   // Get the intersection of selectedIds and completedCVs
   // selectedIds comes from checkboxes in QueueList component
-  const selectedCVIds = [...selectedIds].filter(id =>
-    completedCVs.some(cv => cv.id === id)
+  const selectedCVIds = [...selectedIds].filter((id) =>
+    completedCVs.some((cv) => cv.id === id),
   );
 
   // Match selected CVs - uses IDs from queue checkboxes
   const handleMatchSelected = async () => {
     if (selectedCVIds.length === 0) return;
     await matchCVs(selectedCVIds);
-    clearSelection();  // Clear queue checkboxes after matching
+    clearSelection(); // Clear queue checkboxes after matching
   };
 
   // Match all completed CVs
   const handleMatchAll = async () => {
-    const allIds = completedCVs.map(cv => cv.id);
+    const allIds = completedCVs.map((cv) => cv.id);
     await matchCVs(allIds);
   };
 
   // Get CV file name from queue items
   const getCVFileName = (cvId: string) => {
-    const item = queueItems.find(i => i.id === cvId);
-    return item?.fileName || 'Unknown CV';
+    const item = queueItems.find((i) => i.id === cvId);
+    return item?.fileName || "Unknown CV";
   };
 
   // Filter match results to only show CVs that exist in current project
   // This prevents showing stale results from CVs that were deleted or from other projects
-  const filteredMatchResults = matchResults.filter(result =>
-    queueItems.some(item => item.id === result.cv_id)
-  );
+  const filteredMatchResults = useMemo(() => {
+    const query = searchQuery.toLowerCase();
+    return matchResults.filter((result) => {
+      // Must exist in current project
+      const item = queueItems.find((i) => i.id === result.cv_id);
+      if (!item) return false;
+
+      // Filter by search query if provided
+      if (query) {
+        const fileName = item.fileName?.toLowerCase() || "";
+        const candidateName = item.data?.contact?.name?.toLowerCase() || "";
+        const matchedSkills = result.matched_skills.join(" ").toLowerCase();
+        return (
+          fileName.includes(query) ||
+          candidateName.includes(query) ||
+          matchedSkills.includes(query)
+        );
+      }
+
+      return true;
+    });
+  }, [matchResults, queueItems, searchQuery]);
 
   return (
     <div className="h-full flex flex-col">
@@ -113,8 +137,22 @@ export function MatchResults() {
         </div>
         {/* Explicit user guidance for M-01b workflow */}
         <p className="text-xs text-muted-foreground">
-          To match specific CVs: Use the checkboxes in the Queue panel (left) to select CVs, then click "Match Selected".
+          To match specific CVs: Use the checkboxes in the Queue panel (left) to
+          select CVs, then click "Match Selected".
         </p>
+      </div>
+
+      {/* Search bar */}
+      <div className="px-4 py-2 border-b border-border">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search results..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-8"
+          />
+        </div>
       </div>
 
       {/* Results list */}
@@ -122,7 +160,9 @@ export function MatchResults() {
         {filteredMatchResults.length === 0 ? (
           <div className="p-4 text-center text-muted-foreground">
             <p>No match results yet.</p>
-            <p className="text-sm mt-1">Match CVs against this JD to see rankings.</p>
+            <p className="text-sm mt-1">
+              Match CVs against this JD to see rankings.
+            </p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -148,10 +188,10 @@ export function MatchResults() {
                       <span
                         className={`
                           text-lg font-bold
-                          ${quality.color === 'green' ? 'text-green-500' : ''}
-                          ${quality.color === 'yellow' ? 'text-yellow-500' : ''}
-                          ${quality.color === 'orange' ? 'text-orange-500' : ''}
-                          ${quality.color === 'red' ? 'text-red-500' : ''}
+                          ${quality.color === "green" ? "text-green-500" : ""}
+                          ${quality.color === "yellow" ? "text-yellow-500" : ""}
+                          ${quality.color === "orange" ? "text-orange-500" : ""}
+                          ${quality.color === "red" ? "text-red-500" : ""}
                         `}
                       >
                         {result.match_score}%
@@ -159,10 +199,10 @@ export function MatchResults() {
                       <Badge
                         variant="outline"
                         className={`
-                          ${quality.color === 'green' ? 'border-green-500 text-green-500' : ''}
-                          ${quality.color === 'yellow' ? 'border-yellow-500 text-yellow-500' : ''}
-                          ${quality.color === 'orange' ? 'border-orange-500 text-orange-500' : ''}
-                          ${quality.color === 'red' ? 'border-red-500 text-red-500' : ''}
+                          ${quality.color === "green" ? "border-green-500 text-green-500" : ""}
+                          ${quality.color === "yellow" ? "border-yellow-500 text-yellow-500" : ""}
+                          ${quality.color === "orange" ? "border-orange-500 text-orange-500" : ""}
+                          ${quality.color === "red" ? "border-red-500 text-red-500" : ""}
                         `}
                       >
                         {quality.label}

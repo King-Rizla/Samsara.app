@@ -7,24 +7,40 @@ import type { QueueStatus } from "../../types/cv";
 interface QueueListProps {
   status: QueueStatus;
   onExport?: (cvId: string, cvName: string) => void;
+  searchQuery?: string;
 }
 
-export function QueueList({ status, onExport }: QueueListProps) {
+export function QueueList({
+  status,
+  onExport,
+  searchQuery = "",
+}: QueueListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   // Get stable reference to items array, then filter with useMemo
   // This avoids React 19's infinite loop detection with useSyncExternalStore
   const allItems = useQueueStore((state) => state.items);
-  const items = useMemo(
-    () =>
-      allItems.filter((item) => {
-        // Submitted tab shows both 'queued' and 'submitted' items (all in-progress CVs)
-        if (status === "submitted") {
-          return item.status === "submitted" || item.status === "queued";
-        }
-        return item.status === status;
-      }),
-    [allItems, status],
-  );
+  const items = useMemo(() => {
+    const query = searchQuery.toLowerCase();
+    return allItems.filter((item) => {
+      // Filter by status first
+      // Submitted tab shows both 'queued' and 'submitted' items (all in-progress CVs)
+      const statusMatch =
+        status === "submitted"
+          ? item.status === "submitted" || item.status === "queued"
+          : item.status === status;
+
+      if (!statusMatch) return false;
+
+      // Then filter by search query if provided
+      if (query) {
+        const fileName = item.fileName?.toLowerCase() || "";
+        const candidateName = item.data?.contact?.name?.toLowerCase() || "";
+        return fileName.includes(query) || candidateName.includes(query);
+      }
+
+      return true;
+    });
+  }, [allItems, status, searchQuery]);
 
   const virtualizer = useVirtualizer({
     count: items.length,

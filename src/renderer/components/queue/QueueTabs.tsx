@@ -1,6 +1,8 @@
 import { useMemo, useCallback, useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
+import { Search } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { Input } from "../ui/input";
 import { useQueueStore } from "../../stores/queueStore";
 import { QueueList } from "./QueueList";
 import { QueueControls } from "./QueueControls";
@@ -10,6 +12,9 @@ import { ExportModal } from "../export/ExportModal";
 export function QueueTabs() {
   const items = useQueueStore((state) => state.items);
   const clearSelection = useQueueStore((state) => state.clearSelection);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Export modal state
   const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -113,18 +118,33 @@ export function QueueTabs() {
             </TabsTrigger>
           </TabsList>
 
-          <QueueControls onBulkExport={handleBulkExport} />
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search candidates..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 w-48 h-8"
+              />
+            </div>
+            <QueueControls onBulkExport={handleBulkExport} />
+          </div>
         </div>
 
         <div className="flex-1 min-h-0 overflow-hidden relative">
           <TabsContent value="completed" className="absolute inset-0 m-0 p-0">
-            <QueueList status="completed" onExport={handleExport} />
+            <QueueList
+              status="completed"
+              onExport={handleExport}
+              searchQuery={searchQuery}
+            />
           </TabsContent>
           <TabsContent value="submitted" className="absolute inset-0 m-0 p-0">
-            <QueueList status="submitted" />
+            <QueueList status="submitted" searchQuery={searchQuery} />
           </TabsContent>
           <TabsContent value="failed" className="absolute inset-0 m-0 p-0">
-            <QueueList status="failed" />
+            <QueueList status="failed" searchQuery={searchQuery} />
           </TabsContent>
         </div>
       </Tabs>

@@ -7,6 +7,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../ui/alert-dialog";
 import { useTemplateStore } from "../../stores/templateStore";
 import { useProjectStore } from "../../stores/projectStore";
 import {
@@ -32,7 +42,8 @@ interface TemplateListProps {
  */
 export function TemplateList({ onEdit, onNew }: TemplateListProps) {
   const [filter, setFilter] = useState<FilterType>("all");
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [templateToDelete, setTemplateToDelete] =
+    useState<MessageTemplate | null>(null);
 
   const { templates, isLoading, loadTemplates, deleteTemplate } =
     useTemplateStore();
@@ -54,18 +65,6 @@ export function TemplateList({ onEdit, onNew }: TemplateListProps) {
   // Count by type
   const smsCount = templates.filter((t) => t.type === "sms").length;
   const emailCount = templates.filter((t) => t.type === "email").length;
-
-  // Handle delete with confirmation
-  const handleDelete = async (id: string) => {
-    if (deleteConfirmId === id) {
-      await deleteTemplate(id);
-      setDeleteConfirmId(null);
-    } else {
-      setDeleteConfirmId(id);
-      // Auto-clear confirmation after 3 seconds
-      setTimeout(() => setDeleteConfirmId(null), 3000);
-    }
-  };
 
   // Format relative date
   const formatDate = (dateString: string) => {
@@ -211,13 +210,11 @@ export function TemplateList({ onEdit, onNew }: TemplateListProps) {
                         className="text-destructive focus:text-destructive"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDelete(template.id);
+                          setTemplateToDelete(template);
                         }}
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
-                        {deleteConfirmId === template.id
-                          ? "Click again to confirm"
-                          : "Delete"}
+                        Delete
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -227,6 +224,36 @@ export function TemplateList({ onEdit, onNew }: TemplateListProps) {
           </div>
         )}
       </div>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog
+        open={!!templateToDelete}
+        onOpenChange={(open) => !open && setTemplateToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Template</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{templateToDelete?.name}"? This
+              action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (templateToDelete) {
+                  await deleteTemplate(templateToDelete.id);
+                  setTemplateToDelete(null);
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

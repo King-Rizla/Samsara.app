@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 9 of 14 (communication-infrastructure) COMPLETE
-Plan: 3 of 3 (all complete)
+Plan: 4 of 4 (all complete including gap closure)
 Status: Phase complete
-Last activity: 2026-02-03 — Completed 09-03-PLAN.md (SMS/email sending, OutreachSection UI)
+Last activity: 2026-02-04 — Completed 09-04-PLAN.md (UAT gap closure fixes)
 
-Progress: M2 [██████░░░░░░░░░░░░] 3/6 phases | Phase 9 complete
+Progress: M2 [██████░░░░░░░░░░░░] 3/6 phases | Phase 9 complete (with UAT fixes)
 
 ## MVP Status (Separate Branch)
 
@@ -27,9 +27,9 @@ MVP v0.1.0 shipped on `mvp` branch — see `.planning/RELEASE-WORKFLOW.md` for u
 
 **Velocity:**
 
-- Total plans completed: 53 (v1: 47, M2 Phase 8: 3, M2 Phase 9: 3)
+- Total plans completed: 54 (v1: 47, M2 Phase 8: 3, M2 Phase 9: 4)
 - Average duration: 11 min
-- Total execution time: ~7.6 hours
+- Total execution time: ~7.7 hours
 
 ## Accumulated Context
 
@@ -59,11 +59,12 @@ Full decision log in PROJECT.md Key Decisions table.
 - ProjectStatsBar with live store data
 - Database migration v5 with 7 M2 outreach tables
 
-**Phase 9 completed (2026-02-03):**
+**Phase 9 completed (2026-02-04):**
 
 - 09-01: Credential manager with safeStorage encryption, CommunicationSettings UI
 - 09-02: Template engine with {{variable}} substitution and live preview
 - 09-03: SMS/email sending via Twilio + Nodemailer, delivery polling, DNC registry, OutreachSection UI
+- 09-04: UAT gap closure - header overflow, AlertDialog delete, Outreach enabled, visibility fixes
 
 | Decision              | Choice                       | Rationale                                   |
 | --------------------- | ---------------------------- | ------------------------------------------- |
@@ -73,10 +74,12 @@ Full decision log in PROJECT.md Key Decisions table.
 | DNC normalization     | Digits only / lowercase      | Consistent matching regardless of format    |
 | Polling interval      | 60 seconds                   | Balance freshness vs API rate limits        |
 
-| Decision            | Choice                   | Rationale                               |
-| ------------------- | ------------------------ | --------------------------------------- |
-| Client-side preview | Generate preview locally | Instant feedback without IPC round-trip |
-| SMS segment calc    | 160/153 chars            | Standard GSM-7 with UDH header          |
+| Decision             | Choice                      | Rationale                                             |
+| -------------------- | --------------------------- | ----------------------------------------------------- |
+| Client-side preview  | Generate preview locally    | Instant feedback without IPC round-trip               |
+| SMS segment calc     | 160/153 chars               | Standard GSM-7 with UDH header                        |
+| Delete confirmation  | AlertDialog (not two-click) | Radix DropdownMenu closes between clicks              |
+| Empty state contrast | text-foreground/70          | Better readability than text-muted-foreground on dark |
 
 ### Pending Todos
 
@@ -93,8 +96,8 @@ Full decision log in PROJECT.md Key Decisions table.
 
 ## Session Continuity
 
-Last session: 2026-02-03
-Stopped at: Completed Phase 9 (communication-infrastructure)
+Last session: 2026-02-04
+Stopped at: Completed Phase 9 (communication-infrastructure) with UAT gap closure
 Resume file: None
 
 ## Next Steps

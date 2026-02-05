@@ -726,6 +726,65 @@ export function initDatabase(): Database.Database {
       console.log("Database migrated to version 8");
     }
 
+    if (version < 9) {
+      console.log(
+        "Migrating database to version 9 (voice screening tables)...",
+      );
+
+      // Screening scripts per project (optional override)
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS screening_scripts (
+          id TEXT PRIMARY KEY,
+          project_id TEXT NOT NULL,
+          agent_name TEXT DEFAULT 'Alex',
+          system_prompt_override TEXT,
+          first_message_override TEXT,
+          criteria_json TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_screening_scripts_project ON screening_scripts(project_id);
+      `);
+
+      // Add retry and voicemail tracking columns to call_records
+      // SQLite doesn't support "IF NOT EXISTS" for columns, so check first
+      const callRecordColumns = db
+        .prepare("PRAGMA table_info(call_records)")
+        .all() as { name: string }[];
+
+      const columnsToAdd = [
+        { name: "attempt_number", sql: "INTEGER DEFAULT 1" },
+        { name: "max_attempts", sql: "INTEGER DEFAULT 3" },
+        { name: "next_retry_at", sql: "TEXT" },
+        { name: "failure_reason", sql: "TEXT" },
+        { name: "was_voicemail", sql: "INTEGER DEFAULT 0" },
+        { name: "voicemail_message_left", sql: "INTEGER DEFAULT 0" },
+        { name: "extracted_data_json", sql: "TEXT" },
+      ];
+
+      for (const col of columnsToAdd) {
+        if (!callRecordColumns.some((c) => c.name === col.name)) {
+          try {
+            db.exec(
+              `ALTER TABLE call_records ADD COLUMN ${col.name} ${col.sql}`,
+            );
+          } catch (err) {
+            console.warn(`Column ${col.name} may already exist:`, err);
+          }
+        }
+      }
+
+      // Index for retry queue
+      db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_call_records_retry ON call_records(next_retry_at) WHERE status = 'no_answer';
+      `);
+
+      db.pragma("user_version = 9");
+      console.log("Database migrated to version 9");
+    }
+
     // Store init timestamp
     const stmt = db.prepare(
       "INSERT OR REPLACE INTO app_meta (key, value) VALUES (?, ?)",

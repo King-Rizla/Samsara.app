@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 11 of 14 (ai-voice-screening) - IN PROGRESS
-Plan: 2 of 4 complete
+Plan: 3 of 4 complete
 Status: In progress
-Last activity: 2026-02-05 - Completed 11-02-PLAN.md (Voice Settings and Screening Criteria)
+Last activity: 2026-02-05 - Completed 11-03-PLAN.md (Transcript Analysis and Call Records UI)
 
-Progress: M2 [█████████░░░░░░░░░] 4/6 phases | Phase 11: 2/4 plans
+Progress: M2 [██████████░░░░░░░░] 5/6 phases | Phase 11: 3/4 plans
 
 ## MVP Status (Separate Branch)
 
@@ -27,9 +27,9 @@ MVP v0.1.0 shipped on `mvp` branch - see `.planning/RELEASE-WORKFLOW.md` for upd
 
 **Velocity:**
 
-- Total plans completed: 59 (v1: 47, M2 Phase 8: 3, M2 Phase 9: 4, M2 Phase 10: 3, M2 Phase 11: 2)
+- Total plans completed: 60 (v1: 47, M2 Phase 8: 3, M2 Phase 9: 4, M2 Phase 10: 3, M2 Phase 11: 3)
 - Average duration: 11 min
-- Total execution time: ~8.9 hours
+- Total execution time: ~9 hours
 
 ## Accumulated Context
 
@@ -76,31 +76,35 @@ Full decision log in PROJECT.md Key Decisions table.
 
 - 11-01: ElevenLabs REST API client, voice poller (10s), credential support, database migration v9
 - 11-02: VoiceSettings UI, screeningService with VOX-02/VOX-04 prompt, SettingsView tabs
+- 11-03: Claude-based transcript analysis, CallRecordCard, TranscriptViewer, CandidatePanel integration
 
-| Decision                | Choice                         | Rationale                                                  |
-| ----------------------- | ------------------------------ | ---------------------------------------------------------- |
-| Credential encryption   | safeStorage (DPAPI/Keychain)   | OS-level encryption, no app secrets                        |
-| Credential fallback     | Project -> global              | Allows global default with overrides                       |
-| Provider SDK loading    | Dynamic import                 | Avoids loading twilio/nodemailer at startup                |
-| DNC normalization       | Digits only / lowercase        | Consistent matching regardless of format                   |
-| Polling interval        | 60 seconds                     | Balance freshness vs API rate limits                       |
-| Client-side preview     | Generate preview locally       | Instant feedback without IPC round-trip                    |
-| SMS segment calc        | 160/153 chars                  | Standard GSM-7 with UDH header                             |
-| Delete confirmation     | AlertDialog (not two-click)    | Radix DropdownMenu closes between clicks                   |
-| Empty state contrast    | text-foreground/70             | Better readability than text-muted-foreground              |
-| TypeScript version      | 5.6                            | XState v5 requires TS 5+ for type definitions              |
-| Snapshot persistence    | On every state change          | Ensures durability across app restarts                     |
-| Actor model             | Actor-per-candidate            | Independent workflow instances, easy persistence           |
-| Intent classification   | Keyword-based                  | Simple, predictable, ambiguous treated as positive         |
-| Reply polling           | 30 seconds                     | Faster than delivery polling for real-time feel            |
-| Paused behavior         | Visual modifier, not column    | Pausing shouldn't change pipeline position                 |
-| Drag restrictions       | Free movement except TO Failed | Recruiters need manual override for out-of-band comms      |
-| Collision detection     | rectIntersection               | More reliable than closestCorners for area detection       |
-| Highlight state         | Parent-controlled              | useDroppable isOver was glitchy, board-level is consistent |
-| Failed drag-out         | Auto-retry                     | Intuitive: dragging out = "give another chance"            |
-| ElevenLabs API approach | REST API (not SDK)             | SDK is browser-only; server uses REST for outbound calls   |
-| Voice polling interval  | 10 seconds                     | Calls are 2-3 min; balance responsiveness vs rate limits   |
-| System prompt override  | overrides.agent.prompt.prompt  | Ensures VOX-02/VOX-04 requirements in every call           |
+| Decision                  | Choice                         | Rationale                                                  |
+| ------------------------- | ------------------------------ | ---------------------------------------------------------- |
+| Credential encryption     | safeStorage (DPAPI/Keychain)   | OS-level encryption, no app secrets                        |
+| Credential fallback       | Project -> global              | Allows global default with overrides                       |
+| Provider SDK loading      | Dynamic import                 | Avoids loading twilio/nodemailer at startup                |
+| DNC normalization         | Digits only / lowercase        | Consistent matching regardless of format                   |
+| Polling interval          | 60 seconds                     | Balance freshness vs API rate limits                       |
+| Client-side preview       | Generate preview locally       | Instant feedback without IPC round-trip                    |
+| SMS segment calc          | 160/153 chars                  | Standard GSM-7 with UDH header                             |
+| Delete confirmation       | AlertDialog (not two-click)    | Radix DropdownMenu closes between clicks                   |
+| Empty state contrast      | text-foreground/70             | Better readability than text-muted-foreground              |
+| TypeScript version        | 5.6                            | XState v5 requires TS 5+ for type definitions              |
+| Snapshot persistence      | On every state change          | Ensures durability across app restarts                     |
+| Actor model               | Actor-per-candidate            | Independent workflow instances, easy persistence           |
+| Intent classification     | Keyword-based                  | Simple, predictable, ambiguous treated as positive         |
+| Reply polling             | 30 seconds                     | Faster than delivery polling for real-time feel            |
+| Paused behavior           | Visual modifier, not column    | Pausing shouldn't change pipeline position                 |
+| Drag restrictions         | Free movement except TO Failed | Recruiters need manual override for out-of-band comms      |
+| Collision detection       | rectIntersection               | More reliable than closestCorners for area detection       |
+| Highlight state           | Parent-controlled              | useDroppable isOver was glitchy, board-level is consistent |
+| Failed drag-out           | Auto-retry                     | Intuitive: dragging out = "give another chance"            |
+| ElevenLabs API approach   | REST API (not SDK)             | SDK is browser-only; server uses REST for outbound calls   |
+| Voice polling interval    | 10 seconds                     | Calls are 2-3 min; balance responsiveness vs rate limits   |
+| System prompt override    | overrides.agent.prompt.prompt  | Ensures VOX-02/VOX-04 requirements in every call           |
+| Transcript analysis model | Claude Sonnet 4                | Fast, accurate classification at reasonable cost           |
+| Maybe outcome handling    | Treated as passed              | Recruiters make final call on ambiguous cases              |
+| Anthropic credentials     | Via credential manager         | Consistent with existing provider pattern                  |
 
 ### Pending Todos
 
@@ -118,21 +122,21 @@ Full decision log in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 Last session: 2026-02-05
-Stopped at: Completed 11-02-PLAN.md (Voice Settings and Screening Criteria)
+Stopped at: Completed 11-03-PLAN.md (Transcript Analysis and Call Records UI)
 Resume file: None
 
 ## Next Steps
 
-**Phase 11: AI Voice Screening - Continue**
+**Phase 11: AI Voice Screening - One Plan Remaining**
 
-11-01 and 11-02 complete. Voice settings and screening criteria ready:
+11-01, 11-02, and 11-03 complete. Voice screening loop functional:
 
-- VoiceSettings.tsx with ElevenLabs credential inputs
-- screeningService.ts with criteria CRUD and DEFAULT_SCREENING_SYSTEM_PROMPT
-- SettingsView.tsx combining Communication and Voice tabs
-- voiceService.ts passes system prompt override to every call (VOX-02, VOX-04)
+- voiceService.ts initiates screening calls via ElevenLabs
+- voicePoller.ts monitors call status and stores transcripts
+- transcriptAnalyzer.ts uses Claude to determine pass/maybe/fail
+- CallRecordCard shows outcome badges in candidate panel
+- TranscriptViewer displays full conversation with extracted data
 
-Remaining plans:
+Remaining plan:
 
-- 11-03: Claude-based transcript analysis for pass/fail
-- 11-04: Local transcription via faster-whisper (if needed)
+- 11-04: Local transcription via faster-whisper (optional enhancement)

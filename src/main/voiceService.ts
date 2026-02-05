@@ -13,6 +13,7 @@
 
 import { getCredential } from "./credentialManager";
 import { getDatabase } from "./database";
+import { getScreeningScript, type ScreeningCriteria } from "./screeningService";
 import crypto from "crypto";
 
 // ============================================================================
@@ -100,9 +101,12 @@ function getApiKey(): string | null {
 /**
  * Build dynamic variables for ElevenLabs agent personalization.
  * Per RESEARCH.md: candidate name, role, company, salary, location, prior context
+ *
+ * Updated in 11-02: Now accepts ScreeningCriteria to inject project-specific values.
  */
 function buildDynamicVariables(
   params: OutboundCallParams,
+  criteria?: ScreeningCriteria,
 ): Record<string, string> {
   const vars: Record<string, string> = {
     candidate_name: params.candidateName,
@@ -111,13 +115,26 @@ function buildDynamicVariables(
     company_name: params.companyName || "our client",
   };
 
+  // Prefer params salaryRange, fallback to criteria
   if (params.salaryRange) {
     vars.salary_min = params.salaryRange.min.toLocaleString();
     vars.salary_max = params.salaryRange.max.toLocaleString();
+  } else if (criteria?.salaryMin || criteria?.salaryMax) {
+    if (criteria.salaryMin) {
+      vars.salary_min = criteria.salaryMin.toLocaleString();
+    }
+    if (criteria.salaryMax) {
+      vars.salary_max = criteria.salaryMax.toLocaleString();
+    }
   }
+
+  // Prefer params location, fallback to criteria locations (first one)
   if (params.location) {
     vars.job_location = params.location;
+  } else if (criteria?.locations && criteria.locations.length > 0) {
+    vars.job_location = criteria.locations.join(", ");
   }
+
   if (params.priorMessaging) {
     vars.prior_context = params.priorMessaging;
   }
@@ -135,6 +152,10 @@ function buildDynamicVariables(
  *
  * Uses ElevenLabs Twilio outbound call API:
  * POST /v1/convai/conversation/twilio/outbound_call
+ *
+ * VOX-02 & VOX-04: System prompt is loaded from screeningService and passed
+ * via overrides.agent.prompt.prompt to ensure every call uses the screening
+ * prompt with 5 questions (VOX-02) and positive close (VOX-04).
  */
 export async function initiateScreeningCall(
   params: OutboundCallParams,
@@ -160,7 +181,47 @@ export async function initiateScreeningCall(
   }
 
   try {
-    const dynamicVariables = buildDynamicVariables(params);
+    // Load screening script (criteria + system prompt) for this project
+    // This ensures VOX-02 (5 questions) and VOX-04 (positive close) are enforced
+    const screeningScript = getScreeningScript(params.projectId);
+    const dynamicVariables = buildDynamicVariables(
+      params,
+      screeningScript.criteria,
+    );
+
+    // Build request body with system prompt override
+    // Per ElevenLabs API: overrides.agent.prompt.prompt overrides the agent's system prompt
+    const requestBody: Record<string, unknown> = {
+      agent_id: agentId,
+      agent_phone_number_id: phoneNumberId,
+      to_number: params.phoneNumber,
+      conversation_initiation_client_data: {
+        dynamic_variables: dynamicVariables,
+      },
+      // Override the agent's system prompt with our screening script (VOX-02, VOX-04)
+      overrides: {
+        agent: {
+          prompt: {
+            prompt: screeningScript.systemPrompt,
+          },
+        },
+      },
+    };
+
+    // If there's a first message override, include it
+    if (screeningScript.firstMessage) {
+      (requestBody.overrides as Record<string, unknown>).agent = {
+        ...((requestBody.overrides as Record<string, unknown>).agent as Record<
+          string,
+          unknown
+        >),
+        first_message: screeningScript.firstMessage,
+      };
+    }
+
+    console.log(
+      `[VoiceService] Initiating call with system prompt override for project ${params.projectId}`,
+    );
 
     // ElevenLabs Twilio outbound call API
     // https://elevenlabs.io/docs/api-reference/twilio/outbound-call
@@ -172,14 +233,7 @@ export async function initiateScreeningCall(
           "Content-Type": "application/json",
           "xi-api-key": apiKey,
         },
-        body: JSON.stringify({
-          agent_id: agentId,
-          agent_phone_number_id: phoneNumberId,
-          to_number: params.phoneNumber,
-          conversation_initiation_client_data: {
-            dynamic_variables: dynamicVariables,
-          },
-        }),
+        body: JSON.stringify(requestBody),
       },
     );
 

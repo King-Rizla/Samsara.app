@@ -71,6 +71,8 @@ import {
   type ProviderType,
   type CredentialType,
 } from "./credentialManager";
+import { startVoicePoller, stopVoicePoller } from "./voicePoller";
+import { isVoiceConfigured } from "./voiceService";
 
 // Vite global variables for dev server and renderer name
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
@@ -131,6 +133,14 @@ app.whenReady().then(async () => {
     console.error("Workflow initialization failed:", error);
   }
 
+  // Start voice poller for in-progress screening calls (Phase 11)
+  try {
+    startVoicePoller();
+    console.log("Voice poller started");
+  } catch (error) {
+    console.error("Voice poller failed to start:", error);
+  }
+
   // Load settings and start Python sidecar with configured mode
   try {
     const settings = loadSettings();
@@ -167,8 +177,9 @@ app.on("activate", () => {
   }
 });
 
-// Close database, Python, and workflows before app quits
+// Close database, Python, workflows, and voice poller before app quits
 app.on("before-quit", () => {
+  stopVoicePoller();
   stopAllWorkflows();
   stopPython();
   closeDatabase();
@@ -1710,6 +1721,17 @@ ipcMain.handle(
 ipcMain.handle("is-encryption-available", async () => {
   return { available: isEncryptionAvailable() };
 });
+
+/**
+ * Check if voice calling is configured for a project.
+ * Returns { configured: boolean }
+ */
+ipcMain.handle(
+  "is-voice-configured",
+  async (_event, projectId: string | null) => {
+    return { configured: isVoiceConfigured(projectId) };
+  },
+);
 
 // ============================================================================
 // Messaging IPC Handlers (Phase 9 Plan 03)

@@ -697,6 +697,19 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke("is-encryption-available"),
 
   // ============================================================================
+  // Voice operations (Phase 11)
+  // ============================================================================
+
+  /**
+   * Check if voice calling is configured for a project.
+   * Returns { configured: boolean }
+   */
+  isVoiceConfigured: (
+    projectId: string | null,
+  ): Promise<{ configured: boolean }> =>
+    ipcRenderer.invoke("is-voice-configured", projectId),
+
+  // ============================================================================
   // Messaging operations (Phase 9 Plan 03)
   // ============================================================================
 

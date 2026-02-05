@@ -18,6 +18,7 @@ import {
   getProjectOutreachSettings,
 } from "./workingHours";
 import { sendCallbackOptions } from "./callbackScheduler";
+import { initiateScreeningCall, isVoiceConfigured } from "./voiceService";
 
 // ============================================================================
 // Types
@@ -163,10 +164,17 @@ export const outreachMachine = setup({
     isPositiveReply: ({ context }) =>
       context.replyIntent === "positive" || context.replyIntent === "ambiguous",
 
-    // Check if AI call is enabled for this project (placeholder for project setting)
-    aiCallEnabled: () => {
-      // TODO: Check project setting in Phase 11
-      // For now, return true to allow escalation flow
+    // Check if AI call is enabled for this project
+    // Checks both project setting and credential configuration
+    aiCallEnabled: ({ context }) => {
+      // Check if ElevenLabs credentials are configured
+      const configured = isVoiceConfigured(context.projectId);
+      if (!configured) {
+        console.log(
+          `[WorkflowMachine] AI call disabled - voice not configured for project ${context.projectId}`,
+        );
+        return false;
+      }
       return true;
     },
 
@@ -249,17 +257,34 @@ export const outreachMachine = setup({
       },
     ),
 
-    // Actor: Trigger AI call (placeholder for Phase 11)
+    // Actor: Trigger AI screening call via ElevenLabs + Twilio
     triggerAICall: fromPromise(
       async ({ input }: { input: WorkflowContext }) => {
-        // ElevenLabs + Twilio SIP integration will be implemented in Phase 11
+        if (!input.phone) {
+          throw new Error("No phone number available for AI call");
+        }
+
+        const result = await initiateScreeningCall({
+          candidateId: input.candidateId,
+          projectId: input.projectId,
+          phoneNumber: input.phone,
+          candidateName: input.candidateName,
+          roleTitle: "Open Position", // TODO: Get from project/JD in future plan
+          companyName: undefined, // TODO: Get from project settings
+        });
+
+        if (!result.success) {
+          throw new Error(result.error || "Failed to initiate screening call");
+        }
+
         console.log(
-          `[WorkflowMachine] AI call placeholder for ${input.candidateId} - ${input.phone}`,
+          `[WorkflowMachine] Initiated AI call for ${input.candidateId}: ${result.conversationId}`,
         );
-        // For now, just log and return placeholder
+
         return {
-          callId: `placeholder-${input.candidateId}`,
-          status: "pending",
+          callId: result.callRecordId,
+          conversationId: result.conversationId,
+          status: "initiated",
         };
       },
     ),

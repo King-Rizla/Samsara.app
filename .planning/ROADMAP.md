@@ -86,13 +86,13 @@ Plans:
 4. On pass, AI tells the candidate a recruiter will call them back
 5. Call outcome (pass/fail/confidence) and full transcript are logged to the candidate record and visible in the UI
 
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
 
-- [ ] 11-01: Voice provider abstraction (ElevenLabs + Twilio SIP), call initiation, polling loop
-- [ ] 11-02: Screening script editor (per-role configurable questions), pass/fail scoring logic
-- [ ] 11-03: Call record UI, transcript viewer, outcome display on candidate card
+- [ ] 11-01-PLAN.md — ElevenLabs SDK integration, voice service, polling infrastructure, database migration v9
+- [ ] 11-02-PLAN.md — VoiceSettings UI for credentials, screening criteria configuration, screeningService
+- [ ] 11-03-PLAN.md — Claude transcript analysis, CallRecordCard, TranscriptViewer, CandidatePanel integration
 
 ### Phase 12: System Audio Recording & Transcription
 

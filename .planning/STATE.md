@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Phase: 11 of 14 (ai-voice-screening) - IN PROGRESS
-Plan: 1 of 4 complete
+Plan: 2 of 4 complete
 Status: In progress
-Last activity: 2026-02-05 — Completed 11-01-PLAN.md (ElevenLabs Voice Integration)
+Last activity: 2026-02-05 - Completed 11-02-PLAN.md (Voice Settings and Screening Criteria)
 
-Progress: M2 [█████████░░░░░░░░░] 4/6 phases | Phase 11: 1/4 plans
+Progress: M2 [█████████░░░░░░░░░] 4/6 phases | Phase 11: 2/4 plans
 
 ## MVP Status (Separate Branch)
 
@@ -27,9 +27,9 @@ MVP v0.1.0 shipped on `mvp` branch - see `.planning/RELEASE-WORKFLOW.md` for upd
 
 **Velocity:**
 
-- Total plans completed: 58 (v1: 47, M2 Phase 8: 3, M2 Phase 9: 4, M2 Phase 10: 3, M2 Phase 11: 1)
+- Total plans completed: 59 (v1: 47, M2 Phase 8: 3, M2 Phase 9: 4, M2 Phase 10: 3, M2 Phase 11: 2)
 - Average duration: 11 min
-- Total execution time: ~8.8 hours
+- Total execution time: ~8.9 hours
 
 ## Accumulated Context
 
@@ -75,6 +75,7 @@ Full decision log in PROJECT.md Key Decisions table.
 **Phase 11 in progress (2026-02-05):**
 
 - 11-01: ElevenLabs REST API client, voice poller (10s), credential support, database migration v9
+- 11-02: VoiceSettings UI, screeningService with VOX-02/VOX-04 prompt, SettingsView tabs
 
 | Decision                | Choice                         | Rationale                                                  |
 | ----------------------- | ------------------------------ | ---------------------------------------------------------- |
@@ -99,6 +100,7 @@ Full decision log in PROJECT.md Key Decisions table.
 | Failed drag-out         | Auto-retry                     | Intuitive: dragging out = "give another chance"            |
 | ElevenLabs API approach | REST API (not SDK)             | SDK is browser-only; server uses REST for outbound calls   |
 | Voice polling interval  | 10 seconds                     | Calls are 2-3 min; balance responsiveness vs rate limits   |
+| System prompt override  | overrides.agent.prompt.prompt  | Ensures VOX-02/VOX-04 requirements in every call           |
 
 ### Pending Todos
 
@@ -116,22 +118,21 @@ Full decision log in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 Last session: 2026-02-05
-Stopped at: Completed 11-01-PLAN.md (ElevenLabs Voice Integration)
+Stopped at: Completed 11-02-PLAN.md (Voice Settings and Screening Criteria)
 Resume file: None
 
 ## Next Steps
 
 **Phase 11: AI Voice Screening - Continue**
 
-11-01 complete. Voice infrastructure ready:
+11-01 and 11-02 complete. Voice settings and screening criteria ready:
 
-- voiceService.ts with initiateScreeningCall, getCallStatus, isVoiceConfigured
-- voicePoller.ts polls every 10 seconds for call status
-- workflowMachine.ts triggers real ElevenLabs calls when configured
-- Database migration v9 with screening_scripts table
+- VoiceSettings.tsx with ElevenLabs credential inputs
+- screeningService.ts with criteria CRUD and DEFAULT_SCREENING_SYSTEM_PROMPT
+- SettingsView.tsx combining Communication and Voice tabs
+- voiceService.ts passes system prompt override to every call (VOX-02, VOX-04)
 
 Remaining plans:
 
-- 11-02: Voice settings UI, call record display
 - 11-03: Claude-based transcript analysis for pass/fail
 - 11-04: Local transcription via faster-whisper (if needed)

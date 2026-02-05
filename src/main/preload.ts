@@ -1143,6 +1143,47 @@ contextBridge.exposeInMainWorld("api", {
     error?: string;
     data?: { agentName: string };
   }> => ipcRenderer.invoke("test-elevenlabs-credentials", projectId),
+
+  // ============================================================================
+  // Call Records operations (Phase 11 Plan 03)
+  // ============================================================================
+
+  /**
+   * Get call records for a candidate.
+   * Returns { success: boolean, data?: CallRecord[], error?: string }
+   */
+  getCallRecords: (
+    cvId: string,
+  ): Promise<{
+    success: boolean;
+    data?: Array<{
+      id: string;
+      status: string;
+      durationSeconds?: number;
+      screeningOutcome?: string;
+      screeningConfidence?: number;
+      extractedDataJson?: string;
+      startedAt: string;
+      endedAt?: string;
+    }>;
+    error?: string;
+  }> => ipcRenderer.invoke("get-call-records", cvId),
+
+  /**
+   * Get transcript for a call.
+   * Returns { success: boolean, data?: TranscriptData, error?: string }
+   */
+  getCallTranscript: (
+    callId: string,
+  ): Promise<{
+    success: boolean;
+    data?: {
+      rawText: string;
+      segmentsJson?: string;
+      summary?: string;
+    } | null;
+    error?: string;
+  }> => ipcRenderer.invoke("get-call-transcript", callId),
 });
 
 /**

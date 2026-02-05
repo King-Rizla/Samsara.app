@@ -6,6 +6,7 @@ import started from "electron-squirrel-startup";
 import {
   initDatabase,
   closeDatabase,
+  getDatabase,
   insertCV,
   getAllCVs,
   getCV,
@@ -2304,3 +2305,60 @@ ipcMain.handle(
     }
   },
 );
+
+// ============================================================================
+// Call Records IPC Handlers (Phase 11 Plan 03)
+// ============================================================================
+
+/**
+ * Get call records for a candidate.
+ * Returns { success: boolean, data?: CallRecord[], error?: string }
+ */
+ipcMain.handle("get-call-records", async (_event, cvId: string) => {
+  try {
+    const db = getDatabase();
+    const records = db
+      .prepare(
+        `
+        SELECT
+          id, status, duration_seconds as durationSeconds,
+          screening_outcome as screeningOutcome,
+          screening_confidence as screeningConfidence,
+          extracted_data_json as extractedDataJson,
+          started_at as startedAt, ended_at as endedAt
+        FROM call_records
+        WHERE cv_id = ?
+        ORDER BY started_at DESC
+      `,
+      )
+      .all(cvId);
+    return { success: true, data: records };
+  } catch (error) {
+    console.error("get-call-records error:", error);
+    return { success: false, error: String(error) };
+  }
+});
+
+/**
+ * Get transcript for a call.
+ * Returns { success: boolean, data?: TranscriptData, error?: string }
+ */
+ipcMain.handle("get-call-transcript", async (_event, callId: string) => {
+  try {
+    const db = getDatabase();
+    const transcript = db
+      .prepare(
+        `
+        SELECT raw_text as rawText, segments_json as segmentsJson, summary
+        FROM transcripts
+        WHERE call_id = ?
+        LIMIT 1
+      `,
+      )
+      .get(callId);
+    return { success: true, data: transcript || null };
+  } catch (error) {
+    console.error("get-call-transcript error:", error);
+    return { success: false, error: String(error) };
+  }
+});

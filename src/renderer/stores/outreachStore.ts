@@ -11,6 +11,21 @@ import type {
   OutreachCandidate,
 } from "../types/communication";
 
+// ============================================================================
+// Call Record Types (Phase 11 Plan 03)
+// ============================================================================
+
+export interface CallRecord {
+  id: string;
+  status: "in_progress" | "completed" | "failed" | "no_answer";
+  durationSeconds?: number;
+  screeningOutcome?: "pass" | "maybe" | "fail";
+  screeningConfidence?: number;
+  extractedDataJson?: string;
+  startedAt: string;
+  endedAt?: string;
+}
+
 interface OutreachState {
   // Candidates in outreach pipeline
   candidates: OutreachCandidate[];
@@ -19,6 +34,10 @@ interface OutreachState {
   // Messages for selected candidate
   messages: Message[];
   isLoadingMessages: boolean;
+
+  // Call records for selected candidate (Phase 11 Plan 03)
+  callRecords: CallRecord[];
+  isLoadingCallRecords: boolean;
 
   // DNC list
   dncList: DNCEntry[];
@@ -42,6 +61,7 @@ interface OutreachState {
 
   // Actions - async
   loadMessagesForCandidate: (cvId: string) => Promise<void>;
+  loadCallRecordsForCandidate: (cvId: string) => Promise<void>;
   loadDNCList: () => Promise<void>;
   sendSMS: (params: {
     projectId: string;
@@ -73,13 +93,16 @@ export const useOutreachStore = create<OutreachState>((set, get) => ({
   selectedCandidateId: null,
   messages: [],
   isLoadingMessages: false,
+  callRecords: [],
+  isLoadingCallRecords: false,
   dncList: [],
   isSending: false,
   sendError: null,
 
   // Setters
   setCandidates: (candidates) => set({ candidates }),
-  selectCandidate: (cvId) => set({ selectedCandidateId: cvId, messages: [] }),
+  selectCandidate: (cvId) =>
+    set({ selectedCandidateId: cvId, messages: [], callRecords: [] }),
   setMessages: (messages) => set({ messages }),
   addMessage: (message) =>
     set((state) => ({ messages: [message, ...state.messages] })),
@@ -143,6 +166,44 @@ export const useOutreachStore = create<OutreachState>((set, get) => ({
     } catch (error) {
       console.error("Failed to load messages:", error);
       set({ isLoadingMessages: false });
+    }
+  },
+
+  // Load call records for a candidate (Phase 11 Plan 03)
+  loadCallRecordsForCandidate: async (cvId: string) => {
+    set({ isLoadingCallRecords: true });
+    try {
+      const result = await window.api.getCallRecords(cvId);
+      if (result.success && result.data) {
+        const records = result.data.map(
+          (record: {
+            id: string;
+            status: string;
+            durationSeconds?: number;
+            screeningOutcome?: string;
+            screeningConfidence?: number;
+            extractedDataJson?: string;
+            startedAt: string;
+            endedAt?: string;
+          }) => ({
+            id: record.id,
+            status: record.status as CallRecord["status"],
+            durationSeconds: record.durationSeconds,
+            screeningOutcome:
+              record.screeningOutcome as CallRecord["screeningOutcome"],
+            screeningConfidence: record.screeningConfidence,
+            extractedDataJson: record.extractedDataJson,
+            startedAt: record.startedAt,
+            endedAt: record.endedAt,
+          }),
+        );
+        set({ callRecords: records, isLoadingCallRecords: false });
+      } else {
+        set({ isLoadingCallRecords: false });
+      }
+    } catch (error) {
+      console.error("Failed to load call records:", error);
+      set({ callRecords: [], isLoadingCallRecords: false });
     }
   },
 

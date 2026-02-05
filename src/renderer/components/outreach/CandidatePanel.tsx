@@ -10,7 +10,6 @@
 
 import { useEffect, useState } from "react";
 import {
-  X,
   Phone,
   Mail,
   Copy,
@@ -28,8 +27,10 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { CandidateTimeline } from "./CandidateTimeline";
 import { SendMessageDialog } from "./SendMessageDialog";
+import { CallRecordCard } from "./CallRecordCard";
+import { TranscriptViewer } from "./TranscriptViewer";
 import { useWorkflowStore } from "../../stores/workflowStore";
-import { useOutreachStore } from "../../stores/outreachStore";
+import { useOutreachStore, type CallRecord } from "../../stores/outreachStore";
 import { useProjectStore } from "../../stores/projectStore";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { cn } from "../../lib/utils";
@@ -80,6 +81,16 @@ export function CandidatePanel({ projectId }: CandidatePanelProps) {
   const [showSendDialog, setShowSendDialog] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
+  // Transcript viewer state (Phase 11 Plan 03)
+  const [showTranscript, setShowTranscript] = useState(false);
+  const [transcriptData, setTranscriptData] = useState<{
+    rawText: string;
+    segmentsJson?: string;
+    extractedData?: Record<string, unknown>;
+    outcome?: "pass" | "maybe" | "fail";
+    confidence?: number;
+  } | null>(null);
+
   // Workflow store
   const selectedCandidateId = useWorkflowStore(
     (state) => state.selectedCandidateId,
@@ -93,9 +104,14 @@ export function CandidatePanel({ projectId }: CandidatePanelProps) {
   const forceCall = useWorkflowStore((state) => state.forceCall);
   const skipToScreening = useWorkflowStore((state) => state.skipToScreening);
 
-  // Outreach store for messages
-  const { messages, isLoadingMessages, loadMessagesForCandidate } =
-    useOutreachStore();
+  // Outreach store for messages and call records
+  const {
+    messages,
+    isLoadingMessages,
+    loadMessagesForCandidate,
+    callRecords,
+    loadCallRecordsForCandidate,
+  } = useOutreachStore();
 
   // Project store
   const projects = useProjectStore((state) => state.projects);
@@ -115,12 +131,17 @@ export function CandidatePanel({ projectId }: CandidatePanelProps) {
   // Get selected candidate
   const candidate = candidates.find((c) => c.id === selectedCandidateId);
 
-  // Load messages when candidate changes
+  // Load messages and call records when candidate changes
   useEffect(() => {
     if (selectedCandidateId) {
       loadMessagesForCandidate(selectedCandidateId);
+      loadCallRecordsForCandidate(selectedCandidateId);
     }
-  }, [selectedCandidateId, loadMessagesForCandidate]);
+  }, [
+    selectedCandidateId,
+    loadMessagesForCandidate,
+    loadCallRecordsForCandidate,
+  ]);
 
   // Copy to clipboard
   const handleCopy = async (value: string, field: string) => {
@@ -131,6 +152,30 @@ export function CandidatePanel({ projectId }: CandidatePanelProps) {
       toast.success("Copied to clipboard");
     } catch {
       toast.error("Failed to copy");
+    }
+  };
+
+  // View transcript handler (Phase 11 Plan 03)
+  const handleViewTranscript = async (callId: string, call: CallRecord) => {
+    try {
+      const result = await window.api.getCallTranscript(callId);
+      if (result.success && result.data) {
+        setTranscriptData({
+          rawText: result.data.rawText,
+          segmentsJson: result.data.segmentsJson,
+          extractedData: call.extractedDataJson
+            ? JSON.parse(call.extractedDataJson)
+            : undefined,
+          outcome: call.screeningOutcome,
+          confidence: call.screeningConfidence,
+        });
+        setShowTranscript(true);
+      } else {
+        toast.error("Transcript not available");
+      }
+    } catch (error) {
+      console.error("Failed to load transcript:", error);
+      toast.error("Failed to load transcript");
     }
   };
 
@@ -348,6 +393,24 @@ export function CandidatePanel({ projectId }: CandidatePanelProps) {
                 </div>
               </div>
 
+              {/* Call Records (Phase 11 Plan 03) */}
+              {callRecords.length > 0 && (
+                <div className="px-4 py-3 border-b border-border">
+                  <h3 className="text-sm font-medium mb-3">Screening Calls</h3>
+                  <div className="space-y-2">
+                    {callRecords.map((call) => (
+                      <CallRecordCard
+                        key={call.id}
+                        call={call}
+                        onViewTranscript={() =>
+                          handleViewTranscript(call.id, call)
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Message Timeline */}
               <div className="flex-1 overflow-y-auto p-4">
                 <h3 className="text-sm font-medium mb-3">Message History</h3>
@@ -384,6 +447,33 @@ export function CandidatePanel({ projectId }: CandidatePanelProps) {
           recruiterName={recruiter?.name}
           recruiterEmail={recruiter?.email}
           recruiterPhone={recruiter?.phone}
+        />
+      )}
+
+      {/* Transcript Viewer Dialog (Phase 11 Plan 03) */}
+      {transcriptData && (
+        <TranscriptViewer
+          open={showTranscript}
+          onOpenChange={setShowTranscript}
+          transcript={transcriptData.rawText}
+          segments={
+            transcriptData.segmentsJson
+              ? JSON.parse(transcriptData.segmentsJson)
+              : undefined
+          }
+          extractedData={
+            transcriptData.extractedData as {
+              salaryExpectation?: string;
+              location?: string;
+              availability?: string;
+              interestLevel?: string;
+              contactPreference?: string;
+              reasoning?: string;
+              disqualifiers?: string[];
+            }
+          }
+          outcome={transcriptData.outcome}
+          confidence={transcriptData.confidence}
         />
       )}
     </>

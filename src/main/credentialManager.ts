@@ -18,7 +18,7 @@ import * as crypto from "crypto";
 // Types
 // ============================================================================
 
-export type ProviderType = "twilio" | "smtp";
+export type ProviderType = "twilio" | "smtp" | "elevenlabs";
 
 export type TwilioCredentialType =
   | "account_sid"
@@ -32,7 +32,15 @@ export type SmtpCredentialType =
   | "password"
   | "from_email";
 
-export type CredentialType = TwilioCredentialType | SmtpCredentialType;
+export type ElevenLabsCredentialType =
+  | "api_key"
+  | "screening_agent_id"
+  | "phone_number_id";
+
+export type CredentialType =
+  | TwilioCredentialType
+  | SmtpCredentialType
+  | ElevenLabsCredentialType;
 
 export interface StoredCredential {
   id: string;

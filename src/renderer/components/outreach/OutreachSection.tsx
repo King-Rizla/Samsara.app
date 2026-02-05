@@ -48,13 +48,13 @@ export function OutreachSection() {
     }
   }, [projectId, loadCandidates]);
 
-  // Start reply polling on mount (for Phase 11 - reply detection)
+  // Start reply polling on mount (for reply detection and workflow triggers)
   useEffect(() => {
     if (projectId) {
-      window.api.startDeliveryPolling(projectId);
+      window.api.startReplyPolling(projectId);
     }
     return () => {
-      window.api.stopDeliveryPolling();
+      window.api.stopReplyPolling();
     };
   }, [projectId]);
 

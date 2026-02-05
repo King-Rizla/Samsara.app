@@ -106,11 +106,11 @@ Deferred to post-M2 milestones.
 | WRK-03      | 10    | Complete |
 | WRK-04      | 10    | Complete |
 | WRK-05      | 10    | Complete |
-| VOX-01      | 11    | Pending  |
-| VOX-02      | 11    | Pending  |
-| VOX-03      | 11    | Pending  |
-| VOX-04      | 11    | Pending  |
-| VOX-05      | 11    | Pending  |
+| VOX-01      | 11    | Complete |
+| VOX-02      | 11    | Complete |
+| VOX-03      | 11    | Complete |
+| VOX-04      | 11    | Complete |
+| VOX-05      | 11    | Complete |
 | REC-01      | 12    | Pending  |
 | REC-02      | 12    | Pending  |
 | REC-03      | 12    | Pending  |
@@ -130,4 +130,4 @@ Deferred to post-M2 milestones.
 ---
 
 _Requirements defined: 2026-01-31_
-_Last updated: 2026-02-05 after Phase 10 completion_
+_Last updated: 2026-02-05 after Phase 11 completion_

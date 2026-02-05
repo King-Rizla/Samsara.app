@@ -90,9 +90,9 @@ Plans:
 
 Plans:
 
-- [ ] 11-01-PLAN.md — ElevenLabs SDK integration, voice service, polling infrastructure, database migration v9
-- [ ] 11-02-PLAN.md — VoiceSettings UI for credentials, screening criteria configuration, screeningService
-- [ ] 11-03-PLAN.md — Claude transcript analysis, CallRecordCard, TranscriptViewer, CandidatePanel integration
+- [x] 11-01-PLAN.md — ElevenLabs SDK integration, voice service, polling infrastructure, database migration v9
+- [x] 11-02-PLAN.md — VoiceSettings UI for credentials, screening criteria configuration, screeningService
+- [x] 11-03-PLAN.md — Claude transcript analysis, CallRecordCard, TranscriptViewer, CandidatePanel integration
 
 ### Phase 12: System Audio Recording & Transcription
 
@@ -175,7 +175,7 @@ Milestone drafts in `.planning/milestones/`:
 | 8. Samsara Wheel & Foundation   | M2        | 3/3            | Complete    | 2026-01-31 |
 | 9. Communication Infrastructure | M2        | 4/4            | Complete    | 2026-02-04 |
 | 10. Outreach Workflow Engine    | M2        | 3/3            | Complete    | 2026-02-05 |
-| 11. AI Voice Screening          | M2        | 0/3            | Not started | -          |
+| 11. AI Voice Screening          | M2        | 3/3            | Complete    | 2026-02-05 |
 | 12. Recording & Transcription   | M2        | 0/2            | Not started | -          |
 | 13. ATS Integration             | M2        | 0/3            | Not started | -          |
 | 14. MVP Packaging & Release     | mvp       | 5/5            | Complete    | 2026-02-03 |

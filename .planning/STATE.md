@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Architecture as the Advantage - Zero Latency, Zero Egress, Zero Per-Seat Tax
-**Current focus:** M2 Automated Outreach - Phase 11 In Progress
+**Current focus:** M2 Automated Outreach - Phase 11 Complete, Ready for Phase 12
 
 ## Current Position
 
-Phase: 11 of 14 (ai-voice-screening) - IN PROGRESS
-Plan: 3 of 4 complete
-Status: In progress
-Last activity: 2026-02-05 - Completed 11-03-PLAN.md (Transcript Analysis and Call Records UI)
+Phase: 11 of 14 (ai-voice-screening) - COMPLETE
+Plan: 3 of 3 complete
+Status: Phase complete
+Last activity: 2026-02-05 — Completed Phase 11 (AI Voice Screening) with verification
 
-Progress: M2 [██████████░░░░░░░░] 5/6 phases | Phase 11: 3/4 plans
+Progress: M2 [███████████░░░░░░░] 5/6 phases | Phase 11 complete
 
 ## MVP Status (Separate Branch)
 
@@ -72,7 +72,7 @@ Full decision log in PROJECT.md Key Decisions table.
 - 10-02: Reply polling (30s), keyword intent classification, working hours queueing, WRK-05 callbacks
 - 10-03: Kanban pipeline dashboard with @dnd-kit drag-drop, graduation controls, side panel
 
-**Phase 11 in progress (2026-02-05):**
+**Phase 11 completed (2026-02-05):**
 
 - 11-01: ElevenLabs REST API client, voice poller (10s), credential support, database migration v9
 - 11-02: VoiceSettings UI, screeningService with VOX-02/VOX-04 prompt, SettingsView tabs
@@ -122,21 +122,21 @@ Full decision log in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 Last session: 2026-02-05
-Stopped at: Completed 11-03-PLAN.md (Transcript Analysis and Call Records UI)
+Stopped at: Completed Phase 11 (AI Voice Screening) — verified 5/5 requirements (VOX-01 to VOX-05)
 Resume file: None
 
 ## Next Steps
 
-**Phase 11: AI Voice Screening - One Plan Remaining**
+**Phase 12: System Audio Recording & Transcription**
 
-11-01, 11-02, and 11-03 complete. Voice screening loop functional:
+Ready to start:
 
-- voiceService.ts initiates screening calls via ElevenLabs
-- voicePoller.ts monitors call status and stores transcripts
-- transcriptAnalyzer.ts uses Claude to determine pass/maybe/fail
-- CallRecordCard shows outcome badges in candidate panel
-- TranscriptViewer displays full conversation with extracted data
+- Voice screening infrastructure complete
+- Call records and transcripts visible in candidate panel
+- Transcript viewer displays full conversation with extracted data
+- Workflow state updates based on screening outcome
 
-Remaining plan:
+Plans:
 
-- 11-04: Local transcription via faster-whisper (optional enhancement)
+- 12-01: Python sidecar audio capture (WASAPI loopback), recording toggle UI with level meter
+- 12-02: faster-whisper integration, transcription job queue, transcript attachment to candidate record

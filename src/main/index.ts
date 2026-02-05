@@ -73,6 +73,13 @@ import {
 } from "./credentialManager";
 import { startVoicePoller, stopVoicePoller } from "./voicePoller";
 import { isVoiceConfigured } from "./voiceService";
+import {
+  getScreeningCriteria,
+  saveScreeningCriteria,
+  getScreeningScript,
+  saveScreeningScript,
+  type ScreeningCriteria,
+} from "./screeningService";
 
 // Vite global variables for dev server and renderer name
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
@@ -2155,6 +2162,145 @@ ipcMain.handle(
     } catch (error) {
       console.error("update-project-outreach-settings error:", error);
       return { success: false, error: String(error) };
+    }
+  },
+);
+
+// ============================================================================
+// Screening Service IPC Handlers (Phase 11 Plan 02)
+// ============================================================================
+
+/**
+ * Get screening criteria for a project.
+ * Returns { success: boolean, data?: ScreeningCriteria, error?: string }
+ */
+ipcMain.handle("get-screening-criteria", async (_event, projectId: string) => {
+  try {
+    const criteria = getScreeningCriteria(projectId);
+    return { success: true, data: criteria };
+  } catch (error) {
+    console.error("get-screening-criteria error:", error);
+    return { success: false, error: String(error) };
+  }
+});
+
+/**
+ * Save screening criteria for a project.
+ * Returns { success: boolean, id?: string, error?: string }
+ */
+ipcMain.handle(
+  "save-screening-criteria",
+  async (_event, projectId: string, criteria: ScreeningCriteria) => {
+    try {
+      const id = saveScreeningCriteria(projectId, criteria);
+      return { success: true, id };
+    } catch (error) {
+      console.error("save-screening-criteria error:", error);
+      return { success: false, error: String(error) };
+    }
+  },
+);
+
+/**
+ * Get the full screening script for a project.
+ * Includes system prompt and criteria.
+ * Returns { success: boolean, data?: ScreeningScript, error?: string }
+ */
+ipcMain.handle("get-screening-script", async (_event, projectId: string) => {
+  try {
+    const script = getScreeningScript(projectId);
+    return { success: true, data: script };
+  } catch (error) {
+    console.error("get-screening-script error:", error);
+    return { success: false, error: String(error) };
+  }
+});
+
+/**
+ * Save a screening script for a project.
+ * Allows overriding system prompt, first message, and criteria.
+ * Returns { success: boolean, id?: string, error?: string }
+ */
+ipcMain.handle(
+  "save-screening-script",
+  async (
+    _event,
+    projectId: string,
+    script: {
+      agentName?: string;
+      systemPromptOverride?: string | null;
+      firstMessageOverride?: string | null;
+      criteria?: ScreeningCriteria;
+    },
+  ) => {
+    try {
+      const id = saveScreeningScript(projectId, script);
+      return { success: true, id };
+    } catch (error) {
+      console.error("save-screening-script error:", error);
+      return { success: false, error: String(error) };
+    }
+  },
+);
+
+/**
+ * Test ElevenLabs credentials by checking agent status.
+ * Returns { success: boolean, error?: string, data?: { agentName: string } }
+ */
+ipcMain.handle(
+  "test-elevenlabs-credentials",
+  async (_event, projectId: string | null) => {
+    try {
+      // Import credential manager functions
+      const { getCredential } = await import("./credentialManager");
+
+      const apiKey = getCredential(null, "elevenlabs", "api_key");
+      if (!apiKey) {
+        return { success: false, error: "ElevenLabs API key not configured" };
+      }
+
+      const agentId =
+        (projectId
+          ? getCredential(projectId, "elevenlabs", "screening_agent_id")
+          : null) || getCredential(null, "elevenlabs", "screening_agent_id");
+
+      if (!agentId) {
+        return { success: false, error: "ElevenLabs Agent ID not configured" };
+      }
+
+      // Test by fetching agent info
+      const response = await fetch(
+        `https://api.elevenlabs.io/v1/convai/agents/${agentId}`,
+        {
+          method: "GET",
+          headers: {
+            "xi-api-key": apiKey,
+          },
+        },
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return {
+          success: false,
+          error: `API error: ${response.status} ${errorText}`,
+        };
+      }
+
+      const agentData = (await response.json()) as { name?: string };
+      return {
+        success: true,
+        data: { agentName: agentData.name || "Unknown Agent" },
+      };
+    } catch (error) {
+      console.error("test-elevenlabs-credentials error:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "ElevenLabs verification failed",
+      };
     }
   },
 );

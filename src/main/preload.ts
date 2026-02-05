@@ -1038,6 +1038,111 @@ contextBridge.exposeInMainWorld("api", {
     error?: string;
   }> =>
     ipcRenderer.invoke("update-project-outreach-settings", projectId, settings),
+
+  // ============================================================================
+  // Screening Service operations (Phase 11 Plan 02)
+  // ============================================================================
+
+  /**
+   * Get screening criteria for a project.
+   * Returns { success: boolean, data?: ScreeningCriteria, error?: string }
+   */
+  getScreeningCriteria: (
+    projectId: string,
+  ): Promise<{
+    success: boolean;
+    data?: {
+      salaryMin?: number;
+      salaryMax?: number;
+      locations?: string[];
+      noticePeriod?: string;
+      requiredAvailability?: string;
+      workAuthorization?: string;
+      customQuestions?: string[];
+    };
+    error?: string;
+  }> => ipcRenderer.invoke("get-screening-criteria", projectId),
+
+  /**
+   * Save screening criteria for a project.
+   * Returns { success: boolean, id?: string, error?: string }
+   */
+  saveScreeningCriteria: (
+    projectId: string,
+    criteria: {
+      salaryMin?: number;
+      salaryMax?: number;
+      locations?: string[];
+      noticePeriod?: string;
+      requiredAvailability?: string;
+      workAuthorization?: string;
+      customQuestions?: string[];
+    },
+  ): Promise<{ success: boolean; id?: string; error?: string }> =>
+    ipcRenderer.invoke("save-screening-criteria", projectId, criteria),
+
+  /**
+   * Get the full screening script for a project.
+   * Returns { success: boolean, data?: ScreeningScript, error?: string }
+   */
+  getScreeningScript: (
+    projectId: string,
+  ): Promise<{
+    success: boolean;
+    data?: {
+      projectId: string;
+      agentName: string;
+      systemPrompt: string;
+      firstMessage?: string;
+      criteria: {
+        salaryMin?: number;
+        salaryMax?: number;
+        locations?: string[];
+        noticePeriod?: string;
+        requiredAvailability?: string;
+        workAuthorization?: string;
+        customQuestions?: string[];
+      };
+      createdAt: string;
+      updatedAt: string;
+    };
+    error?: string;
+  }> => ipcRenderer.invoke("get-screening-script", projectId),
+
+  /**
+   * Save a screening script for a project.
+   * Returns { success: boolean, id?: string, error?: string }
+   */
+  saveScreeningScript: (
+    projectId: string,
+    script: {
+      agentName?: string;
+      systemPromptOverride?: string | null;
+      firstMessageOverride?: string | null;
+      criteria?: {
+        salaryMin?: number;
+        salaryMax?: number;
+        locations?: string[];
+        noticePeriod?: string;
+        requiredAvailability?: string;
+        workAuthorization?: string;
+        customQuestions?: string[];
+      };
+    },
+  ): Promise<{ success: boolean; id?: string; error?: string }> =>
+    ipcRenderer.invoke("save-screening-script", projectId, script),
+
+  /**
+   * Test ElevenLabs credentials by checking agent status.
+   * Returns { success: boolean, error?: string, data?: { agentName: string } }
+   */
+  testElevenLabsCredentials: (
+    projectId: string | null,
+  ): Promise<{
+    success: boolean;
+    error?: string;
+    data?: { agentName: string };
+  }> => ipcRenderer.invoke("test-elevenlabs-credentials", projectId),
 });
 
 /**

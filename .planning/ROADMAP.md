@@ -69,9 +69,9 @@ Plans:
 
 Plans:
 
-- [ ] 10-01-PLAN.md — XState v5 state machine, SQLite persistence, graduation flow, database migration v7
-- [ ] 10-02-PLAN.md — Reply polling, intent classification, working hours queueing, missed escalation recovery
-- [ ] 10-03-PLAN.md — Kanban dashboard UI with @dnd-kit, candidate cards, side panel, graduation controls
+- [x] 10-01-PLAN.md — XState v5 state machine, SQLite persistence, graduation flow, database migration v7
+- [x] 10-02-PLAN.md — Reply polling, intent classification, working hours queueing, missed escalation recovery
+- [x] 10-03-PLAN.md — Kanban dashboard UI with @dnd-kit, candidate cards, side panel, graduation controls
 
 ### Phase 11: AI Voice Screening
 
@@ -174,7 +174,7 @@ Milestone drafts in `.planning/milestones/`:
 | ------------------------------- | --------- | -------------- | ----------- | ---------- |
 | 8. Samsara Wheel & Foundation   | M2        | 3/3            | Complete    | 2026-01-31 |
 | 9. Communication Infrastructure | M2        | 4/4            | Complete    | 2026-02-04 |
-| 10. Outreach Workflow Engine    | M2        | 0/3            | Planned     | -          |
+| 10. Outreach Workflow Engine    | M2        | 3/3            | Complete    | 2026-02-05 |
 | 11. AI Voice Screening          | M2        | 0/3            | Not started | -          |
 | 12. Recording & Transcription   | M2        | 0/2            | Not started | -          |
 | 13. ATS Integration             | M2        | 0/3            | Not started | -          |

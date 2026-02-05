@@ -90,22 +90,22 @@ Deferred to post-M2 milestones.
 
 | Requirement | Phase | Status   |
 | ----------- | ----- | -------- |
-| NAV-01      | 8     | Pending  |
-| NAV-02      | 8     | Pending  |
-| NAV-03      | 8     | Pending  |
-| NAV-04      | 8     | Pending  |
-| NAV-05      | 8     | Pending  |
+| NAV-01      | 8     | Complete |
+| NAV-02      | 8     | Complete |
+| NAV-03      | 8     | Complete |
+| NAV-04      | 8     | Complete |
+| NAV-05      | 8     | Complete |
 | COM-01      | 9     | Complete |
 | COM-02      | 9     | Complete |
 | COM-03      | 9     | Complete |
 | COM-04      | 9     | Complete |
 | COM-05      | 9     | Complete |
 | COM-06      | 9     | Complete |
-| WRK-01      | 10    | Pending  |
-| WRK-02      | 10    | Pending  |
-| WRK-03      | 10    | Pending  |
-| WRK-04      | 10    | Pending  |
-| WRK-05      | 10    | Pending  |
+| WRK-01      | 10    | Complete |
+| WRK-02      | 10    | Complete |
+| WRK-03      | 10    | Complete |
+| WRK-04      | 10    | Complete |
+| WRK-05      | 10    | Complete |
 | VOX-01      | 11    | Pending  |
 | VOX-02      | 11    | Pending  |
 | VOX-03      | 11    | Pending  |
@@ -118,8 +118,8 @@ Deferred to post-M2 milestones.
 | ATS-02      | 13    | Pending  |
 | ATS-03      | 13    | Pending  |
 | ATS-04      | 13    | Pending  |
-| DAT-01      | 8     | Pending  |
-| DAT-02      | 8     | Pending  |
+| DAT-01      | 8     | Complete |
+| DAT-02      | 8     | Complete |
 
 **Coverage:**
 
@@ -130,4 +130,4 @@ Deferred to post-M2 milestones.
 ---
 
 _Requirements defined: 2026-01-31_
-_Last updated: 2026-01-31 after M2 roadmap creation_
+_Last updated: 2026-02-05 after Phase 10 completion_

@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Architecture as the Advantage - Zero Latency, Zero Egress, Zero Per-Seat Tax
-**Current focus:** M2 Automated Outreach - Phase 10 (Automated Outreach Sequences)
+**Current focus:** M2 Automated Outreach - Phase 10 Complete, Ready for Phase 11
 
 ## Current Position
 
-Phase: 10 of 14 (outreach-workflow-engine)
-Plan: 2 of 3 complete
-Status: In progress
-Last activity: 2026-02-04 - Completed 10-02-PLAN.md (Reply polling and workflow triggers)
+Phase: 10 of 14 (outreach-workflow-engine) - COMPLETE
+Plan: 3 of 3 complete
+Status: Phase complete
+Last activity: 2026-02-04 - Completed 10-03-PLAN.md (Kanban pipeline dashboard)
 
-Progress: M2 [████████░░░░░░░░░░] 3.5/6 phases | Phase 10 plan 2/3 complete
+Progress: M2 [█████████░░░░░░░░░] 4/6 phases | Phase 10 complete
 
 ## MVP Status (Separate Branch)
 
@@ -27,9 +27,9 @@ MVP v0.1.0 shipped on `mvp` branch - see `.planning/RELEASE-WORKFLOW.md` for upd
 
 **Velocity:**
 
-- Total plans completed: 56 (v1: 47, M2 Phase 8: 3, M2 Phase 9: 4, M2 Phase 10: 2)
+- Total plans completed: 57 (v1: 47, M2 Phase 8: 3, M2 Phase 9: 4, M2 Phase 10: 3)
 - Average duration: 11 min
-- Total execution time: ~8.2 hours
+- Total execution time: ~8.5 hours
 
 ## Accumulated Context
 
@@ -66,30 +66,33 @@ Full decision log in PROJECT.md Key Decisions table.
 - 09-03: SMS/email sending via Twilio + Nodemailer, delivery polling, DNC registry, OutreachSection UI
 - 09-04: UAT gap closure - header overflow, AlertDialog delete, Outreach enabled, visibility fixes
 
-**Phase 10 in progress (2026-02-04):**
+**Phase 10 completed (2026-02-04):**
 
 - 10-01: XState v5 workflow engine with SQLite persistence, graduation IPC, TypeScript 5.6 upgrade
 - 10-02: Reply polling (30s), keyword intent classification, working hours queueing, WRK-05 callbacks
+- 10-03: Kanban pipeline dashboard with @dnd-kit drag-drop, graduation controls, side panel
 
-| Decision              | Choice                       | Rationale                                   |
-| --------------------- | ---------------------------- | ------------------------------------------- |
-| Credential encryption | safeStorage (DPAPI/Keychain) | OS-level encryption, no app secrets         |
-| Credential fallback   | Project -> global            | Allows global default with overrides        |
-| Provider SDK loading  | Dynamic import               | Avoids loading twilio/nodemailer at startup |
-| DNC normalization     | Digits only / lowercase      | Consistent matching regardless of format    |
-| Polling interval      | 60 seconds                   | Balance freshness vs API rate limits        |
-
-| Decision              | Choice                      | Rationale                                          |
-| --------------------- | --------------------------- | -------------------------------------------------- |
-| Client-side preview   | Generate preview locally    | Instant feedback without IPC round-trip            |
-| SMS segment calc      | 160/153 chars               | Standard GSM-7 with UDH header                     |
-| Delete confirmation   | AlertDialog (not two-click) | Radix DropdownMenu closes between clicks           |
-| Empty state contrast  | text-foreground/70          | Better readability than text-muted-foreground      |
-| TypeScript version    | 5.6                         | XState v5 requires TS 5+ for type definitions      |
-| Snapshot persistence  | On every state change       | Ensures durability across app restarts             |
-| Actor model           | Actor-per-candidate         | Independent workflow instances, easy persistence   |
-| Intent classification | Keyword-based               | Simple, predictable, ambiguous treated as positive |
-| Reply polling         | 30 seconds                  | Faster than delivery polling for real-time feel    |
+| Decision              | Choice                         | Rationale                                                  |
+| --------------------- | ------------------------------ | ---------------------------------------------------------- |
+| Credential encryption | safeStorage (DPAPI/Keychain)   | OS-level encryption, no app secrets                        |
+| Credential fallback   | Project -> global              | Allows global default with overrides                       |
+| Provider SDK loading  | Dynamic import                 | Avoids loading twilio/nodemailer at startup                |
+| DNC normalization     | Digits only / lowercase        | Consistent matching regardless of format                   |
+| Polling interval      | 60 seconds                     | Balance freshness vs API rate limits                       |
+| Client-side preview   | Generate preview locally       | Instant feedback without IPC round-trip                    |
+| SMS segment calc      | 160/153 chars                  | Standard GSM-7 with UDH header                             |
+| Delete confirmation   | AlertDialog (not two-click)    | Radix DropdownMenu closes between clicks                   |
+| Empty state contrast  | text-foreground/70             | Better readability than text-muted-foreground              |
+| TypeScript version    | 5.6                            | XState v5 requires TS 5+ for type definitions              |
+| Snapshot persistence  | On every state change          | Ensures durability across app restarts                     |
+| Actor model           | Actor-per-candidate            | Independent workflow instances, easy persistence           |
+| Intent classification | Keyword-based                  | Simple, predictable, ambiguous treated as positive         |
+| Reply polling         | 30 seconds                     | Faster than delivery polling for real-time feel            |
+| Paused behavior       | Visual modifier, not column    | Pausing shouldn't change pipeline position                 |
+| Drag restrictions     | Free movement except TO Failed | Recruiters need manual override for out-of-band comms      |
+| Collision detection   | rectIntersection               | More reliable than closestCorners for area detection       |
+| Highlight state       | Parent-controlled              | useDroppable isOver was glitchy, board-level is consistent |
+| Failed drag-out       | Auto-retry                     | Intuitive: dragging out = "give another chance"            |
 
 ### Pending Todos
 
@@ -107,21 +110,23 @@ Full decision log in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 Last session: 2026-02-04
-Stopped at: Completed 10-02-PLAN.md (Reply polling and workflow triggers)
+Stopped at: Completed 10-03-PLAN.md (Kanban pipeline dashboard)
 Resume file: None
 
 ## Next Steps
 
-**Phase 10: Automated Outreach Sequences (continued)**
+**Phase 11: AI Voice Screening**
 
-Remaining plans:
+Ready to start:
 
-- 10-03: Kanban UI with graduation controls and workflow visualization
+- Kanban pipeline shows candidate workflow state
+- Side panel displays message timeline for context
+- Workflow store provides actions for state transitions
+- "Force Call" action button ready in card menu
 
-**Deferred tests (must verify in Phase 10):**
+Plans:
 
-- View graduated candidates in Outreach list
-- Select candidate and view timeline
-- Open Send Message dialog
-- SMS character count display
-- DNC warning prevents sending
+- 11-01: ElevenLabs Conversational AI integration
+- 11-02: Twilio SIP trunking for outbound calls
+- 11-03: Windows WASAPI audio capture
+- 11-04: faster-whisper local transcription

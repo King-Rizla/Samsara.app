@@ -18,6 +18,8 @@ import {
   storeTranscript,
 } from "./voiceService";
 import { reportScreeningComplete, getWorkflowActor } from "./workflowService";
+import { analyzeTranscript } from "./transcriptAnalyzer";
+import { getDatabase } from "./database";
 
 // ============================================================================
 // Configuration
@@ -93,18 +95,74 @@ async function pollCallStatuses(): Promise<void> {
             );
           }
 
-          // Report to workflow
-          // For now, treat completed calls as needing analysis
-          // Plan 11-03 will add Claude-based pass/fail determination
+          // Report to workflow with analysis result
           if (status.status === "completed" && call.cv_id) {
-            // Mark as needs analysis - workflow stays in screening until analyzed
             console.log(
               `[VoicePoller] Call ${call.id} completed, transcript stored`,
             );
-            // Note: Don't call reportScreeningComplete yet - Plan 11-03 adds analysis
-            // For now, just log completion
-            // Future: const outcome = await analyzeTranscript(status.transcript, call.project_id);
-            // Future: reportScreeningComplete(call.cv_id, outcome === 'pass' ? 'passed' : 'failed');
+
+            // Analyze transcript for pass/maybe/fail if available
+            if (status.transcript) {
+              try {
+                const result = await analyzeTranscript(
+                  status.transcript,
+                  call.project_id,
+                );
+
+                // Update call record with screening outcome
+                const db = getDatabase();
+                db.prepare(
+                  `
+                  UPDATE call_records SET
+                    screening_outcome = ?,
+                    screening_confidence = ?,
+                    extracted_data_json = ?
+                  WHERE id = ?
+                `,
+                ).run(
+                  result.outcome,
+                  result.confidence,
+                  JSON.stringify({
+                    ...result.extractedData,
+                    reasoning: result.reasoning,
+                    disqualifiers: result.disqualifiers,
+                  }),
+                  call.id,
+                );
+
+                // Report to workflow - pass or maybe = passed, fail = failed
+                // Treat 'maybe' as passed so recruiter can make final call
+                const workflowOutcome =
+                  result.outcome === "fail" ? "failed" : "passed";
+                const actor = getWorkflowActor(call.cv_id);
+                if (actor) {
+                  reportScreeningComplete(call.cv_id, workflowOutcome);
+                }
+
+                console.log(
+                  `[VoicePoller] Call ${call.id} analyzed: ${result.outcome} (${result.confidence}%), workflow: ${workflowOutcome}`,
+                );
+              } catch (analyzeError) {
+                console.error(
+                  `[VoicePoller] Failed to analyze transcript for call ${call.id}:`,
+                  analyzeError,
+                );
+                // Still report as passed if analysis fails - let recruiter decide
+                const actor = getWorkflowActor(call.cv_id);
+                if (actor) {
+                  reportScreeningComplete(call.cv_id, "passed");
+                }
+              }
+            } else {
+              // No transcript available - pass to recruiter for manual review
+              const actor = getWorkflowActor(call.cv_id);
+              if (actor) {
+                reportScreeningComplete(call.cv_id, "passed");
+              }
+              console.log(
+                `[VoicePoller] Call ${call.id} completed but no transcript - passed to recruiter`,
+              );
+            }
           } else if (
             (status.status === "failed" || status.status === "no_answer") &&
             call.cv_id

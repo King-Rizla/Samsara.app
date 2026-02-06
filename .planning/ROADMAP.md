@@ -105,12 +105,12 @@ Plans:
 2. Recorded audio is transcribed locally via faster-whisper in the Python sidecar without blocking CV parsing
 3. Transcripts are attached to the candidate record alongside CV data and visible in the transcript viewer
 
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
 
-- [ ] 12-01: Python sidecar audio capture (WASAPI loopback), recording toggle UI with level meter
-- [ ] 12-02: faster-whisper integration, transcription job queue, transcript attachment to candidate record
+- [ ] 12-01-PLAN.md — Python sidecar audio capture (WASAPI loopback + mic), IPC handlers, database migration v10
+- [ ] 12-02-PLAN.md — faster-whisper transcriber, floating RecordingPanel UI, call record integration
 
 ### Phase 13: ATS Integration
 

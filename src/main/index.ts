@@ -81,6 +81,14 @@ import {
   saveScreeningScript,
   type ScreeningCriteria,
 } from "./screeningService";
+import {
+  startRecording,
+  stopRecording,
+  getRecordingState,
+  attachRecording,
+  discardRecording,
+  checkAudioDevices,
+} from "./audioRecordingService";
 
 // Vite global variables for dev server and renderer name
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
@@ -2306,6 +2314,34 @@ ipcMain.handle(
   },
 );
 
+/**
+ * Initiate a test call to verify ElevenLabs voice integration.
+ * Returns { success: boolean, data?: { callId: string }, error?: string }
+ */
+ipcMain.handle(
+  "initiate-test-call",
+  async (_event, projectId: string | null, phoneNumber: string) => {
+    try {
+      const { initiateTestCall } = await import("./voiceService");
+      const result = await initiateTestCall(projectId, phoneNumber);
+      if (result.success) {
+        return { success: true, data: { callId: result.callId } };
+      } else {
+        return { success: false, error: result.error };
+      }
+    } catch (error) {
+      console.error("initiate-test-call error:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Test call initiation failed",
+      };
+    }
+  },
+);
+
 // ============================================================================
 // Call Records IPC Handlers (Phase 11 Plan 03)
 // ============================================================================
@@ -2361,4 +2397,60 @@ ipcMain.handle("get-call-transcript", async (_event, callId: string) => {
     console.error("get-call-transcript error:", error);
     return { success: false, error: String(error) };
   }
+});
+
+// ============================================================================
+// Audio Recording IPC Handlers (Phase 12 Plan 01)
+// ============================================================================
+
+/**
+ * Start recording system audio + microphone.
+ * Returns { success: boolean, sessionId?: string, error?: string }
+ */
+ipcMain.handle("start-recording", async () => {
+  return startRecording();
+});
+
+/**
+ * Stop recording.
+ * Returns { success: boolean, sessionId?: string, durationMs?: number, audioPath?: string, error?: string }
+ */
+ipcMain.handle("stop-recording", async () => {
+  return stopRecording();
+});
+
+/**
+ * Get current recording state.
+ * Returns { state: string, sessionId?: string, startedAt?: string, durationMs?: number }
+ */
+ipcMain.handle("get-recording-state", async () => {
+  return getRecordingState();
+});
+
+/**
+ * Attach recording to a candidate.
+ * Creates call_record in database and queues transcription.
+ * Returns { success: boolean, callRecordId?: string, error?: string }
+ */
+ipcMain.handle(
+  "attach-recording",
+  async (_event, candidateId: string, projectId: string) => {
+    return attachRecording(candidateId, projectId);
+  },
+);
+
+/**
+ * Discard current recording without attaching.
+ * Returns { success: boolean }
+ */
+ipcMain.handle("discard-recording", async () => {
+  return discardRecording();
+});
+
+/**
+ * Check audio device availability.
+ * Returns { success: boolean, data?: { loopback_available, mic_available, ... }, error?: string }
+ */
+ipcMain.handle("check-audio-devices", async () => {
+  return checkAudioDevices();
 });

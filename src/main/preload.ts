@@ -1144,6 +1144,19 @@ contextBridge.exposeInMainWorld("api", {
     data?: { agentName: string };
   }> => ipcRenderer.invoke("test-elevenlabs-credentials", projectId),
 
+  /**
+   * Initiate a test call to verify ElevenLabs voice integration.
+   * Returns { success: boolean, data?: { callId: string }, error?: string }
+   */
+  initiateTestCall: (
+    projectId: string | null,
+    phoneNumber: string,
+  ): Promise<{
+    success: boolean;
+    data?: { callId: string };
+    error?: string;
+  }> => ipcRenderer.invoke("initiate-test-call", projectId, phoneNumber),
+
   // ============================================================================
   // Call Records operations (Phase 11 Plan 03)
   // ============================================================================
@@ -1184,6 +1197,79 @@ contextBridge.exposeInMainWorld("api", {
     } | null;
     error?: string;
   }> => ipcRenderer.invoke("get-call-transcript", callId),
+
+  // ============================================================================
+  // Audio Recording operations (Phase 12 Plan 01)
+  // ============================================================================
+
+  /**
+   * Start recording system audio + microphone.
+   * Returns { success: boolean, sessionId?: string, error?: string }
+   */
+  startRecording: (): Promise<{
+    success: boolean;
+    sessionId?: string;
+    error?: string;
+  }> => ipcRenderer.invoke("start-recording"),
+
+  /**
+   * Stop recording.
+   * Returns { success: boolean, sessionId?: string, durationMs?: number, audioPath?: string, error?: string }
+   */
+  stopRecording: (): Promise<{
+    success: boolean;
+    sessionId?: string;
+    durationMs?: number;
+    audioPath?: string;
+    error?: string;
+  }> => ipcRenderer.invoke("stop-recording"),
+
+  /**
+   * Get current recording state.
+   * Returns { state: string, sessionId?: string, startedAt?: string, durationMs?: number }
+   */
+  getRecordingState: (): Promise<{
+    state: string;
+    sessionId?: string;
+    startedAt?: string;
+    durationMs?: number;
+  }> => ipcRenderer.invoke("get-recording-state"),
+
+  /**
+   * Attach recording to a candidate.
+   * Creates call_record in database and queues transcription.
+   * Returns { success: boolean, callRecordId?: string, error?: string }
+   */
+  attachRecording: (
+    candidateId: string,
+    projectId: string,
+  ): Promise<{
+    success: boolean;
+    callRecordId?: string;
+    error?: string;
+  }> => ipcRenderer.invoke("attach-recording", candidateId, projectId),
+
+  /**
+   * Discard current recording without attaching.
+   * Returns { success: boolean }
+   */
+  discardRecording: (): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke("discard-recording"),
+
+  /**
+   * Check audio device availability.
+   * Returns device info from Python sidecar.
+   */
+  checkAudioDevices: (): Promise<{
+    success: boolean;
+    data?: {
+      loopback_available: boolean;
+      mic_available: boolean;
+      loopback_device: string | null;
+      mic_device: string | null;
+    };
+    error?: string;
+  }> => ipcRenderer.invoke("check-audio-devices"),
 });
 
 /**

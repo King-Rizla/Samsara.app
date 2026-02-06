@@ -785,6 +785,34 @@ export function initDatabase(): Database.Database {
       console.log("Database migrated to version 9");
     }
 
+    if (version < 10) {
+      console.log(
+        "Migrating database to version 10 (recruiter recording support)...",
+      );
+
+      // Add transcription status tracking columns to call_records
+      const callRecordColumns = db
+        .prepare("PRAGMA table_info(call_records)")
+        .all() as { name: string }[];
+
+      // transcription_status: NULL (not started), 'queued', 'processing', 'completed', 'failed'
+      if (!callRecordColumns.some((c) => c.name === "transcription_status")) {
+        db.exec(
+          `ALTER TABLE call_records ADD COLUMN transcription_status TEXT DEFAULT NULL`,
+        );
+      }
+
+      // transcription_error: Error message if transcription failed
+      if (!callRecordColumns.some((c) => c.name === "transcription_error")) {
+        db.exec(
+          `ALTER TABLE call_records ADD COLUMN transcription_error TEXT DEFAULT NULL`,
+        );
+      }
+
+      db.pragma("user_version = 10");
+      console.log("Database migrated to version 10");
+    }
+
     // Store init timestamp
     const stmt = db.prepare(
       "INSERT OR REPLACE INTO app_meta (key, value) VALUES (?, ?)",

@@ -2358,11 +2358,12 @@ ipcMain.handle("get-call-records", async (_event, cvId: string) => {
       .prepare(
         `
         SELECT
-          id, status, duration_seconds as durationSeconds,
+          id, type, status, duration_seconds as durationSeconds,
           screening_outcome as screeningOutcome,
           screening_confidence as screeningConfidence,
           extracted_data_json as extractedDataJson,
-          started_at as startedAt, ended_at as endedAt
+          started_at as startedAt, ended_at as endedAt,
+          transcription_status as transcriptionStatus
         FROM call_records
         WHERE cv_id = ?
         ORDER BY started_at DESC

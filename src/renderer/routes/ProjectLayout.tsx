@@ -3,6 +3,7 @@ import { Outlet, useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Settings } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { LLMSettings } from "../components/settings/LLMSettings";
+import { RecordingPanel } from "../components/recording/RecordingPanel";
 import { useQueueStore } from "../stores/queueStore";
 import { useJDStore } from "../stores/jdStore";
 import { useProjectStore } from "../stores/projectStore";
@@ -85,6 +86,9 @@ export function ProjectLayout() {
       <div className="flex-1 overflow-hidden flex flex-col">
         <Outlet />
       </div>
+
+      {/* Floating Recording Panel - accessible from any wheel section */}
+      <RecordingPanel />
     </>
   );
 }

@@ -393,10 +393,10 @@ export function CandidatePanel({ projectId }: CandidatePanelProps) {
                 </div>
               </div>
 
-              {/* Call Records (Phase 11 Plan 03) */}
+              {/* Call Records (Phase 11 Plan 03, updated Phase 12) */}
               {callRecords.length > 0 && (
                 <div className="px-4 py-3 border-b border-border">
-                  <h3 className="text-sm font-medium mb-3">Screening Calls</h3>
+                  <h3 className="text-sm font-medium mb-3">Call Records</h3>
                   <div className="space-y-2">
                     {callRecords.map((call) => (
                       <CallRecordCard

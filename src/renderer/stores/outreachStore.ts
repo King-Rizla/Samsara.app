@@ -17,6 +17,7 @@ import type {
 
 export interface CallRecord {
   id: string;
+  type?: "screening" | "recruiter";
   status: "in_progress" | "completed" | "failed" | "no_answer";
   durationSeconds?: number;
   screeningOutcome?: "pass" | "maybe" | "fail";
@@ -24,6 +25,7 @@ export interface CallRecord {
   extractedDataJson?: string;
   startedAt: string;
   endedAt?: string;
+  transcriptionStatus?: "queued" | "processing" | "completed" | "failed";
 }
 
 interface OutreachState {
@@ -169,7 +171,7 @@ export const useOutreachStore = create<OutreachState>((set, get) => ({
     }
   },
 
-  // Load call records for a candidate (Phase 11 Plan 03)
+  // Load call records for a candidate (Phase 11 Plan 03, updated Phase 12)
   loadCallRecordsForCandidate: async (cvId: string) => {
     set({ isLoadingCallRecords: true });
     try {
@@ -178,6 +180,7 @@ export const useOutreachStore = create<OutreachState>((set, get) => ({
         const records = result.data.map(
           (record: {
             id: string;
+            type?: string;
             status: string;
             durationSeconds?: number;
             screeningOutcome?: string;
@@ -185,8 +188,10 @@ export const useOutreachStore = create<OutreachState>((set, get) => ({
             extractedDataJson?: string;
             startedAt: string;
             endedAt?: string;
+            transcriptionStatus?: string;
           }) => ({
             id: record.id,
+            type: (record.type || "screening") as CallRecord["type"],
             status: record.status as CallRecord["status"],
             durationSeconds: record.durationSeconds,
             screeningOutcome:
@@ -195,6 +200,8 @@ export const useOutreachStore = create<OutreachState>((set, get) => ({
             extractedDataJson: record.extractedDataJson,
             startedAt: record.startedAt,
             endedAt: record.endedAt,
+            transcriptionStatus:
+              record.transcriptionStatus as CallRecord["transcriptionStatus"],
           }),
         );
         set({ callRecords: records, isLoadingCallRecords: false });

@@ -25,6 +25,7 @@ import { cn } from "../../lib/utils";
 
 export interface CallRecord {
   id: string;
+  type?: "screening" | "recruiter";
   status: "in_progress" | "completed" | "failed" | "no_answer";
   durationSeconds?: number;
   screeningOutcome?: "pass" | "maybe" | "fail";
@@ -32,6 +33,7 @@ export interface CallRecord {
   extractedDataJson?: string;
   startedAt: string;
   endedAt?: string;
+  transcriptionStatus?: "queued" | "processing" | "completed" | "failed";
 }
 
 interface CallRecordCardProps {
@@ -113,34 +115,92 @@ export function CallRecordCard({
   const outcomeStyle = getOutcomeStyle(call.screeningOutcome);
   const OutcomeIcon = outcomeStyle.icon;
   const isCompleted = call.status === "completed";
+  const isRecruiterCall = call.type === "recruiter";
+
+  // Recruiter calls use teal accent, AI screening uses purple
+  const callTypeStyle = isRecruiterCall
+    ? {
+        bg: "bg-teal-500/10",
+        border: "border-teal-500/30",
+        badgeColor: "text-teal-500 border-teal-500/50",
+        label: "Recruiter Call",
+      }
+    : {
+        bg: outcomeStyle.bg,
+        border: outcomeStyle.border,
+        badgeColor: "text-purple-500 border-purple-500/50",
+        label: "AI Screening",
+      };
+
+  // Transcription status badge for recruiter calls
+  const getTranscriptionBadge = () => {
+    if (!isRecruiterCall) return null;
+
+    switch (call.transcriptionStatus) {
+      case "queued":
+        return (
+          <Badge variant="outline" className="text-amber-500 text-xs">
+            Queued
+          </Badge>
+        );
+      case "processing":
+        return (
+          <Badge variant="outline" className="text-blue-500 text-xs">
+            Transcribing...
+          </Badge>
+        );
+      case "failed":
+        return (
+          <Badge variant="outline" className="text-red-500 text-xs">
+            Failed
+          </Badge>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <Card
       className={cn(
         "transition-colors",
-        isCompleted && call.screeningOutcome && outcomeStyle.bg,
-        isCompleted && call.screeningOutcome && outcomeStyle.border,
+        isCompleted && callTypeStyle.bg,
+        isCompleted && callTypeStyle.border,
       )}
     >
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Phone className="h-4 w-4" />
-            Screening Call
-          </CardTitle>
-          {isCompleted && call.screeningOutcome ? (
+            <span>{isRecruiterCall ? "Recruiter Call" : "Screening Call"}</span>
+            {/* Call type badge */}
             <Badge
               variant="outline"
-              className={cn("font-medium", outcomeStyle.color)}
+              className={cn("text-xs", callTypeStyle.badgeColor)}
             >
-              <OutcomeIcon className="h-3 w-3 mr-1" />
-              {outcomeStyle.label}
+              {callTypeStyle.label}
             </Badge>
-          ) : (
-            <Badge variant="outline" className="text-muted-foreground">
-              {getStatusLabel(call.status)}
-            </Badge>
-          )}
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            {/* Transcription status for recruiter calls */}
+            {getTranscriptionBadge()}
+            {/* Outcome badge for completed calls */}
+            {isCompleted && call.screeningOutcome ? (
+              <Badge
+                variant="outline"
+                className={cn("font-medium", outcomeStyle.color)}
+              >
+                <OutcomeIcon className="h-3 w-3 mr-1" />
+                {outcomeStyle.label}
+              </Badge>
+            ) : (
+              !isRecruiterCall && (
+                <Badge variant="outline" className="text-muted-foreground">
+                  {getStatusLabel(call.status)}
+                </Badge>
+              )
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -163,7 +223,9 @@ export function CallRecordCard({
           {new Date(call.startedAt).toLocaleString()}
         </div>
 
-        {isCompleted && (
+        {/* Show transcript button for completed AI calls OR recruiter calls with completed transcription */}
+        {(isCompleted && !isRecruiterCall) ||
+        (isRecruiterCall && call.transcriptionStatus === "completed") ? (
           <Button
             variant="outline"
             size="sm"
@@ -173,7 +235,7 @@ export function CallRecordCard({
             <FileText className="h-4 w-4 mr-2" />
             View Transcript
           </Button>
-        )}
+        ) : null}
       </CardContent>
     </Card>
   );

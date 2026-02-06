@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 
 ## Current Position
 
-Phase: 11 of 14 (ai-voice-screening) - COMPLETE
-Plan: 3 of 3 complete
-Status: Phase complete
-Last activity: 2026-02-05 — Completed Phase 11 (AI Voice Screening) with verification
+Phase: 12 of 14 (system-audio-transcription) - IN PROGRESS
+Plan: 1 of 2 complete
+Status: In progress
+Last activity: 2026-02-06 — Completed 12-01-PLAN.md (Audio Capture Infrastructure)
 
-Progress: M2 [███████████░░░░░░░] 5/6 phases | Phase 11 complete
+Progress: M2 [████████████░░░░░░] 5.5/6 phases | Phase 12 Plan 1 complete
 
 ## MVP Status (Separate Branch)
 
@@ -105,6 +105,9 @@ Full decision log in PROJECT.md Key Decisions table.
 | Transcript analysis model | Claude Sonnet 4                | Fast, accurate classification at reasonable cost           |
 | Maybe outcome handling    | Treated as passed              | Recruiters make final call on ambiguous cases              |
 | Anthropic credentials     | Via credential manager         | Consistent with existing provider pattern                  |
+| Dual-stream mixing        | Average (not sum)              | Prevents clipping, both parties audible                    |
+| Target sample rate        | 16kHz mono                     | Whisper optimal format, reduces file size                  |
+| Level streaming           | JSON type="level" stdout       | Fits existing Python IPC pattern, non-blocking             |
 
 ### Pending Todos
 
@@ -121,22 +124,21 @@ Full decision log in PROJECT.md Key Decisions table.
 
 ## Session Continuity
 
-Last session: 2026-02-05
-Stopped at: Completed Phase 11 (AI Voice Screening) — verified 5/5 requirements (VOX-01 to VOX-05)
+Last session: 2026-02-06
+Stopped at: Completed 12-01-PLAN.md (Audio Capture Infrastructure)
 Resume file: None
 
 ## Next Steps
 
 **Phase 12: System Audio Recording & Transcription**
 
-Ready to start:
+Plan 01 complete:
 
-- Voice screening infrastructure complete
-- Call records and transcripts visible in candidate panel
-- Transcript viewer displays full conversation with extracted data
-- Workflow state updates based on screening outcome
+- Python audio capture module with WASAPI loopback + mic
+- Recording state machine (idle -> recording -> stopped)
+- Electron audioRecordingService with IPC handlers
+- Database migration v10 for transcription status
 
-Plans:
+Ready for Plan 02:
 
-- 12-01: Python sidecar audio capture (WASAPI loopback), recording toggle UI with level meter
 - 12-02: faster-whisper integration, transcription job queue, transcript attachment to candidate record

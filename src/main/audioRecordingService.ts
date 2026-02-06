@@ -12,6 +12,7 @@ import * as fs from "fs";
 import * as crypto from "crypto";
 import { sendToPython } from "./pythonManager";
 import { getDatabase } from "./database";
+import { queueTranscription } from "./transcriptionService";
 
 // Recording states
 type RecordingState = "idle" | "recording" | "stopped" | "attaching";
@@ -253,10 +254,16 @@ export async function attachRecording(
       `[Recording] Attached recording to candidate ${candidateId}, callRecordId: ${callId}`,
     );
 
+    // Queue transcription job
+    queueTranscription({
+      callRecordId: callId,
+      audioPath: currentSession.audioPath,
+      projectId,
+      candidateId,
+    });
+
     // Reset session
     currentSession = null;
-
-    // TODO: Queue transcription job (implemented in Plan 02)
 
     return { success: true, callRecordId: callId };
   } catch (error) {

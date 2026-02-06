@@ -1270,6 +1270,50 @@ contextBridge.exposeInMainWorld("api", {
     };
     error?: string;
   }> => ipcRenderer.invoke("check-audio-devices"),
+
+  /**
+   * Get transcription status for a call record.
+   * Returns { success: boolean, status?: string, error?: string }
+   */
+  getTranscriptionStatus: (
+    callRecordId: string,
+  ): Promise<{
+    success: boolean;
+    status?: string;
+    error?: string;
+  }> => ipcRenderer.invoke("get-transcription-status", callRecordId),
+
+  /**
+   * Listen for transcription completion events.
+   * Called when a transcription job completes successfully.
+   */
+  onTranscriptionComplete: (
+    callback: (data: { callRecordId: string; candidateId: string }) => void,
+  ): void => {
+    ipcRenderer.on("transcription-complete", (_event, data) => callback(data));
+  },
+
+  /**
+   * Listen for transcription failure events.
+   * Called when a transcription job fails.
+   */
+  onTranscriptionFailed: (
+    callback: (data: {
+      callRecordId: string;
+      candidateId: string;
+      error: string;
+    }) => void,
+  ): void => {
+    ipcRenderer.on("transcription-failed", (_event, data) => callback(data));
+  },
+
+  /**
+   * Remove transcription event listeners.
+   */
+  removeTranscriptionListeners: (): void => {
+    ipcRenderer.removeAllListeners("transcription-complete");
+    ipcRenderer.removeAllListeners("transcription-failed");
+  },
 });
 
 /**

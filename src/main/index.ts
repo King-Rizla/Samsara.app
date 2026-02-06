@@ -89,6 +89,7 @@ import {
   discardRecording,
   checkAudioDevices,
 } from "./audioRecordingService";
+import { getTranscriptionStatus } from "./transcriptionService";
 
 // Vite global variables for dev server and renderer name
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
@@ -2454,3 +2455,20 @@ ipcMain.handle("discard-recording", async () => {
 ipcMain.handle("check-audio-devices", async () => {
   return checkAudioDevices();
 });
+
+/**
+ * Get transcription status for a call record.
+ * Returns { success: boolean, status?: string, error?: string }
+ */
+ipcMain.handle(
+  "get-transcription-status",
+  async (_event, callRecordId: string) => {
+    try {
+      const status = getTranscriptionStatus(callRecordId);
+      return { success: true, status };
+    } catch (error) {
+      console.error("get-transcription-status error:", error);
+      return { success: false, error: String(error) };
+    }
+  },
+);

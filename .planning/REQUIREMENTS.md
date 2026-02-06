@@ -111,9 +111,9 @@ Deferred to post-M2 milestones.
 | VOX-03      | 11    | Complete |
 | VOX-04      | 11    | Complete |
 | VOX-05      | 11    | Complete |
-| REC-01      | 12    | Pending  |
-| REC-02      | 12    | Pending  |
-| REC-03      | 12    | Pending  |
+| REC-01      | 12    | Complete |
+| REC-02      | 12    | Complete |
+| REC-03      | 12    | Complete |
 | ATS-01      | 13    | Pending  |
 | ATS-02      | 13    | Pending  |
 | ATS-03      | 13    | Pending  |
@@ -130,4 +130,4 @@ Deferred to post-M2 milestones.
 ---
 
 _Requirements defined: 2026-01-31_
-_Last updated: 2026-02-05 after Phase 11 completion_
+_Last updated: 2026-02-06 after Phase 12 completion_

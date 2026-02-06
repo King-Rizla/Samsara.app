@@ -109,8 +109,8 @@ Plans:
 
 Plans:
 
-- [ ] 12-01-PLAN.md — Python sidecar audio capture (WASAPI loopback + mic), IPC handlers, database migration v10
-- [ ] 12-02-PLAN.md — faster-whisper transcriber, floating RecordingPanel UI, call record integration
+- [x] 12-01-PLAN.md — Python sidecar audio capture (WASAPI loopback + mic), IPC handlers, database migration v10
+- [x] 12-02-PLAN.md — faster-whisper transcriber, floating RecordingPanel UI, call record integration
 
 ### Phase 13: ATS Integration
 
@@ -176,7 +176,7 @@ Milestone drafts in `.planning/milestones/`:
 | 9. Communication Infrastructure | M2        | 4/4            | Complete    | 2026-02-04 |
 | 10. Outreach Workflow Engine    | M2        | 3/3            | Complete    | 2026-02-05 |
 | 11. AI Voice Screening          | M2        | 3/3            | Complete    | 2026-02-05 |
-| 12. Recording & Transcription   | M2        | 0/2            | Not started | -          |
+| 12. Recording & Transcription   | M2        | 2/2            | Complete    | 2026-02-06 |
 | 13. ATS Integration             | M2        | 0/3            | Not started | -          |
 | 14. MVP Packaging & Release     | mvp       | 5/5            | Complete    | 2026-02-03 |
 

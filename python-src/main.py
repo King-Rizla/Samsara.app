@@ -19,7 +19,7 @@ from export.theme import load_theme
 from extractors.llm import OllamaClient, OpenAIClient
 from extractors.llm.schemas import LLMFullExtraction, LLMJDExtraction
 from extractors.llm.prompts import FULL_EXTRACTION_PROMPT, JD_EXTRACTION_PROMPT
-from audio import RecordingSession
+from audio import RecordingSession, LocalTranscriber
 
 # LLM Mode: "local" (Ollama) or "cloud" (OpenAI)
 # Set via SAMSARA_LLM_MODE environment variable
@@ -80,6 +80,9 @@ print(json.dumps({
 # Recording session singleton (lazy initialization)
 recording_session: RecordingSession = None
 
+# Transcriber singleton (lazy initialization)
+transcriber: LocalTranscriber = None
+
 
 def get_recording_session() -> RecordingSession:
     """Get or create the recording session singleton."""
@@ -87,6 +90,14 @@ def get_recording_session() -> RecordingSession:
     if recording_session is None:
         recording_session = RecordingSession()
     return recording_session
+
+
+def get_transcriber() -> LocalTranscriber:
+    """Get or create the transcriber singleton."""
+    global transcriber
+    if transcriber is None:
+        transcriber = LocalTranscriber(model_size="small")
+    return transcriber
 
 
 def level_callback(source: str, level: float):
@@ -688,6 +699,61 @@ def handle_request(request: dict) -> dict:
                 'id': request_id,
                 'success': False,
                 'error': f'Failed to check audio devices: {str(e)}'
+            }
+
+    # =========================================================================
+    # Transcription Actions (Phase 12 Plan 02)
+    # =========================================================================
+
+    if action == 'transcribe_audio':
+        audio_path = request.get('audio_path')
+        language = request.get('language', 'en')
+
+        if not audio_path:
+            return {
+                'id': request_id,
+                'success': False,
+                'error': 'Missing required parameter: audio_path'
+            }
+
+        try:
+            trans = get_transcriber()
+            result = trans.transcribe(audio_path, language)
+            return {
+                'id': request_id,
+                'success': True,
+                'data': result
+            }
+        except FileNotFoundError as e:
+            return {
+                'id': request_id,
+                'success': False,
+                'error': str(e)
+            }
+        except Exception as e:
+            return {
+                'id': request_id,
+                'success': False,
+                'error': f'Transcription failed: {str(e)}'
+            }
+
+    if action == 'check_transcription':
+        try:
+            trans = get_transcriber()
+            available = trans.is_available()
+            return {
+                'id': request_id,
+                'success': True,
+                'data': {
+                    'available': available,
+                    'model': trans.model_size if available else None
+                }
+            }
+        except Exception as e:
+            return {
+                'id': request_id,
+                'success': False,
+                'error': f'Failed to check transcription: {str(e)}'
             }
 
     return {

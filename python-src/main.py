@@ -19,6 +19,7 @@ from export.theme import load_theme
 from extractors.llm import OllamaClient, OpenAIClient
 from extractors.llm.schemas import LLMFullExtraction, LLMJDExtraction
 from extractors.llm.prompts import FULL_EXTRACTION_PROMPT, JD_EXTRACTION_PROMPT
+from audio import RecordingSession
 
 # LLM Mode: "local" (Ollama) or "cloud" (OpenAI)
 # Set via SAMSARA_LLM_MODE environment variable
@@ -75,6 +76,27 @@ print(json.dumps({
     "llm_mode": LLM_MODE,
     "model": llm_model
 }), flush=True)
+
+# Recording session singleton (lazy initialization)
+recording_session: RecordingSession = None
+
+
+def get_recording_session() -> RecordingSession:
+    """Get or create the recording session singleton."""
+    global recording_session
+    if recording_session is None:
+        recording_session = RecordingSession()
+    return recording_session
+
+
+def level_callback(source: str, level: float):
+    """Callback for audio level updates - streams JSON to stdout for Electron."""
+    # Print level update as JSON (not a response, just a stream event)
+    print(json.dumps({
+        "type": "level",
+        "source": source,  # 'loopback' or 'mic'
+        "level": round(level, 3)
+    }), flush=True)
 
 
 def handle_request(request: dict) -> dict:
@@ -588,6 +610,84 @@ def handle_request(request: dict) -> dict:
                 'id': request_id,
                 'success': False,
                 'error': f'Error exporting CV: {str(e)}'
+            }
+
+    # =========================================================================
+    # Recording Actions (Phase 12)
+    # =========================================================================
+
+    if action == 'start_recording':
+        output_path = request.get('output_path')
+        if not output_path:
+            return {
+                'id': request_id,
+                'success': False,
+                'error': 'Missing required parameter: output_path'
+            }
+
+        try:
+            session = get_recording_session()
+            result = session.start(output_path, level_callback=level_callback)
+            return {
+                'id': request_id,
+                'success': result.get('success', False),
+                'data': result if result.get('success') else None,
+                'error': result.get('error')
+            }
+        except Exception as e:
+            return {
+                'id': request_id,
+                'success': False,
+                'error': f'Failed to start recording: {str(e)}'
+            }
+
+    if action == 'stop_recording':
+        try:
+            session = get_recording_session()
+            result = session.stop()
+            return {
+                'id': request_id,
+                'success': result.get('success', False),
+                'data': result if result.get('success') else None,
+                'error': result.get('error')
+            }
+        except Exception as e:
+            return {
+                'id': request_id,
+                'success': False,
+                'error': f'Failed to stop recording: {str(e)}'
+            }
+
+    if action == 'get_recording_state':
+        try:
+            session = get_recording_session()
+            state = session.get_state()
+            return {
+                'id': request_id,
+                'success': True,
+                'data': state
+            }
+        except Exception as e:
+            return {
+                'id': request_id,
+                'success': False,
+                'error': f'Failed to get recording state: {str(e)}'
+            }
+
+    if action == 'check_audio_devices':
+        try:
+            session = get_recording_session()
+            devices = session.check_devices()
+            return {
+                'id': request_id,
+                'success': True,
+                'data': devices
+            }
+        except Exception as e:
+            return {
+                'id': request_id,
+                'success': False,
+                'error': f'Failed to check audio devices: {str(e)}'
             }
 
     return {

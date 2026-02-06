@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Architecture as the Advantage - Zero Latency, Zero Egress, Zero Per-Seat Tax
-**Current focus:** M2 Automated Outreach - Phase 11 Complete, Ready for Phase 12
+**Current focus:** M2 Automated Outreach - Phase 12 Complete
 
 ## Current Position
 
-Phase: 12 of 14 (system-audio-transcription) - IN PROGRESS
-Plan: 1 of 2 complete
-Status: In progress
-Last activity: 2026-02-06 — Completed 12-01-PLAN.md (Audio Capture Infrastructure)
+Phase: 12 of 14 (system-audio-transcription) - COMPLETE
+Plan: 2 of 2 complete
+Status: Phase complete
+Last activity: 2026-02-06 - Completed 12-02-PLAN.md (Transcription Integration)
 
-Progress: M2 [████████████░░░░░░] 5.5/6 phases | Phase 12 Plan 1 complete
+Progress: M2 [██████████████████] 6/6 phases | Phase 12 complete
 
 ## MVP Status (Separate Branch)
 
@@ -27,9 +27,9 @@ MVP v0.1.0 shipped on `mvp` branch - see `.planning/RELEASE-WORKFLOW.md` for upd
 
 **Velocity:**
 
-- Total plans completed: 60 (v1: 47, M2 Phase 8: 3, M2 Phase 9: 4, M2 Phase 10: 3, M2 Phase 11: 3)
+- Total plans completed: 62 (v1: 47, M2 Phase 8: 3, M2 Phase 9: 4, M2 Phase 10: 3, M2 Phase 11: 3, M2 Phase 12: 2)
 - Average duration: 11 min
-- Total execution time: ~9 hours
+- Total execution time: ~9.5 hours
 
 ## Accumulated Context
 
@@ -78,6 +78,11 @@ Full decision log in PROJECT.md Key Decisions table.
 - 11-02: VoiceSettings UI, screeningService with VOX-02/VOX-04 prompt, SettingsView tabs
 - 11-03: Claude-based transcript analysis, CallRecordCard, TranscriptViewer, CandidatePanel integration
 
+**Phase 12 completed (2026-02-06):**
+
+- 12-01: Python audio capture module (pyaudiowpatch WASAPI loopback + mic), recording state machine
+- 12-02: faster-whisper transcription, job queue, RecordingPanel UI, recruiter call distinction
+
 | Decision                  | Choice                         | Rationale                                                  |
 | ------------------------- | ------------------------------ | ---------------------------------------------------------- |
 | Credential encryption     | safeStorage (DPAPI/Keychain)   | OS-level encryption, no app secrets                        |
@@ -108,6 +113,9 @@ Full decision log in PROJECT.md Key Decisions table.
 | Dual-stream mixing        | Average (not sum)              | Prevents clipping, both parties audible                    |
 | Target sample rate        | 16kHz mono                     | Whisper optimal format, reduces file size                  |
 | Level streaming           | JSON type="level" stdout       | Fits existing Python IPC pattern, non-blocking             |
+| Transcription model       | faster-whisper small           | Good balance of speed/accuracy on CPU                      |
+| Audio file cleanup        | Delete after transcription     | Save disk space, transcript stored in DB                   |
+| Call type distinction     | Teal vs purple badges          | Easy visual differentiation at a glance                    |
 
 ### Pending Todos
 
@@ -121,24 +129,27 @@ Full decision log in PROJECT.md Key Decisions table.
 - macOS Gatekeeper rejects unsigned Python binaries
 - Voice AI provider space is fast-moving - ElevenLabs + Twilio SIP verified in Phase 11
 - macOS system audio capture deferred (BlackHole requirement)
+- pyaudiowpatch must be installed for actual recording (mocked for imports)
 
 ## Session Continuity
 
 Last session: 2026-02-06
-Stopped at: Completed 12-01-PLAN.md (Audio Capture Infrastructure)
+Stopped at: Completed 12-02-PLAN.md (Transcription Integration)
 Resume file: None
 
 ## Next Steps
 
-**Phase 12: System Audio Recording & Transcription**
+**Phase 12 Complete - M2 Core Features Done**
 
-Plan 01 complete:
+All 6 M2 phases complete:
 
-- Python audio capture module with WASAPI loopback + mic
-- Recording state machine (idle -> recording -> stopped)
-- Electron audioRecordingService with IPC handlers
-- Database migration v10 for transcription status
+- Phase 8: Wheel UI Foundation
+- Phase 9: Communication Infrastructure
+- Phase 10: Workflow Automation
+- Phase 11: AI Voice Screening
+- Phase 12: System Audio Transcription
 
-Ready for Plan 02:
+Ready for:
 
-- 12-02: faster-whisper integration, transcription job queue, transcript attachment to candidate record
+- Phase 13: ATS Browser Extension (Chrome extension for DOM bridge)
+- Phase 14: Polish & Performance

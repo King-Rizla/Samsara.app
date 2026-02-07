@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Architecture as the Advantage - Zero Latency, Zero Egress, Zero Per-Seat Tax
-**Current focus:** M2 Automated Outreach - Phase 12 Complete
+**Current focus:** M2 Automated Outreach - Phase 12.5 Developer Workflow Upgrade
 
 ## Current Position
 
-Phase: 12 of 14 (system-audio-transcription) - COMPLETE
-Plan: 2 of 2 complete
-Status: Phase complete
-Last activity: 2026-02-06 - Completed 12-02-PLAN.md (Transcription Integration)
+Phase: 12.5 of 14 (developer-workflow-upgrade) - READY TO EXECUTE
+Plan: 0 of 3 complete
+Status: Plans created, ready to execute
+Last activity: 2026-02-07 - Phase 12.5 planned (Developer Workflow Upgrade)
 
-Progress: M2 [██████████████████] 6/6 phases | Phase 12 complete
+Progress: M2 [██████████████████░░░░░░] 5/7 phases | Phase 12.5 ready
 
 ## MVP Status (Separate Branch)
 
@@ -122,6 +122,7 @@ Full decision log in PROJECT.md Key Decisions table.
 - **[PERFORMANCE]** LLM extraction takes ~50 seconds - needs optimization
 - **[PROMPT]** JD extraction prompt produces truncated booleans and fewer skills
 - **[DESIGN]** Matching architecture rethink (auto-trigger, project=1 JD)
+- **[WIRING]** Audio level meter pipeline broken - Python emits level data but 4 links unwired (pythonManager drop, setLevelCallback uncalled, no preload listener, store never updated). WaveformMeter always shows empty bars. See VERIFICATION.md in phase 12.
 
 ### Blockers/Concerns
 
@@ -133,23 +134,19 @@ Full decision log in PROJECT.md Key Decisions table.
 
 ## Session Continuity
 
-Last session: 2026-02-06
-Stopped at: Completed 12-02-PLAN.md (Transcription Integration)
+Last session: 2026-02-07
+Stopped at: Phase 12.5 planned, ready to execute
 Resume file: None
 
 ## Next Steps
 
-**Phase 12 Complete - M2 Core Features Done**
+**Phase 12.5: Developer Workflow Upgrade** — 3 plans ready
 
-All 6 M2 phases complete:
+- 12.5-01: Warp Terminal setup + launch configurations
+- 12.5-02: Factory.ai CLI + GitHub App + droid-factory templates
+- 12.5-03: Multi-agent infrastructure (Agent Teams, worktrees, GitHub Apps, reference doc)
 
-- Phase 8: Wheel UI Foundation
-- Phase 9: Communication Infrastructure
-- Phase 10: Workflow Automation
-- Phase 11: AI Voice Screening
-- Phase 12: System Audio Transcription
+Then remaining:
 
-Ready for:
-
-- Phase 13: ATS Browser Extension (Chrome extension for DOM bridge)
-- Phase 14: Polish & Performance
+- Phase 13: ATS Integration (Chrome extension DOM bridge)
+- Phase 14: MVP Packaging & Release

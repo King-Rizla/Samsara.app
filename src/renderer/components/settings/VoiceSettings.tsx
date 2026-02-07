@@ -94,6 +94,15 @@ function ElevenLabsTab({ projectId }: { projectId: string | null }) {
   const [showApiKey, setShowApiKey] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
+  // Test call state
+  const [testPhoneNumber, setTestPhoneNumber] = useState("");
+  const [isCallingTest, setIsCallingTest] = useState(false);
+  const [testCallResult, setTestCallResult] = useState<{
+    success: boolean;
+    error?: string;
+    callId?: string;
+  } | null>(null);
+
   // Load credential status on mount
   useEffect(() => {
     loadCredentialStatus();
@@ -238,6 +247,35 @@ function ElevenLabsTab({ projectId }: { projectId: string | null }) {
     }
   };
 
+  const handleTestCall = async () => {
+    if (!testPhoneNumber.trim()) {
+      setTestCallResult({ success: false, error: "Phone number is required" });
+      return;
+    }
+
+    setIsCallingTest(true);
+    setTestCallResult(null);
+
+    try {
+      const result = await window.api.initiateTestCall(
+        projectId,
+        testPhoneNumber.trim(),
+      );
+      setTestCallResult({
+        success: result.success,
+        error: result.error,
+        callId: result.data?.callId,
+      });
+    } catch (error) {
+      setTestCallResult({
+        success: false,
+        error: error instanceof Error ? error.message : "Test call failed",
+      });
+    } finally {
+      setIsCallingTest(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -349,6 +387,51 @@ function ElevenLabsTab({ projectId }: { projectId: string | null }) {
           {isTesting ? "Testing..." : "Test Connection"}
         </Button>
       </div>
+
+      {/* Test Call Section */}
+      {status === "verified" && (
+        <div className="pt-4 mt-4 border-t border-border space-y-3">
+          <div>
+            <h4 className="font-medium text-sm">Make a Test Call</h4>
+            <p className="text-xs text-muted-foreground mt-1">
+              Enter a phone number to receive a test screening call from the AI
+              agent.
+            </p>
+          </div>
+
+          <div className="flex gap-2">
+            <Input
+              type="tel"
+              value={testPhoneNumber}
+              onChange={(e) => setTestPhoneNumber(e.target.value)}
+              placeholder="+1234567890"
+              className="flex-1"
+            />
+            <Button
+              onClick={handleTestCall}
+              disabled={isCallingTest || !testPhoneNumber.trim()}
+            >
+              {isCallingTest ? "Calling..." : "Call Now"}
+            </Button>
+          </div>
+
+          {testCallResult && !testCallResult.success && (
+            <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+              {testCallResult.error}
+            </div>
+          )}
+
+          {testCallResult?.success && (
+            <div className="p-3 rounded-md bg-green-500/10 text-green-700 dark:text-green-400 text-sm">
+              Call initiated! Call ID: {testCallResult.callId}
+              <p className="text-xs mt-1 opacity-80">
+                You should receive a call shortly. Check the console for status
+                updates.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

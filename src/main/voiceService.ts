@@ -4,7 +4,9 @@
  * Integrates with ElevenLabs Conversational AI for outbound screening calls.
  * Uses polling to retrieve call status (desktop app constraint - no webhooks).
  *
- * ElevenLabs Twilio integration handles:
+ * Uses SIP trunk API (vendor-agnostic) - works with any provider:
+ * - Twilio, SignalWire, Telnyx, Vonage, Bandwidth, etc.
+ * - Users can bring their own phone numbers
  * - Voice AI agent with system prompt
  * - Outbound call initiation via SIP
  * - Turn-taking, interruptions, latency
@@ -151,7 +153,7 @@ function buildDynamicVariables(
  * Per CONTEXT.md: 2-3 minute pre-screening call gathering logistics.
  *
  * Uses ElevenLabs Twilio outbound call API:
- * POST /v1/convai/conversation/twilio/outbound_call
+ * POST /v1/convai/sip-trunk/outbound-call
  *
  * VOX-02 & VOX-04: System prompt is loaded from screeningService and passed
  * via overrides.agent.prompt.prompt to ensure every call uses the screening
@@ -223,10 +225,10 @@ export async function initiateScreeningCall(
       `[VoiceService] Initiating call with system prompt override for project ${params.projectId}`,
     );
 
-    // ElevenLabs Twilio outbound call API
-    // https://elevenlabs.io/docs/api-reference/twilio/outbound-call
+    // ElevenLabs SIP trunk outbound call API (vendor-agnostic)
+    // https://elevenlabs.io/docs/api-reference/sip-trunk/outbound-call
     const response = await fetch(
-      `${ELEVENLABS_API_BASE}/convai/conversation/twilio/outbound_call`,
+      `${ELEVENLABS_API_BASE}/convai/sip-trunk/outbound-call`,
       {
         method: "POST",
         headers: {
@@ -498,4 +500,116 @@ export function storeTranscript(
   ).run(transcriptId, callId, projectId, rawText, summary || null, now);
 
   return transcriptId;
+}
+
+/**
+ * Initiate a test call to verify ElevenLabs integration.
+ * Unlike initiateScreeningCall, this doesn't require a candidate or create
+ * a call record - it's just for testing the voice infrastructure.
+ */
+export async function initiateTestCall(
+  projectId: string | null,
+  phoneNumber: string,
+): Promise<{ success: boolean; callId?: string; error?: string }> {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    return { success: false, error: "ElevenLabs API key not configured" };
+  }
+
+  // Get agent and phone number IDs (project-specific or global)
+  const agentId =
+    (projectId
+      ? getCredential(projectId, "elevenlabs", "screening_agent_id")
+      : null) || getCredential(null, "elevenlabs", "screening_agent_id");
+  const phoneNumberId =
+    (projectId
+      ? getCredential(projectId, "elevenlabs", "phone_number_id")
+      : null) || getCredential(null, "elevenlabs", "phone_number_id");
+
+  if (!agentId || !phoneNumberId) {
+    return {
+      success: false,
+      error: "ElevenLabs agent or phone number not configured",
+    };
+  }
+
+  try {
+    console.log(`[VoiceService] Initiating test call to ${phoneNumber}`);
+
+    // Build minimal request body for test call
+    const requestBody = {
+      agent_id: agentId,
+      agent_phone_number_id: phoneNumberId,
+      to_number: phoneNumber,
+      conversation_initiation_client_data: {
+        dynamic_variables: {
+          candidate_name: "Test User",
+          candidate_first_name: "Test",
+          role_title: "Test Position",
+          company_name: "Test Company",
+        },
+      },
+    };
+
+    const response = await fetch(
+      `${ELEVENLABS_API_BASE}/convai/sip-trunk/outbound-call`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "xi-api-key": apiKey,
+        },
+        body: JSON.stringify(requestBody),
+      },
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(
+        "[VoiceService] Test call API error:",
+        response.status,
+        errorText,
+      );
+      return {
+        success: false,
+        error: `API error: ${response.status} ${errorText}`,
+      };
+    }
+
+    const data = (await response.json()) as ElevenLabsOutboundCallResponse;
+
+    if (!data.conversation_id && !data.call_sid) {
+      return {
+        success: false,
+        error: data.message || "No conversation ID returned",
+      };
+    }
+
+    const conversationId = data.conversation_id || data.call_sid;
+    console.log(`[VoiceService] Test call initiated: ${conversationId}`);
+
+    // Poll for initial status after a short delay
+    setTimeout(async () => {
+      try {
+        const status = await getCallStatus(conversationId!);
+        console.log(
+          `[VoiceService] Test call status:`,
+          JSON.stringify(status, null, 2),
+        );
+      } catch (e) {
+        console.log(`[VoiceService] Could not get test call status:`, e);
+      }
+    }, 5000);
+
+    return {
+      success: true,
+      callId: conversationId || undefined,
+    };
+  } catch (error) {
+    console.error("[VoiceService] Failed to initiate test call:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
 }

@@ -112,6 +112,27 @@ Plans:
 - [x] 12-01-PLAN.md — Python sidecar audio capture (WASAPI loopback + mic), IPC handlers, database migration v10
 - [x] 12-02-PLAN.md — faster-whisper transcriber, floating RecordingPanel UI, call record integration
 
+### Phase 12.5: Developer Workflow Upgrade
+
+**Goal**: Upgrade development environment with Warp Terminal, Factory.ai Droids, GitHub integrations, and multi-agent workflow support for parallel autonomous development
+**Depends on**: Phase 12 (no code dependencies — tooling only)
+**Requirements**: DEV-01 (Warp Terminal), DEV-02 (Factory.ai Droids), DEV-03 (GitHub integrations), DEV-04 (multi-agent workflow)
+**Success Criteria** (what must be TRUE):
+
+1. Warp Terminal installed and configured with Samsara-specific launch configurations (main process, renderer, Python sidecar panes)
+2. Factory.ai CLI installed, authenticated, GitHub App connected to Samsara repo, droid-factory custom templates available
+3. GitHub integrations (CodeRabbit or equivalent) installed for automated PR review
+4. Multi-agent workflow documented and tested — can run parallel Claude Code / Droid sessions on separate projects simultaneously
+5. Reference doc in `.planning/` captures full setup for future onboarding
+
+**Plans**: 3 plans
+
+Plans:
+
+- [ ] 12.5-01-PLAN.md — Warp Terminal installation, shell configuration, Samsara launch configurations
+- [ ] 12.5-02-PLAN.md — Factory.ai CLI + GitHub App + droid-factory templates, Droid configuration
+- [ ] 12.5-03-PLAN.md — Multi-agent infrastructure (Agent Teams, git worktrees, GitHub Apps, reference doc)
+
 ### Phase 13: ATS Integration
 
 **Goal**: Users can map CV and transcript data to ATS fields and push that data into ATS web forms via a Chrome extension DOM bridge

@@ -18,7 +18,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, FileText, Settings, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../ui/sheet";
-import { CommunicationSettings } from "../settings/CommunicationSettings";
+import { SettingsView } from "../settings/SettingsView";
 import { TemplateEditor, TemplateList } from "../templates";
 import { KanbanBoard } from "./KanbanBoard";
 import { CandidatePanel } from "./CandidatePanel";
@@ -92,7 +92,7 @@ export function OutreachSection() {
             onClick={() => setShowCommunication(true)}
           >
             <Settings className="h-4 w-4 mr-1" />
-            Communication
+            Settings
           </Button>
         </div>
       </div>
@@ -111,16 +111,13 @@ export function OutreachSection() {
       {/* Candidate detail panel (side panel) */}
       {projectId && <CandidatePanel projectId={projectId} />}
 
-      {/* Communication settings sheet */}
+      {/* Settings sheet (Communication + Voice tabs) */}
       <Sheet open={showCommunication} onOpenChange={setShowCommunication}>
         <SheetContent
           side="right"
-          className="w-full sm:max-w-xl p-0 overflow-y-auto"
+          className="w-full sm:max-w-xl p-4 overflow-y-auto"
         >
-          <SheetHeader className="p-4 border-b border-border">
-            <SheetTitle>Communication Settings</SheetTitle>
-          </SheetHeader>
-          <CommunicationSettings />
+          <SettingsView />
         </SheetContent>
       </Sheet>
 

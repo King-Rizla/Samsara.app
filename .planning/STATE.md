@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** Architecture as the Advantage - Zero Latency, Zero Egress, Zero Per-Seat Tax
-**Current focus:** M2 Automated Outreach - Phase 12.5 Developer Workflow Upgrade
+**Current focus:** M2 Automated Outreach - Phase 13 ATS Integration
 
 ## Current Position
 
-Phase: 12.5 of 14 (developer-workflow-upgrade) - READY TO EXECUTE
+Phase: 13 of 14 (ats-integration) - NOT STARTED
 Plan: 0 of 3 complete
-Status: Plans created, ready to execute
-Last activity: 2026-02-07 - Phase 12.5 planned (Developer Workflow Upgrade)
+Status: Phase 12.5 removed, Phase 13 is next
+Last activity: 2026-02-07 - Phase 12.5 removed (Developer Workflow Upgrade)
 
-Progress: M2 [██████████████████░░░░░░] 5/7 phases | Phase 12.5 ready
+Progress: M2 [██████████████████░░░░░░] 5/6 phases | Phase 13 next
 
 ## MVP Status (Separate Branch)
 
@@ -135,18 +135,17 @@ Full decision log in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 Last session: 2026-02-07
-Stopped at: Phase 12.5 planned, ready to execute
+Stopped at: Phase 12.5 removed
 Resume file: None
 
 ## Next Steps
 
-**Phase 12.5: Developer Workflow Upgrade** — 3 plans ready
+**Phase 13: ATS Integration** — 3 plans (not yet planned)
 
-- 12.5-01: Warp Terminal setup + launch configurations
-- 12.5-02: Factory.ai CLI + GitHub App + droid-factory templates
-- 12.5-03: Multi-agent infrastructure (Agent Teams, worktrees, GitHub Apps, reference doc)
+- 13-01: Field mapping engine + editor UI, ATS-ready data preview
+- 13-02: Chrome extension (manifest, content scripts, WebSocket bridge to Electron)
+- 13-03: Mock ATS test page, end-to-end DOM fill verification
 
 Then remaining:
 
-- Phase 13: ATS Integration (Chrome extension DOM bridge)
-- Phase 14: MVP Packaging & Release
+- Phase 14: MVP Packaging & Release (complete on mvp branch)
